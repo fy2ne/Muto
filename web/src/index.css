@@ -1,20 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
 :root {
-  --bg-main: #0c0d0e;
-  --bg-surface: #141618;
-  --bg-card: #181a1d;
-  --bg-code: #111215;
-  --border-subtle: #24272b;
-  --border-gold: rgba(245, 158, 11, 0.35);
-  --gold-primary: #f59e0b;
-  --gold-hover: #d97706;
+  --bg-black: #050608;
+  --bg-grid: #090a0d;
+  --grid-line: #14171c;
+  --gold-main: #f59e0b;
+  --gold-light: #fbbf24;
   --gold-muted: #b45309;
-  --gold-tint: rgba(245, 158, 11, 0.08);
-  --gold-border: rgba(245, 158, 11, 0.25);
-  --text-primary: #f0f3f6;
-  --text-secondary: #949ca8;
-  --text-muted: #626973;
+  --gold-dim: rgba(245, 158, 11, 0.12);
+  --gold-border: rgba(245, 158, 11, 0.28);
+  --text-white: #f3f4f6;
+  --text-body: #9ca3af;
+  --text-muted: #6b7280;
+  --badge-bg: #181b20;
+  --badge-border: #2c323b;
 }
 
 * {
@@ -24,9 +23,9 @@
 }
 
 body {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-black);
+  color: var(--text-body);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -35,261 +34,187 @@ code, pre, kbd {
   font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Custom Scrollbar */
+/* Background subtle grid pattern */
+.bg-grid-pattern {
+  background-color: var(--bg-black);
+  background-image: 
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* Key Badge - exact style from Image 2 */
+.key-badge {
+  display: inline-block;
+  background-color: #1a1e24;
+  border: 1px solid #323842;
+  color: #f3f4f6;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  line-height: 1.25;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Top Banner Notice */
+.top-notice-banner {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  padding: 0.55rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #e5e7eb;
+  font-size: 0.86rem;
+}
+
+/* Search input */
+.search-input {
+  background: #0d0f12;
+  border: 1px solid #242933;
+  color: #f3f4f6;
+  border-radius: 5px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.search-input:focus {
+  border-color: var(--gold-main);
+}
+
+/* Section Titles */
+.section-title-gold {
+  color: var(--gold-main);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.75rem;
+}
+
+.category-title {
+  color: #f3f4f6;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.85rem;
+  letter-spacing: -0.01em;
+}
+
+/* Wiki Links */
+.wiki-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #d1d5db;
+  text-decoration: none;
+  font-size: 0.92rem;
+  padding: 0.35rem 0;
+  transition: all 0.12s ease;
+  cursor: pointer;
+}
+
+.wiki-link:hover {
+  color: var(--gold-light);
+  transform: translateX(2px);
+}
+
+.wiki-link svg {
+  color: var(--gold-main);
+  flex-shrink: 0;
+}
+
+/* Article view styles - matching Image 2 */
+.article-container {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.article-section {
+  border-bottom: 1px solid var(--grid-line);
+  padding: 2.25rem 0;
+}
+
+.article-section:first-child {
+  padding-top: 1rem;
+}
+
+.article-title {
+  color: #ffffff;
+  font-size: 1.28rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 1rem;
+}
+
+.step-list {
+  list-style: none;
+  counter-reset: step-counter;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.step-item {
+  counter-increment: step-counter;
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  color: #d1d5db;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.step-item::before {
+  content: counter(step-counter) ".";
+  font-weight: 600;
+  color: #9ca3af;
+  min-width: 1.25rem;
+}
+
+/* Code block in article */
+.code-box {
+  background: #0a0c0f;
+  border: 1px solid #1f242d;
+  border-radius: 6px;
+  margin: 0.85rem 0;
+  overflow: hidden;
+}
+
+.code-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.85rem;
+  background: #111419;
+  border-bottom: 1px solid #1f242d;
+  font-size: 0.78rem;
+  color: #8b949e;
+}
+
+.code-box-pre {
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  color: #e6edf3;
+  line-height: 1.5;
+}
+
+/* Subtle Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f1012;
+  background: #060709;
 }
 ::-webkit-scrollbar-thumb {
-  background: #272a30;
+  background: #1e2229;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #373b43;
-}
-
-/* Layout Grid */
-.wiki-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  min-height: 100vh;
-}
-
-@media (max-width: 900px) {
-  .wiki-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Sidebar */
-.wiki-sidebar {
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Content Area */
-.wiki-content {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2.5rem 3rem 6rem;
-  width: 100%;
-}
-
-@media (max-width: 900px) {
-  .wiki-content {
-    padding: 1.5rem 1.25rem 4rem;
-  }
-}
-
-/* Typography */
-h1 {
-  font-size: 2.25rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: #ffffff;
-  margin-bottom: 0.75rem;
-}
-
-h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  margin-top: 2.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #f3f4f6;
-  margin-top: 1.75rem;
-  margin-bottom: 0.6rem;
-}
-
-p {
-  color: var(--text-secondary);
-  margin-bottom: 1.1rem;
-  font-size: 0.96rem;
-  line-height: 1.65;
-}
-
-/* Callout Box */
-.callout {
-  border-left: 3px solid var(--gold-primary);
-  background: var(--gold-tint);
-  border-radius: 0 6px 6px 0;
-  padding: 0.85rem 1.15rem;
-  margin: 1.25rem 0;
-  font-size: 0.92rem;
-  color: #e5e7eb;
-}
-
-.callout-info {
-  border-left-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.08);
-}
-
-.callout strong {
-  color: #ffffff;
-}
-
-/* Code Blocks */
-.code-block {
-  background: var(--bg-code);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  margin: 1.25rem 0;
-  overflow: hidden;
-}
-
-.code-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: #15171a;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.code-content {
-  padding: 1rem;
-  overflow-x: auto;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: #e6edf3;
-}
-
-.inline-code {
-  background: #1a1d21;
-  border: 1px solid #282c33;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.85em;
-  color: #fbbf24;
-}
-
-/* Cards & Badges */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 1.25rem;
-  transition: border-color 0.15s ease;
-}
-
-.card:hover {
-  border-color: #383c44;
-}
-
-.badge-gold {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.badge-green {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-/* Buttons */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--gold-primary);
-  color: #0c0d0e;
-  font-weight: 600;
-  font-size: 0.88rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: background-color 0.15s ease;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background: var(--gold-hover);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #1e2125;
-  color: #e5e7eb;
-  font-weight: 500;
-  font-size: 0.88rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: 6px;
-  text-decoration: none;
-  border: 1px solid var(--border-subtle);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background: #272a30;
-  border-color: #3a3f47;
-  color: #ffffff;
-}
-
-/* Tables */
-.wiki-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.25rem 0;
-  font-size: 0.9rem;
-}
-
-.wiki-table th {
-  text-align: left;
-  padding: 0.65rem 0.9rem;
-  background: #141618;
-  color: #f3f4f6;
-  border-bottom: 1px solid var(--border-subtle);
-  font-weight: 600;
-}
-
-.wiki-table td {
-  padding: 0.65rem 0.9rem;
-  border-bottom: 1px solid #1c1f24;
-  color: var(--text-secondary);
-}
-
-.wiki-table tr:hover td {
-  background: #121417;
+  background: #2d333e;
 }

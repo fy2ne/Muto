@@ -1,22 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  RotateCw, 
-  BookOpen, 
-  Cpu, 
-  Layers, 
-  ShieldCheck, 
-  Terminal, 
-  Sliders, 
-  Code2, 
-  HelpCircle, 
-  ExternalLink, 
-  Check, 
-  Copy, 
+import {
+  RotateCw,
+  Cpu,
+  Layers,
+  ShieldCheck,
+  Sliders,
+  Code2,
+  HelpCircle,
+  ExternalLink,
+  Check,
+  Copy,
   Search,
-  Sparkles,
-  ArrowRight,
-  Server,
-  Download
+  Download,
+  Info,
+  ArrowLeft,
+  Bell,
+  Lock,
+  History,
+  FileCode,
+  Terminal,
+  Zap,
+  Wrench,
+  BookOpen
 } from 'lucide-react';
 
 function GithubIcon({ size = 15, style = {} }) {
@@ -28,7 +33,7 @@ function GithubIcon({ size = 15, style = {} }) {
   );
 }
 
-function CodeBlock({ code, language = "java", filename }) {
+function CodeBox({ code, language = "java", filename }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -38,19 +43,29 @@ function CodeBlock({ code, language = "java", filename }) {
   };
 
   return (
-    <div className="code-block">
-      <div className="code-header">
+    <div className="code-box">
+      <div className="code-box-header">
         <span>{filename || language}</span>
         <button
           onClick={handleCopy}
-          className="btn-secondary"
-          style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', height: '24px' }}
+          style={{
+            background: '#1c2028',
+            border: '1px solid #303744',
+            color: '#e5e7eb',
+            borderRadius: '4px',
+            padding: '0.15rem 0.5rem',
+            fontSize: '0.74rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem'
+          }}
         >
-          {copied ? <Check size={12} color="#22c55e" /> : <Copy size={12} />}
+          {copied ? <Check size={11} color="#22c55e" /> : <Copy size={11} />}
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre className="code-content">
+      <pre className="code-box-pre">
         <code>{code}</code>
       </pre>
     </div>
@@ -58,404 +73,86 @@ function CodeBlock({ code, language = "java", filename }) {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [gradleTab, setGradleTab] = useState('groovy');
+  const [selectedArticle, setSelectedArticle] = useState(null);
 
-  const navItems = [
-    { id: 'overview', title: 'Overview & Philosophy', icon: BookOpen },
-    { id: 'getting-started', title: 'Installation & Setup', icon: Download },
-    { id: 'pipeline', title: 'The Hot-Swap Engine', icon: Cpu },
-    { id: 'resourcify-guide', title: 'External Mod Integration', icon: Layers, highlight: true },
-    { id: 'api-reference', title: 'Public API Reference', icon: Code2 },
-    { id: 'config-screen', title: 'In-Game UI & Controls', icon: Sliders },
-    { id: 'faq', title: 'Technical FAQ & JBR', icon: HelpCircle },
-  ];
-
-  const filteredNav = useMemo(() => {
-    if (!searchQuery.trim()) return navItems;
-    const q = searchQuery.toLowerCase();
-    return navItems.filter(item => item.title.toLowerCase().includes(q));
-  }, [searchQuery]);
-
-  return (
-    <div className="wiki-layout">
-      {/* Sidebar */}
-      <aside className="wiki-sidebar">
-        <div style={{ padding: '1.5rem 1.25rem 1rem', borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <img 
-              src="/icon.png" 
-              alt="Muto Logo" 
-              style={{ width: '32px', height: '32px', borderRadius: '6px' }}
-            />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                Muto
-                <span className="badge-gold" style={{ fontSize: '0.65rem', padding: '0.1rem 0.45rem' }}>0.1.0-beta.1</span>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fabric Mod Reloader</div>
-            </div>
-          </div>
-
-          {/* Search box */}
-          <div style={{ position: 'relative', marginTop: '0.75rem' }}>
-            <Search size={14} style={{ position: 'absolute', left: '10px', top: '9px', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              placeholder="Search docs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                background: '#0e0f11',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '6px',
-                padding: '0.4rem 0.6rem 0.4rem 2rem',
-                fontSize: '0.82rem',
-                color: '#fff',
-                outline: 'none'
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Navigation links */}
-        <nav style={{ padding: '0.85rem 0.75rem', flex: 1 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0.4rem 0.6rem 0.6rem' }}>
-            Documentation
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {filteredNav.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    width: '100%',
-                    padding: '0.5rem 0.65rem',
-                    borderRadius: '6px',
-                    fontSize: '0.86rem',
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#fff' : (item.highlight ? '#f59e0b' : 'var(--text-secondary)'),
-                    background: isActive ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
-                    border: isActive ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.12s ease'
-                  }}
-                >
-                  <Icon size={15} color={isActive ? '#f59e0b' : (item.highlight ? '#f59e0b' : 'currentColor')} />
-                  <span>{item.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* External Links */}
-        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <a
-            href="https://github.com/fy2ne/muto"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-            style={{ fontSize: '0.8rem', justifyContent: 'center' }}
-          >
-            <GithubIcon size={14} />
-            <span>GitHub Repository</span>
-            <ExternalLink size={12} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-          </a>
-          <a
-            href="https://modrinth.com/project/muto"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-            style={{ fontSize: '0.8rem', justifyContent: 'center' }}
-          >
-            <Download size={14} />
-            <span>Download on Modrinth</span>
-            <ExternalLink size={12} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-          </a>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="wiki-content">
-        {/* Top Header Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span className="badge-green">Minecraft 26.3 Compatible</span>
-            <span className="badge-gold">Java 25+ Required</span>
-          </div>
-          <div style={{ display: 'flex', gap: '0.6rem' }}>
-            <a
-              href="https://github.com/fy2ne/muto"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              <GithubIcon size={15} />
-              <span>Star on GitHub</span>
-            </a>
-            <a
-              href="https://modrinth.com/project/muto"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary"
-            >
-              <Download size={15} />
-              <span>Get Mod Jar</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Section: Overview */}
-        {activeSection === 'overview' && (
-          <div>
-            <h1>Muto Architecture & Overview</h1>
-            <p style={{ fontSize: '1.05rem', color: '#d1d5db' }}>
-              <strong>Muto</strong> is a dynamic runtime mod reloader and hot-swap pipeline for Fabric. It allows players and developers to add, update, or remove mod jars in <code className="inline-code">.minecraft/mods/</code> and apply those changes live from the title screen without terminating the JVM or relaunching the game.
-            </p>
-
-            <div className="callout">
-              <strong>Zero-Restart Iteration:</strong> Instead of waiting 45 to 90 seconds for Minecraft to reboot every time you tweak a mod or drop in a new utility jar, Muto executes the reload pass in under 500 milliseconds.
-            </div>
-
-            <h2>How It Works</h2>
-            <p>
-              Traditional Minecraft modding treats mod discovery and initialization as a strictly immutable startup event. Once Fabric’s root classloader initializes, jar files are held open and entrypoints cannot be re-executed.
-            </p>
-            <p>
-              Muto breaks this limitation through four interlocking architectural components:
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', margin: '1.5rem 0' }}>
-              <div className="card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  <Cpu size={16} />
-                  <span>1. Child ClassLoaders</span>
-                </div>
-                <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                  Reloadable mods are mounted into isolated <code className="inline-code">MutoClassLoader</code> instances that can be dereferenced and garbage-collected upon swap.
-                </div>
-              </div>
-
-              <div className="card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  <Layers size={16} />
-                  <span>2. Registry Thawing</span>
-                </div>
-                <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                  Temporarily unfreezes Minecraft’s <code className="inline-code">MappedRegistry</code> during reload, permitting new blocks, items, and identifiers to register safely.
-                </div>
-              </div>
-
-              <div className="card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  <ShieldCheck size={16} />
-                  <span>3. Atomic Rollback</span>
-                </div>
-                <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                  If a newly added or updated mod throws an exception during initialization, Muto halts the swap and safely rolls back to the prior stable mod snapshot.
-                </div>
-              </div>
-
-              <div className="card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  <RotateCw size={16} />
-                  <span>4. JBR & DCEVM Hooks</span>
-                </div>
-                <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                  Leverages enhanced bytecode redefinition on the JetBrains Runtime when present to hot-swap existing loaded classes in place.
-                </div>
-              </div>
-            </div>
-
-            <h2>Mod Classification Tiers</h2>
-            <p>
-              To protect JVM stability, Muto classifies all detected jars into three operational tiers:
-            </p>
-            <table className="wiki-table">
-              <thead>
-                <tr>
-                  <th>Tier</th>
-                  <th>Examples</th>
-                  <th>Behavior</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong style={{ color: '#22c55e' }}>Clean</strong></td>
-                  <td>AppleSkin, FPS Reducer, FullBright, Transition</td>
-                  <td>Client-side tweaks & UI mods. Instant hot-swapping without touching world registries.</td>
-                </tr>
-                <tr>
-                  <td><strong style={{ color: '#f59e0b' }}>Standard</strong></td>
-                  <td>Distant Horizons, Structory, Waystones</td>
-                  <td>Content mods adding items/blocks. Managed through child classloader rotation and registry thawing.</td>
-                </tr>
-                <tr>
-                  <td><strong style={{ color: '#ef4444' }}>Stubborn / Core</strong></td>
-                  <td>Fabric Loader, Fabric API, Minecraft Engine</td>
-                  <td>Locked in the root loader. Protected from redefinition to prevent native linkage corruption.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Section: Getting Started */}
-        {activeSection === 'getting-started' && (
-          <div>
-            <h1>Installation & Setup</h1>
-            <p>Getting started with Muto takes under two minutes. No configuration files required by default.</p>
-
-            <h2>System Requirements</h2>
-            <table className="wiki-table">
-              <thead>
-                <tr>
-                  <th>Component</th>
-                  <th>Required Version</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Minecraft</td>
-                  <td><code className="inline-code">26.3</code></td>
-                  <td>Java Edition</td>
-                </tr>
-                <tr>
-                  <td>Fabric Loader</td>
-                  <td><code className="inline-code">≥ 0.16.0</code></td>
-                  <td>Official Fabric runtime</td>
-                </tr>
-                <tr>
-                  <td>Fabric API</td>
-                  <td><code className="inline-code">0.161.0+26.3</code></td>
-                  <td>Standard API module</td>
-                </tr>
-                <tr>
-                  <td>Java Runtime</td>
-                  <td><code className="inline-code">Java 25+</code></td>
-                  <td>Recommended: JetBrains Runtime (JBR)</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <h2>Installation Steps</h2>
-            <ol style={{ paddingLeft: '1.25rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <li>
-                Download the latest <strong style={{ color: '#fff' }}>muto-0.1.0-beta.1.jar</strong> from <a href="https://modrinth.com/project/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>Modrinth</a>.
-              </li>
-              <li>
-                Place the jar into your <code className="inline-code">.minecraft/mods/</code> directory along with Fabric API.
-              </li>
-              <li>
-                Launch Minecraft. You will see an official circular reload button (<strong style={{ color: '#fff' }}>↻</strong>) on your main title screen.
-              </li>
-            </ol>
-
-            <div className="callout" style={{ marginTop: '1.5rem' }}>
-              <strong>Optional JVM Flag for Enhanced Swapping:</strong> Add <code className="inline-code">-XX:+AllowEnhancedClassRedefinition</code> to your launcher's JVM arguments if running on JetBrains Runtime. Muto detects this flag automatically and reports it in its diagnostics screen.
-            </div>
-          </div>
-        )}
-
-        {/* Section: Pipeline */}
-        {activeSection === 'pipeline' && (
-          <div>
-            <h1>The Hot-Swap Engine</h1>
-            <p>
-              When the user clicks the title screen reload button or an external mod invokes <code className="inline-code">MutoApi.reloadAsync()</code>, the engine executes a strict 5-stage transactional pipeline:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '1.5rem 0' }}>
-              <div className="card" style={{ borderLeft: '3px solid #f59e0b' }}>
-                <strong style={{ color: '#fff' }}>Stage 1: Preflight & Diff Calculation</strong>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.88rem' }}>
-                  Scans <code className="inline-code">/mods</code> using robust file-lock backoff and Gson parsing. Compares the disk state against the active <code className="inline-code">ModSnapshot</code> to compute <code className="inline-code">ModDiff</code> (added, removed, updated). If no changes exist, returns early as a zero-latency no-op.
-                </p>
-              </div>
-
-              <div className="card" style={{ borderLeft: '3px solid #f59e0b' }}>
-                <strong style={{ color: '#fff' }}>Stage 2: Event Notification & Cleanup</strong>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.88rem' }}>
-                  Fires <code className="inline-code">MutoEvents.RELOAD_START</code>. Other mods subscribing to this hook tear down static caches, cancel scheduled network tasks, and release references to target classes.
-                </p>
-              </div>
-
-              <div className="card" style={{ borderLeft: '3px solid #f59e0b' }}>
-                <strong style={{ color: '#fff' }}>Stage 3: Child ClassLoader Rotation</strong>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.88rem' }}>
-                  The existing child <code className="inline-code">MutoClassLoader</code> is detached and closed. A fresh instance is created, pointing to the updated set of jar URLs. Removed jars are fully unmounted.
-                </p>
-              </div>
-
-              <div className="card" style={{ borderLeft: '3px solid #f59e0b' }}>
-                <strong style={{ color: '#fff' }}>Stage 4: Registry Thawing & Entrypoint Execution</strong>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.88rem' }}>
-                  Thaws <code className="inline-code">BuiltInRegistries</code>. Instantiates entrypoints for added and updated mods (<code className="inline-code">ModInitializer</code>, <code className="inline-code">ClientModInitializer</code>), records new instances, and immediately refreezes registries.
-                </p>
-              </div>
-
-              <div className="card" style={{ borderLeft: '3px solid #22c55e' }}>
-                <strong style={{ color: '#fff' }}>Stage 5: Asset Refresh & Toast Dispatch</strong>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.88rem' }}>
-                  Fires <code className="inline-code">MutoEvents.RELOAD_FINISH</code>. Flushes the client's texture cache and resource managers, updates ModMenu's cache, and renders a native Mojang <code className="inline-code">SystemToast</code> indicating the mods added and duration.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Section: Resourcify Guide */}
-        {activeSection === 'resourcify-guide' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span className="badge-gold">Partner Integration Specification</span>
-            </div>
-            <h1>External Mod Integration Guide</h1>
-            <p style={{ fontSize: '1.05rem', color: '#d1d5db' }}>
-              This guide is written for mod managers, in-game downloaders (such as <strong>Resourcify</strong>), and dev tools that want to provide instant, restartless mod installation.
-            </p>
-
-            <h2>The Soft-Dependency Philosophy</h2>
-            <p>
-              You do <strong>not</strong> need to make Muto a required dependency for your mod. Using Fabric’s soft-dependency pattern, your mod functions normally for users without Muto (prompting them to restart Minecraft), while automatically unlocking <strong>instant hot-reloading</strong> when Muto is installed.
-            </p>
-
-            <h2>1. Add Gradle Dependency</h2>
-            <p>Add the Muto API as a <code className="inline-code">compileOnly</code> or <code className="inline-code">modCompileOnly</code> dependency in your build script:</p>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <button
-                className={gradleTab === 'groovy' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setGradleTab('groovy')}
-                style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
-              >
-                build.gradle (Groovy)
-              </button>
-              <button
-                className={gradleTab === 'kotlin' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setGradleTab('kotlin')}
-                style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
-              >
-                build.gradle.kts (Kotlin)
-              </button>
-            </div>
-
-            {gradleTab === 'groovy' ? (
-              <CodeBlock
-                language="groovy"
-                filename="build.gradle"
-                code={`repositories {
+  // Articles data formatted with steps and key badges (Image 2 style)
+  const articles = {
+    'start-reloading': {
+      title: 'Hot-Reloading Mods on the Fly',
+      category: 'Live Reload Engine',
+      sections: [
+        {
+          title: 'Adding a new mod jar',
+          steps: [
+            <>Exit to the <span className="key-badge">Title Screen</span> of Minecraft (never reload inside a live world).</>,
+            <>Open your Minecraft instance directory and navigate to the <span className="key-badge">mods</span> folder.</>,
+            <>Copy or move your new mod jar file (e.g. <span className="key-badge">appleskin-fabric-*.jar</span>) into the <span className="key-badge">mods</span> folder.</>,
+            <>Return to Minecraft and click the yellow circular <span className="key-badge">↻ Reload</span> button on the title screen.</>,
+            <>Wait for the reload sequence. A native toast notification will appear in the top-right corner confirming <span className="key-badge">+1 added</span> with the exact reload duration in milliseconds.</>
+          ]
+        },
+        {
+          title: 'Updating an existing mod jar',
+          steps: [
+            <>Return to the <span className="key-badge">Title Screen</span>.</>,
+            <>Replace the older jar in <span className="key-badge">mods/</span> with the new updated version.</>,
+            <>Press the <span className="key-badge">↻ Reload</span> button.</>,
+            <>Muto rotates the child classloader, unbinds the old jar references, and re-initializes entrypoints cleanly.</>
+          ]
+        },
+        {
+          title: 'Removing or disabling a mod',
+          steps: [
+            <>On the <span className="key-badge">Title Screen</span>, delete the mod jar or append <span className="key-badge">.disabled</span> to its filename.</>,
+            <>Click the <span className="key-badge">↻ Reload</span> button.</>,
+            <>Muto detects the removal, notifies listeners via <span className="key-badge">MutoEvents.RELOAD_FINISH</span>, and unregisters its resources.</>
+          ]
+        }
+      ]
+    },
+    'resourcify-guide': {
+      title: 'Resourcify & In-Game Downloader Integration',
+      category: 'For Developers',
+      sections: [
+        {
+          title: 'How soft-dependency integration works',
+          desc: 'External mods (like Resourcify) can allow players to search and download mods in-game, automatically hot-reloading them with Muto without restarting the client.',
+          steps: [
+            <>Add Muto API as a <span className="key-badge">modCompileOnly</span> dependency in your <span className="key-badge">build.gradle</span>.</>,
+            <>Add <span className="key-badge">"muto": "&gt;=0.1.0-beta.1"</span> under <span className="key-badge">suggests</span> in your <span className="key-badge">fabric.mod.json</span>.</>,
+            <>When your downloader finishes saving a jar to disk, query <span className="key-badge">FabricLoader.getInstance().isModLoaded("muto")</span>.</>,
+            <>If Muto is active, verify <span className="key-badge">MutoApi.isSafeToReload()</span> and invoke <span className="key-badge">MutoApi.reloadAsync()</span>.</>,
+            <>If Muto is absent, display a fallback message: <span className="key-badge">Restart Minecraft to apply</span>.</>
+          ],
+          codeSnippet: {
+            filename: 'DownloaderIntegration.java',
+            code: `// Soft-dependency check
+if (FabricLoader.getInstance().isModLoaded("muto")) {
+    if (me.fy2ne.muto.api.MutoApi.isSafeToReload()) {
+        me.fy2ne.muto.api.MutoApi.reloadAsync().thenAccept(result -> {
+            if (result.success()) {
+                System.out.println("Mod active! Hot-swapped in " + result.durationMs() + "ms");
+            }
+        });
+    } else {
+        notifyPlayer("Mod downloaded. Return to Title Screen to apply without restart.");
+    }
+} else {
+    notifyPlayer("Mod downloaded. Restart Minecraft to apply changes.");
+}`
+          }
+        },
+        {
+          title: 'Gradle dependency configuration',
+          steps: [
+            <>Open your project's <span className="key-badge">build.gradle</span>.</>,
+            <>Add the Modrinth Maven repository to your <span className="key-badge">repositories</span> block.</>,
+            <>Declare the Muto dependency using <span className="key-badge">modCompileOnly</span>.</>
+          ],
+          codeSnippet: {
+            filename: 'build.gradle',
+            code: `repositories {
     maven {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
@@ -463,244 +160,384 @@ export default function App() {
 }
 
 dependencies {
-    // Soft compile-only dependency on Muto API
     modCompileOnly "maven.modrinth:muto:0.1.0-beta.1"
-}`}
-              />
-            ) : (
-              <CodeBlock
-                language="kotlin"
-                filename="build.gradle.kts"
-                code={`repositories {
-    maven("https://api.modrinth.com/maven") {
-        name = "Modrinth"
-    }
-}
-
-dependencies {
-    // Soft compile-only dependency on Muto API
-    modCompileOnly("maven.modrinth:muto:0.1.0-beta.1")
-}`}
-              />
-            )}
-
-            <h2>2. Declare Soft Suggestion in <code className="inline-code">fabric.mod.json</code></h2>
-            <p>Add Muto under <code className="inline-code">suggests</code> so users know live reloading is available:</p>
-
-            <CodeBlock
-              language="json"
-              filename="src/main/resources/fabric.mod.json"
-              code={`"suggests": {
-    "muto": ">=0.1.0-beta.1"
-}`}
-            />
-
-            <h2>3. Runtime Detection & Reload Trigger</h2>
-            <p>
-              When your downloader finishes saving a <code className="inline-code">.jar</code> file into <code className="inline-code">.minecraft/mods/</code>, check if Muto is present and invoke the reload pipeline:
-            </p>
-
-            <CodeBlock
-              language="java"
-              filename="DownloaderIntegration.java"
-              code={`package com.example.mod;
-
-import net.fabricmc.loader.api.FabricLoader;
-import java.nio.file.Path;
-
-public class ModInstaller {
-
-    public static void onDownloadComplete(Path downloadedJar) {
-        // 1. Check if Muto is installed
-        if (FabricLoader.getInstance().isModLoaded("muto")) {
-            applyWithMuto();
-        } else {
-            // Fallback for players without Muto
-            notifyPlayer("Mod downloaded. Restart Minecraft to apply changes.");
+}`
+          }
         }
-    }
-
-    private static void applyWithMuto() {
-        // Safe check: verify player is on the Title Screen
-        if (!me.fy2ne.muto.api.MutoApi.isSafeToReload()) {
-            notifyPlayer("Mod installed! Return to Title Screen to apply without restart.");
-            return;
+      ]
+    },
+    'mod-tiers': {
+      title: 'Mod Classification Tiers',
+      category: 'Mod Classification',
+      sections: [
+        {
+          title: 'Understanding Clean, Standard, and Stubborn mods',
+          steps: [
+            <><strong style={{ color: '#22c55e' }}>Clean Mods:</strong> Client-side tweaks, UI helpers, HUDs, and visual mods. They reload instantly without mutating registry topologies.</>,
+            <><strong style={{ color: '#f59e0b' }}>Standard Mods:</strong> Mods registering custom blocks, items, or recipes. Handled by Muto through child classloader rotation and registry thawing.</>,
+            <><strong style={{ color: '#ef4444' }}>Stubborn / Core Mods:</strong> Foundational modules (Fabric Loader, Fabric API, core mixins). Locked in the root classloader to preserve native JVM memory safety.</>
+          ]
         }
-
-        // Trigger asynchronous hot-reload
-        notifyPlayer("Hot-reloading mod...");
-        me.fy2ne.muto.api.MutoApi.reloadAsync().thenAccept(result -> {
-            if (result.success()) {
-                notifyPlayer("Mod active! Reloaded in " + result.durationMs() + "ms");
-            } else {
-                notifyPlayer("Reload encountered an error: " + result.error());
-            }
-        });
+      ]
+    },
+    'file-locks': {
+      title: 'Windows File Locking & Shadow Cache',
+      category: 'Troubleshooting',
+      sections: [
+        {
+          title: 'Resolving "File in use by another process"',
+          desc: 'Windows locks open jar files from being overwritten or deleted. Muto implements an automated shadow-cache architecture to eliminate this issue.',
+          steps: [
+            <>When dropping large jars into <span className="key-badge">mods/</span>, Windows Explorer briefly locks the file during copy.</>,
+            <>Muto uses an exponential retry loop with 120ms backoff when inspecting jar headers.</>,
+            <>Jar contents are mapped through sandboxed memory buffers so the operating system lock is safely released.</>,
+            <>If a file remains locked by another application (e.g. antivirus), Muto flags it with a retry toast rather than crashing the client.</>
+          ]
+        }
+      ]
+    },
+    'jbr-setup': {
+      title: 'JetBrains Runtime (JBR) & DCEVM Setup',
+      category: 'Installation',
+      sections: [
+        {
+          title: 'Enabling advanced class redefinition',
+          steps: [
+            <>Download and install <span className="key-badge">JetBrains Runtime 25</span> with DCEVM support.</>,
+            <>In your Minecraft launcher, edit your installation profile.</>,
+            <>Under <span className="key-badge">Java Executable</span>, browse and select the JBR <span className="key-badge">bin/java.exe</span>.</>,
+            <>In <span className="key-badge">JVM Arguments</span>, append the flag: <span className="key-badge">-XX:+AllowEnhancedClassRedefinition</span>.</>,
+            <>Launch Minecraft. Open Muto's Cloth Config screen to verify that enhanced class redefinition is detected.</>
+          ]
+        }
+      ]
+    },
+    'api-reference': {
+      title: 'Muto Public API Reference',
+      category: 'For Developers',
+      sections: [
+        {
+          title: 'Class MutoApi methods',
+          steps: [
+            <><span className="key-badge">MutoApi.isAvailable()</span> — Returns true if Muto is active in Fabric.</>,
+            <><span className="key-badge">MutoApi.isReloading()</span> — Returns true if a reload transaction is currently running.</>,
+            <><span className="key-badge">MutoApi.isSafeToReload()</span> — Returns true if client is safely on the Title Screen.</>,
+            <><span className="key-badge">MutoApi.reloadAsync()</span> — Dispatches non-blocking hot-reload returning CompletableFuture.</>,
+            <><span className="key-badge">MutoApi.getReloadableModIds()</span> — Returns tracked mod IDs eligible for live reloading.</>
+          ],
+          codeSnippet: {
+            filename: 'me.fy2ne.muto.api.MutoApi',
+            code: `public final class MutoApi {
+    public static boolean isAvailable();
+    public static boolean isReloading();
+    public static boolean isSafeToReload();
+    public static CompletableFuture<ReloadResult> reloadAsync();
+    public static Set<String> getReloadableModIds();
+    public static Set<String> getStubbornModIds();
+}`
+          }
+        }
+      ]
+    },
+    'config-screen': {
+      title: 'In-Game Cloth Config Screen',
+      category: 'Settings & Profiles',
+      sections: [
+        {
+          title: 'Accessing and configuring Muto',
+          steps: [
+            <>Open the Minecraft <span className="key-badge">Title Screen</span> or ModMenu.</>,
+            <>Click the <span className="key-badge">Muto</span> config button.</>,
+            <>In the <span className="key-badge">Loaded Mods</span> tab, review all active jars, versions, and classification tiers.</>,
+            <>In the <span className="key-badge">Settings</span> tab, toggle reload confirmation modals, toast alerts, or Modrinth updates. Click the <span className="key-badge">↺</span> button to reset any value to default.</>,
+            <>In the <span className="key-badge">Developer Suite</span>, enable heap delta logging or preflight bypass for benchmarking.</>
+          ]
+        }
+      ]
     }
+  };
 
-    private static void notifyPlayer(String msg) {
-        // Your custom toast or in-game message dispatch
-        System.out.println("[Installer] " + msg);
+  const featureCategories = [
+    {
+      category: 'Live Reload Engine',
+      items: [
+        { id: 'start-reloading', label: 'Start Reloading', icon: RotateCw },
+        { id: 'start-reloading', label: 'Title Screen Trigger (↻)', icon: Sliders },
+        { id: 'start-reloading', label: 'Safe Execution Guard', icon: ShieldCheck },
+      ]
+    },
+    {
+      category: 'Mod Classification',
+      items: [
+        { id: 'mod-tiers', label: 'Clean Mods (UI / Tweaks)', icon: Zap },
+        { id: 'mod-tiers', label: 'Standard Mods (Content)', icon: Cpu },
+        { id: 'mod-tiers', label: 'Stubborn / Core Mods', icon: Lock },
+      ]
+    },
+    {
+      category: 'Ecosystem & Sync',
+      items: [
+        { id: 'start-reloading', label: 'ModMenu Sync Hook', icon: Terminal },
+        { id: 'start-reloading', label: 'Mojang Native Toasts', icon: Bell },
+        { id: 'resourcify-guide', label: 'Modrinth Update Jewels', icon: Download },
+      ]
+    },
+    {
+      category: 'Settings & Profiles',
+      items: [
+        { id: 'config-screen', label: 'Cloth Config UI', icon: Sliders },
+        { id: 'config-screen', label: 'Developer Suite Flags', icon: Code2 },
+        { id: 'config-screen', label: 'Reload History Log', icon: History },
+      ]
     }
-}`}
+  ];
+
+  const guideCategories = [
+    {
+      category: 'Troubleshooting',
+      items: [
+        { id: 'file-locks', label: 'Windows File Locks (Shadow Cache)', icon: Wrench },
+        { id: 'mod-tiers', label: 'Mixin Reload Boundaries', icon: HelpCircle },
+        { id: 'file-locks', label: 'Crash Logs & Rollback Protection', icon: ShieldCheck },
+      ]
+    },
+    {
+      category: 'Installation',
+      items: [
+        { id: 'jbr-setup', label: 'Fabric Loader 26.3 Setup', icon: Download },
+        { id: 'jbr-setup', label: 'JetBrains Runtime (JBR)', icon: Cpu },
+        { id: 'jbr-setup', label: 'JVM Launch Flags', icon: Terminal },
+      ]
+    },
+    {
+      category: 'For Developers / Integrators',
+      items: [
+        { id: 'resourcify-guide', label: 'Resourcify & Downloader Integration', icon: Layers },
+        { id: 'resourcify-guide', label: 'Soft Dependency Pattern', icon: FileCode },
+        { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
+        { id: 'api-reference', label: 'MutoEvents Lifecycle Hooks', icon: RotateCw },
+      ]
+    }
+  ];
+
+  const currentArticle = selectedArticle ? articles[selectedArticle] : null;
+
+  return (
+    <div className="bg-grid-pattern" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Navigation Bar */}
+      <header style={{ borderBottom: '1px solid var(--grid-line)', background: '#050608' }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div 
+            onClick={() => { setSelectedArticle(null); setSearchQuery(''); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+          >
+            <img 
+              src="/icon.png" 
+              alt="Muto Logo" 
+              style={{ width: '28px', height: '28px', borderRadius: '5px' }}
             />
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <span style={{ fontWeight: 700, fontSize: '1.15rem', color: '#fff', letterSpacing: '-0.02em' }}>Muto</span>
+              <span style={{ color: 'var(--gold-main)', fontSize: '0.82rem', fontWeight: 600 }}>Wiki &amp; Docs</span>
+            </div>
+          </div>
 
-            <div className="callout callout-info" style={{ marginTop: '1.5rem' }}>
-              <strong>Safety Guaranteed:</strong> <code className="inline-code">MutoApi.isSafeToReload()</code> returns <code className="inline-code">true</code> only when the client is at the main title screen and not connected to an active singleplayer world or multiplayer server.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <a
+              href="https://github.com/fy2ne/muto"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                background: '#121418',
+                border: '1px solid #242933',
+                color: '#e5e7eb',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '5px',
+                fontSize: '0.82rem',
+                textDecoration: 'none'
+              }}
+            >
+              <GithubIcon size={14} />
+              <span>GitHub</span>
+            </a>
+            <a
+              href="https://modrinth.com/project/muto"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                background: 'var(--gold-main)',
+                color: '#050608',
+                fontWeight: 600,
+                padding: '0.35rem 0.85rem',
+                borderRadius: '5px',
+                fontSize: '0.82rem',
+                textDecoration: 'none'
+              }}
+            >
+              <Download size={14} />
+              <span>Modrinth</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main style={{ flex: 1, maxWidth: '1240px', width: '100%', margin: '0 auto', padding: '1.75rem 1.5rem 5rem' }}>
+        {/* Top Banner Notice and Search Bar (matching Image 1) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'center', marginBottom: '2.5rem' }}>
+          <div className="top-notice-banner">
+            <Info size={16} color="var(--gold-main)" style={{ flexShrink: 0 }} />
+            <span>Welcome to the all-in-one location for help with Muto Mod for Minecraft Java Edition.</span>
+          </div>
+          <div style={{ minWidth: '260px' }}>
+            <input
+              type="text"
+              placeholder="Search wiki..."
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+
+        {/* View Mode: Article Reader (Image 2 style) */}
+        {currentArticle ? (
+          <div className="article-container">
+            <button
+              onClick={() => setSelectedArticle(null)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--gold-main)',
+                fontSize: '0.86rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                marginBottom: '1.5rem',
+                padding: 0
+              }}
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Wiki Hub</span>
+            </button>
+
+            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--gold-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+              {currentArticle.category}
+            </div>
+            <h1 style={{ color: '#fff', fontSize: '1.85rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1.75rem' }}>
+              {currentArticle.title}
+            </h1>
+
+            {currentArticle.sections.map((section, idx) => (
+              <div key={idx} className="article-section">
+                <div className="article-title">{section.title}</div>
+                {section.desc && <p style={{ color: '#9ca3af', marginBottom: '1rem', fontSize: '0.94rem' }}>{section.desc}</p>}
+                
+                <ol className="step-list">
+                  {section.steps.map((step, sIdx) => (
+                    <li key={sIdx} className="step-item">
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+
+                {section.codeSnippet && (
+                  <div style={{ marginTop: '1.25rem' }}>
+                    <CodeBox
+                      filename={section.codeSnippet.filename}
+                      code={section.codeSnippet.code}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* View Mode: Wiki Hub Directory (Image 1 layout, Golden Yellow) */
+          <div>
+            {/* Features Section (Golden Yellow) */}
+            <div style={{ marginBottom: '3.5rem' }}>
+              <div className="section-title-gold">Features</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem 2rem' }}>
+                {featureCategories.map((cat, idx) => (
+                  <div key={idx}>
+                    <div className="category-title">{cat.category}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {cat.items
+                        .filter(item => !searchQuery || item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((item, itemIdx) => {
+                          const Icon = item.icon;
+                          return (
+                            <div
+                              key={itemIdx}
+                              className="wiki-link"
+                              onClick={() => setSelectedArticle(item.id)}
+                            >
+                              <Icon size={15} />
+                              <span>{item.label}</span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Guides Section (Warm Amber/Gold) */}
+            <div style={{ borderTop: '1px solid var(--grid-line)', paddingTop: '3rem' }}>
+              <div className="section-title-gold" style={{ color: '#f59e0b' }}>Guides</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem 2rem' }}>
+                {guideCategories.map((cat, idx) => (
+                  <div key={idx}>
+                    <div className="category-title">{cat.category}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {cat.items
+                        .filter(item => !searchQuery || item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((item, itemIdx) => {
+                          const Icon = item.icon;
+                          return (
+                            <div
+                              key={itemIdx}
+                              className="wiki-link"
+                              onClick={() => setSelectedArticle(item.id)}
+                            >
+                              <Icon size={15} />
+                              <span>{item.label}</span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
+      </main>
 
-        {/* Section: API Reference */}
-        {activeSection === 'api-reference' && (
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid var(--grid-line)', padding: '1.75rem 1.5rem', background: '#050608' }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', color: '#6b7280' }}>
           <div>
-            <h1>Public API Reference</h1>
-            <p>Muto exposes a clean, minimal public API surface located in package <code className="inline-code">me.fy2ne.muto.api</code>.</p>
-
-            <h2>Class <code className="inline-code">MutoApi</code></h2>
-            <CodeBlock
-              language="java"
-              filename="me.fy2ne.muto.api.MutoApi"
-              code={`public final class MutoApi {
-    /** True if Muto is installed and active in the Fabric environment. */
-    public static boolean isAvailable();
-
-    /** True if a reload pipeline execution is currently in flight. */
-    public static boolean isReloading();
-
-    /** True if client is on Title Screen (not inside a live world). */
-    public static boolean isSafeToReload();
-
-    /** Rescans /mods and executes the hot-reload asynchronously. */
-    public static CompletableFuture<ReloadResult> reloadAsync();
-
-    /** Set of mod IDs currently tracked as dynamically reloadable. */
-    public static Set<String> getReloadableModIds();
-
-    /** Set of core/stubborn mod IDs locked in the root classloader. */
-    public static Set<String> getStubbornModIds();
-}`}
-            />
-
-            <h2>Class <code className="inline-code">MutoEvents</code></h2>
-            <p>Fabric event hooks to observe reload lifecycle transitions:</p>
-            <CodeBlock
-              language="java"
-              filename="me.fy2ne.muto.api.MutoEvents"
-              code={`// Fired immediately before reload pipeline execution begins
-MutoEvents.RELOAD_START.register((startEpochMs, expectedDiff) -> {
-    System.out.println("Reload started. Mod additions: " + expectedDiff.added());
-});
-
-// Fired when reload completes (or rolls back upon error)
-MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error) -> {
-    if (success) {
-        System.out.println("Reload succeeded in " + durationMs + "ms");
-    } else {
-        System.err.println("Reload rolled back due to error: " + error.getMessage());
-    }
-});`}
-            />
-
-            <h2>Record <code className="inline-code">ModDiff</code></h2>
-            <CodeBlock
-              language="java"
-              filename="me.fy2ne.muto.api.ModDiff"
-              code={`public record ModDiff(
-    Set<String> added,
-    Set<String> removed,
-    Set<String> updated,
-    Set<String> unchanged
-) {
-    public boolean hasChanges() {
-        return !added.isEmpty() || !removed.isEmpty() || !updated.isEmpty();
-    }
-}`}
-            />
+            Muto Mod for Minecraft Java Edition. Created by <a href="https://github.com/fy2ne" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-main)', textDecoration: 'none' }}>Anas Khezaz (fy2ne)</a>.
           </div>
-        )}
-
-        {/* Section: Config Screen */}
-        {activeSection === 'config-screen' && (
-          <div>
-            <h1>In-Game UI & Controls</h1>
-            <p>
-              Muto provides official Mojang-style title screen integration and a full Cloth Config-styled management UI.
-            </p>
-
-            <h2>Title Screen Quick Button</h2>
-            <p>
-              Renders a 20x20 button featuring the official <strong>↻</strong> reload icon alongside Minecraft’s utility buttons.
-            </p>
-            <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li>
-                <strong>One-Click Reload:</strong> Clicking the button runs preflight checks and launches the reload sequence.
-              </li>
-              <li>
-                <strong>Modrinth Notification Jewel:</strong> When an update to Muto is published on Modrinth, an emerald green jewel badge automatically renders on the top-right of the button.
-              </li>
-            </ul>
-
-            <h2>Cloth Config Management Screen</h2>
-            <p>Access the config screen through ModMenu or by binding a shortcut:</p>
-            <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li>
-                <strong>Loaded Mods:</strong> Live table of all detected jars with mod IDs, versions, and classification tiers (<span style={{ color: '#22c55e' }}>Clean</span>, <span style={{ color: '#f59e0b' }}>Standard</span>, <span style={{ color: '#ef4444' }}>Stubborn</span>).
-              </li>
-              <li>
-                <strong>General Settings:</strong> Toggles for reload confirmation modal, toast notifications, resource auto-reloading, and Modrinth update checks. Each entry includes a Cloth Config <code className="inline-code">↺</code> reset button.
-              </li>
-              <li>
-                <strong>Developer Suite:</strong> Advanced flags for classloader tracing, heap delta metrics, preflight bypass, and simulate update previews.
-              </li>
-              <li>
-                <strong>Reload History:</strong> Step-by-step diagnostic log recording every past reload pass and millisecond breakdown.
-              </li>
-            </ul>
-          </div>
-        )}
-
-        {/* Section: FAQ */}
-        {activeSection === 'faq' && (
-          <div>
-            <h1>Technical FAQ & Troubleshooting</h1>
-
-            <h3>Why are in-world reloads disabled?</h3>
-            <p>
-              Minecraft worlds maintain deep, stateful in-memory references to entity types, block state containers, and dimension managers. Reloading content-heavy mods while connected to a world causes desynchronization and potential world corruption. Exiting to the Title Screen guarantees that world states are cleanly unmounted before the reload pass begins.
-            </p>
-
-            <h3>How does Muto handle Windows file locking?</h3>
-            <p>
-              On Windows, opening a <code className="inline-code">.jar</code> file directly locks it from deletion. Muto incorporates an automated shadow-cache pipeline: during preflight checks, candidate jars are read into sandboxed memory buffers with retry loops, preventing Windows Explorer from displaying "File in use by another process".
-            </p>
-
-            <h3>Can mixins be hot-reloaded?</h3>
-            <p>
-              Fabric Mixins mutate bytecode at class-loading time. While client tweaks and registry additions reload seamlessly, structural mixins injected into Minecraft's root classes require the game process to relaunch or require the JetBrains Runtime with <code className="inline-code">-XX:+AllowEnhancedClassRedefinition</code>.
-            </p>
-
-            <h3>How do I enable JetBrains Runtime (JBR)?</h3>
-            <p>
-              Install the <a href="https://github.com/JetBrains/JetBrainsRuntime" target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>JetBrains Runtime 25</a> and set your launcher's Java Executable path to point to JBR's <code className="inline-code">bin/java.exe</code>. In your launcher's JVM arguments, append:
-            </p>
-            <CodeBlock
-              language="bash"
-              code="-XX:+AllowEnhancedClassRedefinition -XX:+UnlockDiagnosticVMOptions"
-            />
-          </div>
-        )}
-
-        {/* Footer */}
-        <div style={{ marginTop: '4rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          <div>
-            Created by <a href="https://github.com/fy2ne" target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b', textDecoration: 'none' }}>Anas Khezaz (fy2ne)</a>. Licensed under Apache 2.0.
-          </div>
-          <div>
-            <a href="https://github.com/fy2ne/muto" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>GitHub</a> · <a href="https://modrinth.com/project/muto" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Modrinth</a> · <a href="https://fy2ne.me" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>fy2ne.me</a>
+          <div style={{ display: 'flex', gap: '1.25rem' }}>
+            <a href="https://github.com/fy2ne/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
+            <a href="https://modrinth.com/project/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none' }}>Modrinth</a>
+            <a href="https://fy2ne.me" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none' }}>fy2ne.me</a>
           </div>
         </div>
-      </main>
+      </footer>
     </div>
   );
 }
