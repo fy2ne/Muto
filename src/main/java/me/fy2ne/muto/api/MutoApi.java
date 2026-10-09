@@ -39,7 +39,7 @@ public final class MutoApi {
     public static boolean isSafeToReload() {
         try {
             var client = net.minecraft.client.Minecraft.getInstance();
-            return client != null && client.level == null && client.screen instanceof net.minecraft.client.gui.screens.TitleScreen;
+            return client != null && client.level == null && client.gui != null && client.gui.screen() instanceof net.minecraft.client.gui.screens.TitleScreen;
         } catch (Throwable ignored) {
             return false;
         }
@@ -61,7 +61,11 @@ public final class MutoApi {
      */
     public static Set<String> getReloadableModIds() {
         try {
-            return ReloadEngine.INSTANCE.currentSnapshot().reloadableMods();
+            Set<String> ids = new java.util.LinkedHashSet<>();
+            for (var mod : ReloadEngine.INSTANCE.currentSnapshot().reloadableMods()) {
+                ids.add(mod.id());
+            }
+            return Collections.unmodifiableSet(ids);
         } catch (Throwable t) {
             return Collections.emptySet();
         }
@@ -72,7 +76,11 @@ public final class MutoApi {
      */
     public static Set<String> getStubbornModIds() {
         try {
-            return ReloadEngine.INSTANCE.currentSnapshot().stubbornMods();
+            Set<String> ids = new java.util.LinkedHashSet<>();
+            for (var mod : ReloadEngine.INSTANCE.currentSnapshot().stubbornMods()) {
+                ids.add(mod.id());
+            }
+            return Collections.unmodifiableSet(ids);
         } catch (Throwable t) {
             return Collections.emptySet();
         }
