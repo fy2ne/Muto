@@ -18,25 +18,7 @@ public final class MutoToasts {
     private MutoToasts() {}
 
     public static void showCapabilityHint(net.minecraft.client.Minecraft mc) {
-        if (capabilityToastShown) return;
-        capabilityToastShown = true;
-
-        if (MutoMod.isJbr() && MutoMod.hasDcevm()) return;
-
-        String msg;
-        if (!MutoMod.isJbr()) {
-            msg = "Use JetBrains Runtime for Tier 1 hotswap (class-level live reload). Standard reload still works.";
-        } else {
-            msg = "JBR detected but AllowEnhancedClassRedefinition not set. Add -XX:+AllowEnhancedClassRedefinition to JVM args for best results.";
-        }
-
-        MutoLog.info("showing capability hint toast (jbr={}, dcevm={})", MutoMod.isJbr(), MutoMod.hasDcevm());
-        SystemToast.add(
-                mc.gui.toastManager(),
-                MUTO_CAPABILITY_ID,
-                Component.literal("Muto — Runtime Capability"),
-                Component.literal(msg)
-        );
+        // Disabled by default to avoid alarming startup warning popups
     }
 
     public static void showReloadSuccess(net.minecraft.client.Minecraft mc, int added, int removed, int updated, long durationMs) {

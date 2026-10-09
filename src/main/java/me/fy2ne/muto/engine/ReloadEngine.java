@@ -63,6 +63,12 @@ public final class ReloadEngine {
         return CompletableFuture.supplyAsync(() -> execute(plan(modsDir), stageNotifier));
     }
 
+    private static final List<ReloadHistoryEntry> HISTORY = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public List<ReloadHistoryEntry> history() {
+        return Collections.unmodifiableList(HISTORY);
+    }
+
     public synchronized ReloadResult execute(ReloadPlan plan, Consumer<String> stageNotifier) {
         if (!reloading.compareAndSet(false, true)) {
             MutoLog.warn("reload already in progress, rejecting request");
@@ -71,31 +77,34 @@ public final class ReloadEngine {
 
         long startMs = System.currentTimeMillis();
         MutoEvents.RELOAD_START.invoker().onReloadStart(startMs, plan.diff());
+        List<String> stepLogs = new ArrayList<>();
 
         try {
             ModDiff diff = plan.diff();
 
-            // Fast path: the mods folder is unchanged. Nothing can be safely
-            // reloaded, and re-invoking the entrypoints of already-loaded mods
-            // would re-run their initializers against global state — which is
-            // exactly what produces errors like "duplicate mod id: sodium".
             if (!plan.hasWork()) {
-                notify(stageNotifier, "No mod changes detected — nothing to reload.");
+                notify(stageNotifier, stepLogs, "Scanning /mods: all mod files are up to date.");
+                notify(stageNotifier, stepLogs, "No mod changes detected — reload is a no-op.");
                 long noopMs = System.currentTimeMillis() - startMs;
                 MutoLog.info("no mod changes detected, reload is a no-op ({}ms)", noopMs);
                 MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
                         System.currentTimeMillis(), diff, true, noopMs, null);
+                HISTORY.add(new ReloadHistoryEntry(startMs, noopMs, diff, true, stepLogs));
                 return ReloadResult.ok(diff, noopMs);
             }
 
-            notify(stageNotifier, "Scanning mod directory & validating environment...");
+            notify(stageNotifier, stepLogs, String.format("Scanning /mods: %d active mods detected in directory.", plan.targetSnapshot().mods().size()));
 
-            // Fabric already loads every mod that existed at startup on its own
-            // classpath. Re-initializing one of those duplicates its global state,
-            // so the only mods we may initialize are those ADDED after launch:
-            // they are absent from the parent classpath and load fresh in our
-            // child loader. Updated/removed mods still hold live references in
-            // the running game and cannot be hot-swapped safely.
+            if (!diff.added().isEmpty()) {
+                notify(stageNotifier, stepLogs, String.format("Detected +%d new mod(s): %s", diff.added().size(), String.join(", ", diff.added())));
+            }
+            if (!diff.removed().isEmpty()) {
+                notify(stageNotifier, stepLogs, String.format("Detected -%d removed mod(s): %s", diff.removed().size(), String.join(", ", diff.removed())));
+            }
+            if (!diff.updated().isEmpty()) {
+                notify(stageNotifier, stepLogs, String.format("Detected ~%d modified mod(s): %s", diff.updated().size(), String.join(", ", diff.updated())));
+            }
+
             List<ScannedMod> initializable = new ArrayList<>();
             for (ScannedMod mod : plan.reloadable()) {
                 if (diff.added().contains(mod.id())) {
@@ -104,8 +113,7 @@ public final class ReloadEngine {
             }
 
             if (!diff.updated().isEmpty() || !diff.removed().isEmpty()) {
-                MutoLog.warn("{} updated / {} removed mod(s) are bound to the running game and "
-                                + "cannot be hot-swapped — restart to apply them",
+                MutoLog.warn("{} updated / {} removed mod(s) bound to running game",
                         diff.updated().size(), diff.removed().size());
             }
 
@@ -113,14 +121,16 @@ public final class ReloadEngine {
             try {
                 // Stage 1: Build candidate classloader and preflight check
                 if (!initializable.isEmpty()) {
-                    notify(stageNotifier, "Constructing candidate classloader & staging checks...");
+                    notify(stageNotifier, stepLogs, "Constructing candidate classloader & staging checks...");
                     List<Path> reloadableJars = new ArrayList<>();
                     Set<String> reloadableIds = new HashSet<>();
                     for (ScannedMod m : initializable) {
                         reloadableJars.add(m.jarPath());
                         reloadableIds.add(m.id());
+                        notify(stageNotifier, stepLogs, String.format("Staging %s v%s (%s)", m.id(), m.version(), m.jarPath().getFileName()));
                     }
 
+                    notify(stageNotifier, stepLogs, "Shadow copying jars to sandbox to prevent OS file locks...");
                     candidateLoader = new MutoClassLoader(
                             reloadableJars,
                             reloadableIds,
@@ -130,15 +140,18 @@ public final class ReloadEngine {
                     // Preflight: verify entrypoint classes load before dropping state
                     for (ScannedMod mod : initializable) {
                         preflightCheck(candidateLoader, mod);
+                        notify(stageNotifier, stepLogs, String.format("Preflight verification passed: %s", mod.id()));
                     }
                 }
 
-                // Stage 2: Tear down only removed mod contexts. Mods that remain
-                // loaded must be left running or we would drop working functionality.
-                notify(stageNotifier, "Tearing down removed mod contexts...");
-                for (String rem : diff.removed()) {
-                    teardownMod(rem);
-                    RegistryFreezer.pruneNamespace(rem);
+                // Stage 2: Tear down removed mod contexts
+                if (!diff.removed().isEmpty()) {
+                    notify(stageNotifier, stepLogs, "Tearing down removed mod contexts...");
+                    for (String rem : diff.removed()) {
+                        teardownMod(rem);
+                        RegistryFreezer.pruneNamespace(rem);
+                        notify(stageNotifier, stepLogs, String.format("Unloaded mod context: %s", rem));
+                    }
                 }
                 for (String upd : diff.updated()) {
                     RegistryFreezer.pruneNamespace(upd);
@@ -147,6 +160,7 @@ public final class ReloadEngine {
                 if (currentLoader != null) {
                     try {
                         currentLoader.close();
+                        notify(stageNotifier, stepLogs, "Closed previous dynamic classloader.");
                     } catch (Exception ex) {
                         MutoLog.warn("error closing old classloader: {}", ex.getMessage());
                     }
@@ -154,32 +168,31 @@ public final class ReloadEngine {
                 System.gc();
 
                 // Stage 3: Unfreeze registries & activate new loader
-                notify(stageNotifier, "Unfreezing registries & activating classloader...");
+                notify(stageNotifier, stepLogs, "Unfreezing registries & activating classloader...");
                 RegistryFreezer.unfreezeAll();
                 currentLoader = candidateLoader;
                 candidateLoader = null;
 
                 // Stage 4: Instantiate & execute entrypoints (added mods only)
-                notify(stageNotifier, "Re-invoking entrypoints & updating registries...");
                 for (ScannedMod mod : initializable) {
+                    notify(stageNotifier, stepLogs, String.format("Invoking entrypoints for %s...", mod.id()));
                     initializeMod(currentLoader, mod);
                 }
 
                 // Stage 5: Refreeze registries
-                notify(stageNotifier, "Finalizing engine state & preparing Title Screen...");
+                notify(stageNotifier, stepLogs, "Finalizing engine state & freezing registries...");
                 RegistryFreezer.freezeAll();
 
                 // Stage 6: Sync loader metadata
+                notify(stageNotifier, stepLogs, "Synchronizing ModMenu active catalog...");
                 syncFabricLoader(plan.targetSnapshot(), diff);
 
                 currentSnapshot = plan.targetSnapshot();
                 long durationMs = System.currentTimeMillis() - startMs;
-                MutoLog.info("reload finished cleanly in {}ms (+{} -{} ~{})",
-                        durationMs,
-                        diff.added().size(),
-                        diff.removed().size(),
-                        diff.updated().size()
-                );
+                String finishMsg = String.format("Reload finished cleanly in %dms (+%d -%d ~%d)",
+                        durationMs, diff.added().size(), diff.removed().size(), diff.updated().size());
+                notify(stageNotifier, stepLogs, finishMsg);
+                MutoLog.info(finishMsg);
 
                 MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
                         System.currentTimeMillis(),
@@ -189,10 +202,13 @@ public final class ReloadEngine {
                         null
                 );
 
+                HISTORY.add(new ReloadHistoryEntry(startMs, durationMs, diff, true, stepLogs));
                 return ReloadResult.ok(diff, durationMs);
 
             } catch (Throwable err) {
                 long durationMs = System.currentTimeMillis() - startMs;
+                String failMsg = "Reload failed: " + err.getMessage();
+                notify(stageNotifier, stepLogs, failMsg);
                 MutoLog.error("reload failed, rolling back: {}", err.getMessage(), err);
 
                 if (candidateLoader != null) {
@@ -211,6 +227,7 @@ public final class ReloadEngine {
                         err
                 );
 
+                HISTORY.add(new ReloadHistoryEntry(startMs, durationMs, diff, false, stepLogs));
                 return ReloadResult.fail(diff, durationMs, err.getMessage());
             }
         } finally {
@@ -625,8 +642,9 @@ public final class ReloadEngine {
         }
     }
 
-    private void notify(Consumer<String> notifier, String msg) {
+    private void notify(Consumer<String> notifier, List<String> logs, String msg) {
         MutoLog.info("stage: {}", msg);
+        if (logs != null) logs.add(msg);
         if (notifier != null) {
             notifier.accept(msg);
         }

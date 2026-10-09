@@ -25,14 +25,26 @@ public final class MutoClassLoader extends URLClassLoader {
     }
 
     private static List<Path> collectJarsAndNested(List<Path> paths) {
-        List<Path> result = new ArrayList<>(paths);
-        Path cacheDir = Path.of(System.getProperty("java.io.tmpdir"), "muto_jij");
+        List<Path> result = new ArrayList<>();
+        Path cacheDir = Path.of(System.getProperty("java.io.tmpdir"), "muto_shadow_cache");
         try {
             Files.createDirectories(cacheDir);
         } catch (Exception ignored) {}
 
         for (Path p : paths) {
-            try (java.util.jar.JarFile jf = new java.util.jar.JarFile(p.toFile())) {
+            Path targetJar = p;
+            try {
+                // Shadow copy root jar so Windows JVM does not hold file locks on the /mods folder
+                Path shadowJar = cacheDir.resolve("shadow_" + System.currentTimeMillis() + "_" + p.getFileName().toString());
+                Files.copy(p, shadowJar, StandardCopyOption.REPLACE_EXISTING);
+                shadowJar.toFile().deleteOnExit();
+                targetJar = shadowJar;
+            } catch (Exception e) {
+                MutoLog.warn("shadow copy failed for {}, using original", p.getFileName());
+            }
+            result.add(targetJar);
+
+            try (java.util.jar.JarFile jf = new java.util.jar.JarFile(targetJar.toFile())) {
                 Enumeration<java.util.jar.JarEntry> entries = jf.entries();
                 while (entries.hasMoreElements()) {
                     java.util.jar.JarEntry entry = entries.nextElement();
@@ -43,6 +55,7 @@ public final class MutoClassLoader extends URLClassLoader {
                         if (!Files.exists(extracted)) {
                             try (InputStream is = jf.getInputStream(entry)) {
                                 Files.copy(is, extracted, StandardCopyOption.REPLACE_EXISTING);
+                                extracted.toFile().deleteOnExit();
                             }
                         }
                         result.add(extracted);
