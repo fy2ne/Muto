@@ -4,7 +4,7 @@
 
 **Production-grade hot mod reloader for Minecraft**
 
-Reload, swap, and update mods seamlessly from the title screen — no full game restart.
+Hot-reload added, removed, or updated mods on the fly from the title screen — without restarting Minecraft.
 
 [![Modrinth](https://img.shields.io/modrinth/dt/muto?label=Modrinth&color=00AF5C)](https://modrinth.com/project/muto)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://fabricmc.net/)
@@ -20,7 +20,7 @@ Reload, swap, and update mods seamlessly from the title screen — no full game 
 
 ## About
 
-Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft. Drop in a new jar, remove one, or swap a build — then hit reload from the title screen and keep iterating.
+Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft. Whenever you add new jars to your `mods/` directory, delete existing ones, or swap in an updated build, click reload from the title screen and Muto applies the changes live.
 
 **Status: beta.** The reload engine is under active development. The UI, event API, and runtime capability detection are in place; the full classloader-swap pipeline is being hardened.
 
@@ -55,9 +55,10 @@ Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft.
 
 ## Usage
 
-1. From the **title screen**, click the **↻** button (bottom-right of the button column)
-2. Muto walks through reload stages with a progress bar
-3. When complete, you are returned to the title screen with the new mod set active
+1. Whenever you add, delete, or update jars in your `mods/` folder, return to the **title screen**
+2. Click the **↻** button (in the bottom utility button row)
+3. Muto walks through reload stages with a progress bar
+4. When complete, you are returned to the title screen with the new mod set active
 
 Mods that change registries, mixins, or world data may still require a full restart. Muto is safest for client-side and resource-focused mods during development.
 

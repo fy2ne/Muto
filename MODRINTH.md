@@ -15,15 +15,15 @@
 
 ## Overview
 
-**Muto** allows you to add, remove, and reload Fabric mods dynamically from the title screen without restarting the JVM or relaunching Minecraft.
+**Muto** hot-reloads your active mod set on the fly. Whenever you add, remove, or update Fabric mod jars in your `mods/` directory, Muto dynamically applies those changes directly from the title screen without restarting the JVM or relaunching Minecraft.
 
-Instead of terminating the game process to test code or mod updates, Muto scans your `mods/` directory, isolates candidate classes in disposable child classloaders, thaws registry entries for new registrations, and re-invokes entrypoints cleanly.
+Instead of restarting the entire game process just to test code or mod updates, Muto rescans your `mods/` directory, isolates candidate classes in disposable child classloaders, thaws registry entries for new registrations, and re-invokes entrypoints cleanly.
 
 ---
 
 ## Key Capabilities
 
-- **Runtime Mod Hot-Reloading**: Rescans the `mods/` directory and applies additions, removals, and jar updates directly from the main menu.
+- **Runtime Mod Hot-Reloading**: Rescans your `mods/` directory and applies added, removed, or updated mod jars directly from the main menu.
 - **Child ClassLoader Isolation**: Dynamic mods are loaded into isolated `MutoClassLoader` instances that can be discarded and garbage-collected when reloaded, preventing stale class leaks.
 - **Registry Lifecycle Control**: Hooks into Vanilla's `MappedRegistry` to unfreeze frozen registries during the reload pass, allowing new blocks, items, or identifiers to register without throwing `IllegalStateException`.
 - **Atomic Failure Rollback**: If a new or updated mod throws an exception during initialization, Muto catches the fault, aborts the swap, rolls back to the prior stable mod snapshot, and surfaces the stack trace.
