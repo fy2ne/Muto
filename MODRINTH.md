@@ -4,9 +4,9 @@
 
 **Dynamic runtime mod reloader and hot-swap pipeline for Fabric.**
 
-[![Minecraft 26.3](https://img.shields.io/badge/Minecraft-26.3-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
-[![Fabric Loader](https://img.shields.io/badge/Fabric-Loader%20%E2%89%A50.16.0-DBB26A?style=flat-square)](https://fabricmc.net/)
-[![Java 25](https://img.shields.io/badge/Java-25-orange?style=flat-square)](https://openjdk.org/)
+[![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-Java%20Edition-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
+[![Fabric](https://img.shields.io/badge/Platform-Fabric-DBB26A?style=flat-square)](https://fabricmc.net/)
+[![Java](https://img.shields.io/badge/Java-JVM-orange?style=flat-square)](https://openjdk.org/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square)](LICENSE)
 
 </div>
@@ -70,7 +70,7 @@ The `ModDiff` record gives you direct access to `added()`, `removed()`, `updated
 ## Usage
 
 1. Place `muto-<version>.jar` into your `.minecraft/mods/` directory along with Fabric API.
-2. Launch Minecraft (26.3).
+2. Launch Minecraft.
 3. To reload:
    - Save and exit to the **Title Screen** (in-world reloads are disabled to prevent world state desync).
    - Click the reload icon (**↻**) on the title screen.
@@ -78,9 +78,8 @@ The `ModDiff` record gives you direct access to `added()`, `removed()`, `updated
 
 ---
 
-## Requirements
+## Requirements & Compatibility
 
-- **Minecraft:** `26.3`
-- **Fabric Loader:** `≥ 0.16.0`
-- **Fabric API:** `0.161.0+26.3`
-- **Java:** `25+`
+- **Platform:** Fabric Loader
+- **Minecraft:** Java Edition
+- **Java Runtime:** JVM (Java 21 / 25+, JetBrains Runtime optional for DCEVM)

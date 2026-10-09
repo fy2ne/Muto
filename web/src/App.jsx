@@ -80,7 +80,7 @@ export default function App() {
   const articles = {
     overview: {
       title: 'Muto Architecture & Hot-Swap Overview',
-      subtitle: 'Dynamic Runtime Mod Reloader for Minecraft Java Edition (Fabric 26.3)',
+      subtitle: 'Dynamic Runtime Mod Reloader for Minecraft Java Edition (Fabric Loader)',
       showcaseCards: true,
       sections: [
         {
@@ -373,8 +373,7 @@ dependencies {
             onClick={() => setSelectedId('overview')}
             style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
           >
-            {/* Zero background wrapper, clean yellow SVG icon */}
-            <RotateCw size={22} color="#f59e0b" strokeWidth={2.4} />
+            <img src="/icon.png" alt="Muto" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem' }}>
               <span style={{ fontWeight: 700, fontSize: '1.15rem', color: '#fff', letterSpacing: '-0.02em' }}>Muto</span>
               <span style={{ color: 'var(--gold-main)', fontSize: '0.8rem', fontWeight: 600 }}>Wiki</span>

@@ -2,7 +2,7 @@
 
 > Author: fy2ne (@fy2ne)
 > Architecture: Dynamic Child ClassLoader Rotation & MappedRegistry Thawing
-> Target: Minecraft 26.3 | Fabric Loader ≥0.16.0 | Java 25+
+> Target: Minecraft Java Edition | Fabric Loader | Java
 > Website: https://muto.fy2ne.me
 > Modrinth: https://modrinth.com/project/muto
 > Repository: https://github.com/fy2ne/muto
@@ -108,7 +108,6 @@ MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error)
 
 ---
 
-## System Requirements
-- Minecraft: 26.3 (Fabric)
-- Fabric Loader: ≥0.16.0
-- Java Runtime: Java 25+ (JetBrains Runtime / DCEVM optional for advanced bytecode replacement)
+## Platform Compatibility
+- Minecraft: Java Edition (Fabric Loader)
+- Java Runtime: Java Virtual Machine (JBR / DCEVM optional for advanced bytecode replacement)

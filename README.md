@@ -7,9 +7,9 @@
 Hot-reload added, removed, or updated mods on the fly from the title screen — without restarting Minecraft.
 
 [![Modrinth](https://img.shields.io/modrinth/dt/muto?label=Modrinth&color=00AF5C)](https://modrinth.com/project/muto)
-[![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://fabricmc.net/)
-[![Fabric Loader](https://img.shields.io/badge/Fabric%20Loader-%E2%89%A50.16.0-DBB26A)](https://fabricmc.net/)
-[![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-Java%20Edition-brightgreen)](https://fabricmc.net/)
+[![Platform](https://img.shields.io/badge/Platform-Fabric-DBB26A)](https://fabricmc.net/)
+[![Java](https://img.shields.io/badge/Java-JVM-orange)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 [Download](https://modrinth.com/project/muto) · [Issues](https://github.com/fy2ne/muto/issues) · [Homepage](https://muto.fy2ne.me)
@@ -36,13 +36,13 @@ Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft.
 - **Runtime capability detection** — detects JetBrains Runtime (JBR) and DCEVM enhanced class redefinition at startup
 - **Dedicated logs** — every reload stage is written to `logs/muto.log` alongside normal game logs
 
-## Requirements
+## Platform Compatibility
 
-| Component | Version |
+| Component | Target |
 |---|---|
-| Minecraft | 26.3 |
-| Fabric Loader | ≥ 0.16.0 |
-| Fabric API | 0.161.0+26.3 |
+| Platform | Fabric Loader |
+| Minecraft | Java Edition |
+| Java Runtime | JVM (Java 21 / 25+, JBR optional for DCEVM bytecode swap) |
 | Java | 25+ |
 
 > **Tip:** For best hot-reload results, run the game on the [JetBrains Runtime](https://www.jetbrains.com/runtime/) or a JVM with DCEVM/`AllowEnhancedClassRedefinition` enabled. Muto reports both automatically at startup.
