@@ -5,21 +5,21 @@
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 
-  --bg: #000000;
+  --bg: #050505;
   --bg-elev: #0a0a0a;
   --bg-sunken: #000000;
-  --surface: #0a0a0a;
-  --surface-2: #111111;
-  --surface-hover: #171717;
+  --surface: #0c0c0c;
+  --surface-2: #141414;
+  --surface-hover: #1c1c1c;
   --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.16);
   --text: #ffffff;
   --text-muted: #888888;
   --text-subtle: #555555;
   --accent: #f59e0b;
   --accent-hover: #fbbf24;
   --accent-soft: rgba(245, 158, 11, 0.08);
-  --code-bg: #070707;
+  --code-bg: #080808;
   --code-border: rgba(255, 255, 255, 0.08);
   --sidebar-w: 260px;
   --toc-w: 220px;
@@ -37,6 +37,11 @@ html, body, #root {
 body {
   margin: 0;
   background-color: var(--bg);
+  /* Developer subtle grid pattern so it's not pure pitch-black */
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 36px 36px;
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -74,13 +79,13 @@ button {
   border: 2px solid transparent;
 }
 
-/* Weavetab Docs Layout Shell */
+/* Layout Shell */
 .docs-shell {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   grid-template-rows: var(--header-h) 1fr;
   height: 100vh;
-  background: transparent;
+  background: radial-gradient(circle at 50% -8%, rgba(245, 158, 11, 0.04) 0%, transparent 60%);
 }
 
 @media (max-width: 820px) {
@@ -101,8 +106,8 @@ button {
   gap: 24px;
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
-  backdrop-filter: blur(10px);
+  background: rgba(5, 5, 5, 0.85);
+  backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -118,7 +123,7 @@ button {
 .docs-header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 /* Brand */
@@ -140,44 +145,74 @@ button {
   line-height: 1;
 }
 
+/* Beta tag - clean, no version numbers */
 .brand-badge {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.28);
   border-radius: 4px;
-  padding: 1px 6px;
+  padding: 1.5px 6px;
   line-height: 1.2;
+  text-transform: uppercase;
 }
 
-/* Header Links with smooth text hover only */
-.docs-navlink {
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  letter-spacing: 0.005em;
-  transition: color 0.12s ease;
-  padding: 4px 6px;
+/* Navbar Icon Links with Weavetab Black Tooltips */
+.nav-icon-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--text-subtle);
   background: transparent;
   border: none;
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  user-select: none;
 }
 
-.docs-navlink:hover {
-  color: var(--text);
+.nav-icon-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-icon-link .nav-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, -4px);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 100;
+}
+
+.nav-icon-link:hover .nav-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 /* Sidebar */
 .sidebar {
   border-right: 1px solid var(--border);
   font-family: var(--font-ui);
-  background: transparent;
+  background: rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -193,7 +228,7 @@ button {
   min-height: 0;
 }
 
-/* Search — minimal bordered input like Weavetab */
+/* Search input */
 .sb-search-card {
   margin-bottom: 18px;
 }
@@ -205,7 +240,7 @@ button {
   padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.015);
   transition: border-color 0.14s ease;
 }
 
@@ -279,7 +314,7 @@ button {
   min-width: 0;
 }
 
-/* Pure text-only hover — no background fill, only text color change */
+/* Pure text-only hover — no background fill */
 .sb-link {
   position: relative;
   display: flex;
@@ -329,7 +364,6 @@ button {
   color: var(--text);
 }
 
-/* Active indicator: subtle golden dot, no chunky left bar */
 .sb-link.active::before {
   content: "";
   position: absolute;
@@ -359,31 +393,6 @@ button {
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.25);
   background: rgba(251, 191, 36, 0.08);
-}
-
-/* Sidebar Footer */
-.sb-foot {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-sunken);
-}
-
-.sb-foot-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4ade80;
-}
-
-.sb-foot-meta {
-  font-size: 10.5px;
-  color: var(--text-subtle);
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
 }
 
 /* Main & TOC */
@@ -487,7 +496,7 @@ button {
   color: var(--text);
 }
 
-/* Typography (Weavetab prose) */
+/* Markdown Prose */
 .md {
   font-family: var(--font-body);
   color: var(--text);
@@ -555,14 +564,8 @@ button {
   font-weight: 600;
 }
 
-.md hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 36px 0;
-}
-
-/* Inline Code */
-.md code {
+/* INLINE CODE ONLY (Fixes the box-per-line issue in image-1.png) */
+.md :not(pre) > code {
   font-family: var(--font-mono);
   font-size: 0.85em;
   padding: 2px 6px;
@@ -579,7 +582,72 @@ button {
   padding: 0;
 }
 
-/* Minimalist Callouts / Alerts (Weavetab style) */
+/* CODEBLOCK ARCHITECTURE (Clean single block, zero per-line box artifact) */
+.codeblock {
+  position: relative;
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 22px 0;
+  background: var(--code-bg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.codeblock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--code-border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.codeblock-copy {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+.codeblock-copy:hover {
+  color: var(--text);
+}
+
+.codeblock pre {
+  margin: 0;
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e6edf3;
+  overflow-x: auto;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Reset any code child inside pre so it never gets inline pill styling */
+.codeblock pre code {
+  all: unset !important;
+  display: block !important;
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+  color: #e6edf3 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  white-space: pre !important;
+}
+
+/* Minimalist Callouts / Alerts */
 .doc-alert {
   border-left: 2px solid var(--alert-accent);
   padding: 4px 0 4px 18px;
@@ -618,58 +686,7 @@ button {
   --alert-accent: #38bdf8;
 }
 
-.doc-alert-tip {
-  --alert-accent: #10b981;
-}
-
-/* Weavetab Code Block */
-.codeblock {
-  position: relative;
-  border: 1px solid var(--code-border);
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 22px 0;
-  background: var(--code-bg);
-}
-
-.codeblock-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid var(--code-border);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.codeblock-copy {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.12s ease;
-}
-
-.codeblock-copy:hover {
-  color: var(--text);
-}
-
-.codeblock pre {
-  margin: 0;
-  padding: 16px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.6;
-  color: #e6edf3;
-  overflow-x: auto;
-}
-
-/* Sub-feature box cards (like Weavetab) */
+/* Sub-feature box cards */
 .sub-feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -700,4 +717,149 @@ button {
   font-size: 12px;
   color: var(--text-muted);
   line-height: 1.45;
+}
+
+/* ============================================================
+   MINECRAFT TITLE SCREEN INTERACTIVE PHOTOCOPY WIDGET
+   ============================================================ */
+.mc-widget-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #111111;
+  padding: 16px;
+  margin: 24px 0;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.mc-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mc-widget-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-widget-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.mc-screen-mock {
+  position: relative;
+  background: #1e1e1e;
+  background-image: 
+    linear-gradient(45deg, #181818 25%, transparent 25%), 
+    linear-gradient(-45deg, #181818 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #181818 75%), 
+    linear-gradient(-45deg, transparent 75%, #181818 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  border: 2px solid #000000;
+  border-radius: 4px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+/* Authentic Minecraft Java button bevels */
+.mc-btn {
+  position: relative;
+  height: 28px;
+  background: #4c4c4c;
+  border-top: 2px solid #8b8b8b;
+  border-left: 2px solid #8b8b8b;
+  border-bottom: 2px solid #2b2b2b;
+  border-right: 2px solid #2b2b2b;
+  color: #e0e0e0;
+  font-family: "Courier New", Courier, monospace, sans-serif;
+  font-weight: bold;
+  font-size: 13px;
+  text-shadow: 1.5px 1.5px 0px #1e1e1e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.05s ease;
+}
+
+.mc-btn:hover {
+  background: #5c5c5c;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #383838;
+  border-right: 2px solid #383838;
+  color: #ffffa0; /* Classic Minecraft yellow hover text */
+}
+
+.mc-btn:active {
+  background: #3a3a3a;
+  border-top: 2px solid #2b2b2b;
+  border-left: 2px solid #2b2b2b;
+  border-bottom: 2px solid #8b8b8b;
+  border-right: 2px solid #8b8b8b;
+  transform: translateY(1px);
+}
+
+.mc-btn-wide {
+  width: 220px;
+}
+
+/* Authentic Minecraft 20x20 square icon button (TitleScreen row) */
+.mc-btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.mc-row-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-btn-active-muto {
+  border-top-color: #f59e0b;
+  border-left-color: #f59e0b;
+}
+
+.mc-toast-preview {
+  margin-top: 8px;
+  background: #000000;
+  border: 1px solid #3a3a3a;
+  border-left: 3px solid #22c55e;
+  border-radius: 4px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
 }

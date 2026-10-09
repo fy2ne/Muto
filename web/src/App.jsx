@@ -14,22 +14,120 @@ import {
   Wrench,
   BookOpen,
   ArrowRight,
-  ExternalLink,
   Search,
   X,
-  FileCode,
-  FolderOpen
+  Sparkles
 } from 'lucide-react';
 
-function GithubIcon({ size = 14 }) {
+/* ============================================================
+   OFFICIAL SVGS
+   ============================================================ */
+function GithubIcon({ size = 16 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
-      <path d="M9 18c-4.51 2-5-2-7-2" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
     </svg>
   );
 }
 
+function ModrinthIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.252 0C5.503 0 .024 5.466.024 12.203c0 4.545 2.502 8.514 6.223 10.605l2.258-3.902a7.712 7.712 0 0 1-3.97-6.703c0-4.269 3.473-7.734 7.747-7.734 4.275 0 7.748 3.465 7.748 7.734 0 2.766-1.464 5.2-3.666 6.556l2.235 3.914c3.606-2.128 6.012-6.046 6.012-10.47C24.611 5.466 19.08 0 12.252 0zm.019 7.426a4.777 4.777 0 0 0-4.777 4.777 4.777 4.777 0 0 0 4.777 4.777 4.777 4.777 0 0 0 4.777-4.777 4.777 4.777 0 0 0-4.777-4.777z"/>
+    </svg>
+  );
+}
+
+function CurseForgeIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.8 6.5C18.1 4.4 16.3 2.7 14.1 2.2c-.6-.1-1.2.3-1.3.9-.1.6.3 1.2.9 1.3 1.5.3 2.8 1.5 3.3 3 .1.4.5.7.9.7h.2c.5-.1.8-.5.7-.9zM12 2C6.5 2 2 6.5 2 12c0 3.6 1.9 6.7 4.8 8.4.3.2.7.2 1 0 .3-.2.4-.5.4-.8v-3.1c0-.4.2-.8.5-1.1l2.1-2.1c.3-.3.8-.5 1.2-.5s.9.2 1.2.5l2.1 2.1c.3.3.5.7.5 1.1v3.1c0 .3.2.7.5.8.3.2.7.2 1 0 2.9-1.7 4.7-4.8 4.7-8.4 0-5.5-4.5-10-10-10zm2.2 12.8l-1.4-1.4c-.4-.4-1.1-.4-1.6 0l-1.4 1.4V11c0-.6.4-1 1-1h2.8c.6 0 1 .4 1 1v3.8z"/>
+    </svg>
+  );
+}
+
+function WebsiteIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+/* ============================================================
+   MINECRAFT INTERACTIVE TITLE SCREEN PHOTOCOPY DEMO
+   ============================================================ */
+function MinecraftTitleScreenMock() {
+  const [clicked, setClicked] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const triggerReload = () => {
+    setClicked(true);
+    setToast('↻ Muto: Scanned /mods · 14 mods active (340ms)');
+    setTimeout(() => setClicked(false), 200);
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  return (
+    <div className="mc-widget-card">
+      <div className="mc-widget-header">
+        <div className="mc-widget-title">
+          <Sparkles size={12} color="var(--accent)" />
+          <span>Interactive Title Screen Photocopy</span>
+        </div>
+        <span className="mc-widget-badge">TitleScreenMixin.java</span>
+      </div>
+
+      <div className="mc-screen-mock">
+        {/* Title Screen Main Buttons */}
+        <div className="mc-btn mc-btn-wide">Singleplayer</div>
+        <div className="mc-btn mc-btn-wide">Multiplayer</div>
+
+        {/* Options & Icon Row (Injected by Muto TitleScreenMixin) */}
+        <div className="mc-row-icons" style={{ marginTop: '4px' }}>
+          <div className="mc-btn mc-btn-icon" title="Language">🌐</div>
+          <div className="mc-btn mc-btn-icon" title="Accessibility">♿</div>
+          <div className="mc-btn mc-btn-icon" title="Options">⚙</div>
+          <div className="mc-btn mc-btn-icon" title="ModMenu">🧩</div>
+          
+          {/* Muto 20x20 Reload Button */}
+          <div 
+            className={`mc-btn mc-btn-icon mc-btn-active-muto ${clicked ? 'active' : ''}`}
+            onClick={triggerReload}
+            title="Muto: Reload Mods"
+            style={{ position: 'relative' }}
+          >
+            <img src="/icon.png" alt="Reload" style={{ width: '15px', height: '15px' }} />
+            {/* Green update pip indicator from TitleScreenMixin */}
+            <span style={{
+              position: 'absolute',
+              top: '2px',
+              right: '2px',
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              background: '#22c55e',
+              boxShadow: '0 0 4px #22c55e'
+            }} />
+          </div>
+        </div>
+
+        {/* Toast Simulation */}
+        {toast && (
+          <div className="mc-toast-preview">
+            <span>{toast}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CLEAN CODE BLOCK
+   ============================================================ */
 function CodeSnippet({ code, filename = "Terminal" }) {
   const [copied, setCopied] = useState(false);
 
@@ -53,6 +151,9 @@ function CodeSnippet({ code, filename = "Terminal" }) {
   );
 }
 
+/* ============================================================
+   MAIN DOCS COMPONENT
+   ============================================================ */
 export default function App() {
   const [selectedId, setSelectedId] = useState('overview');
   const [query, setQuery] = useState('');
@@ -63,6 +164,7 @@ export default function App() {
       title: 'Architecture Overview',
       subtitle: 'Dynamic Runtime Mod Reloader for Minecraft Java Edition on Fabric Loader',
       isOverview: true,
+      hasMcDemo: true,
       sections: [
         {
           heading: 'How live hot-swapping works in Minecraft',
@@ -297,27 +399,55 @@ dependencies {
     'api-reference': {
       category: 'Developer Integration',
       title: 'Public MutoApi Reference',
-      subtitle: 'Static methods and event lifecycle hooks for external mod developers',
+      subtitle: 'Verified static methods and event lifecycle hooks directly in me.fy2ne.muto.api',
       sections: [
         {
-          heading: 'MutoApi static methods',
+          heading: 'MutoApi class definition (me.fy2ne.muto.api.MutoApi)',
           steps: [
-            <><code>MutoApi.isAvailable()</code> — Returns true if Muto is active in the Fabric runtime.</>,
-            <><code>MutoApi.isReloading()</code> — Returns true if a reload transaction is currently underway.</>,
-            <><code>MutoApi.isSafeToReload()</code> — Returns true if client is safely on the Title Screen.</>,
-            <><code>MutoApi.reloadAsync()</code> — Dispatches non-blocking hot-reload returning CompletableFuture.</>,
-            <><code>MutoApi.getReloadableModIds()</code> — Returns tracked mod IDs eligible for live reloading.</>,
-            <><code>MutoApi.getStubbornModIds()</code> — Returns IDs of root-locked mods.</>
+            <><code>MutoApi.isAvailable()</code> — Returns true if Muto is active in FabricLoader.</>,
+            <><code>MutoApi.isReloading()</code> — Returns true if ReloadEngine is currently processing a swap.</>,
+            <><code>MutoApi.isSafeToReload()</code> — Returns true if client.level == null and screen is TitleScreen.</>,
+            <><code>MutoApi.reloadAsync()</code> — Scans /mods and rotates child loaders asynchronously.</>,
+            <><code>MutoApi.getReloadableModIds()</code> — Returns mod IDs tracked in the current active snapshot.</>,
+            <><code>MutoApi.getStubbornModIds()</code> — Returns locked root-classloader mod IDs.</>
           ],
           snippet: {
-            filename: 'me.fy2ne.muto.api.MutoApi',
-            code: `public final class MutoApi {
-    public static boolean isAvailable();
-    public static boolean isReloading();
-    public static boolean isSafeToReload();
-    public static CompletableFuture<ReloadResult> reloadAsync();
-    public static Set<String> getReloadableModIds();
-    public static Set<String> getStubbornModIds();
+            filename: 'me.fy2ne.muto.api.MutoApi.java',
+            code: `package me.fy2ne.muto.api;
+
+public final class MutoApi {
+    private MutoApi() {}
+
+    public static boolean isAvailable() {
+        return FabricLoader.getInstance().isModLoaded("muto");
+    }
+
+    public static boolean isReloading() {
+        return ReloadEngine.INSTANCE.isReloading();
+    }
+
+    public static boolean isSafeToReload() {
+        try {
+            var client = net.minecraft.client.Minecraft.getInstance();
+            return client != null && client.level == null 
+                && client.screen instanceof net.minecraft.client.gui.screens.TitleScreen;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    public static CompletableFuture<ReloadResult> reloadAsync() {
+        Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+        return ReloadEngine.INSTANCE.reloadAsync(modsDir, stage -> {});
+    }
+
+    public static Set<String> getReloadableModIds() {
+        return ReloadEngine.INSTANCE.currentSnapshot().reloadableMods();
+    }
+
+    public static Set<String> getStubbornModIds() {
+        return ReloadEngine.INSTANCE.currentSnapshot().stubbornMods();
+    }
 }`
           }
         }
@@ -512,46 +642,71 @@ dependencies {
   return (
     <div className="docs-shell">
       
-      {/* HEADER (Weavetab style) */}
+      {/* NAVBAR */}
       <header className="docs-header">
         <div className="docs-header-left">
           <div className="brand" onClick={() => setSelectedId('overview')}>
             <img src="/icon.png" alt="Muto" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
             <span className="brand-text">Muto</span>
-            <span className="brand-badge">v0.1.0-beta</span>
+            <span className="brand-badge">Beta</span>
           </div>
         </div>
 
+        {/* OFFICIAL SVG ICONS WITH WEAVETAB BLACK TOOLTIPS */}
         <div className="docs-header-right">
+          
+          {/* GitHub */}
           <a
             href="https://github.com/fy2ne/muto"
             target="_blank"
             rel="noopener noreferrer"
-            className="docs-navlink"
+            className="nav-icon-link"
+            aria-label="GitHub"
           >
-            <GithubIcon size={14} />
-            <span>GitHub</span>
+            <GithubIcon size={16} />
+            <span className="nav-tooltip">View Source on GitHub</span>
           </a>
+
+          {/* Modrinth */}
           <a
             href="https://modrinth.com/project/muto"
             target="_blank"
             rel="noopener noreferrer"
-            className="docs-navlink"
+            className="nav-icon-link"
+            aria-label="Modrinth"
           >
-            <span>Modrinth</span>
+            <ModrinthIcon size={16} />
+            <span className="nav-tooltip">Download on Modrinth</span>
           </a>
+
+          {/* CurseForge */}
+          <a
+            href="https://curseforge.com/minecraft/mc-mods/muto"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-icon-link"
+            aria-label="CurseForge"
+          >
+            <CurseForgeIcon size={16} />
+            <span className="nav-tooltip">Browse on CurseForge</span>
+          </a>
+
+          {/* fy2ne.me website */}
           <a
             href="https://fy2ne.me"
             target="_blank"
             rel="noopener noreferrer"
-            className="docs-navlink"
+            className="nav-icon-link"
+            aria-label="Personal Website"
           >
-            <span>fy2ne.me</span>
+            <WebsiteIcon size={16} />
+            <span className="nav-tooltip">Visit fy2ne.me</span>
           </a>
+
         </div>
       </header>
 
-      {/* LEFT SIDEBAR (Weavetab style: pure text-hover, no box background) */}
+      {/* LEFT SIDEBAR (No footer, pure text hover) */}
       <aside className="sidebar">
         <div className="sb-scroll">
           
@@ -603,12 +758,6 @@ dependencies {
           </div>
 
         </div>
-
-        {/* Sidebar Footer */}
-        <div className="sb-foot">
-          <span className="sb-foot-dot" />
-          <span className="sb-foot-meta">MUTO ENGINE · ONLINE</span>
-        </div>
       </aside>
 
       {/* MAIN CONTENT + TABLE OF CONTENTS */}
@@ -631,6 +780,9 @@ dependencies {
             <p style={{ color: 'var(--text-muted)', fontSize: '15.5px', marginTop: '-6px', marginBottom: '28px' }}>
               {currentArticle.subtitle}
             </p>
+
+            {/* Photocopy of Minecraft Title Screen & Buttons */}
+            {currentArticle.hasMcDemo && <MinecraftTitleScreenMock />}
 
             {/* Overview Tier Breakdown */}
             {currentArticle.isOverview && (
@@ -739,7 +891,7 @@ dependencies {
 
         </div>
 
-        {/* RIGHT TOC (Weavetab style: minimal text hover) */}
+        {/* RIGHT TOC */}
         <aside className="toc">
           <h4>On this page</h4>
           <div>
