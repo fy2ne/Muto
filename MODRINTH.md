@@ -7,7 +7,7 @@
 [![Minecraft 26.3](https://img.shields.io/badge/Minecraft-26.3-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
 [![Fabric Loader](https://img.shields.io/badge/Fabric-Loader%20%E2%89%A50.16.0-DBB26A?style=flat-square)](https://fabricmc.net/)
 [![Java 25](https://img.shields.io/badge/Java-25-orange?style=flat-square)](https://openjdk.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square)](LICENSE)
 
 </div>
 

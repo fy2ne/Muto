@@ -10,7 +10,7 @@ Reload, swap, and update mods seamlessly from the title screen — no full game 
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://fabricmc.net/)
 [![Fabric Loader](https://img.shields.io/badge/Fabric%20Loader-%E2%89%A50.16.0-DBB26A)](https://fabricmc.net/)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 [Download](https://modrinth.com/project/muto) · [Issues](https://github.com/fy2ne/muto/issues) · [Homepage](https://muto.fy2ne.me)
 
@@ -117,7 +117,7 @@ Use the [issue templates](https://github.com/fy2ne/muto/issues/new/choose) for b
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
