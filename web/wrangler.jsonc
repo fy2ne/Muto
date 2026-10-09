@@ -1,6 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "muto-docs",
+  "name": "muto",
   "compatibility_date": "2026-10-09",
-  "pages_build_output_dir": "dist"
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist"
+  },
+  "routes": [
+    {
+      "pattern": "muto.fy2ne.me",
+      "custom_domain": true
+    }
+  ]
 }
