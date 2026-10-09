@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Homepage
+    url: https://muto.fy2ne.me
+    about: Project website and announcements
+  - name: Modrinth
+    url: https://modrinth.com/project/muto
+    about: Download releases and leave comments
+  - name: Source code
+    url: https://github.com/fy2ne/muto
+    about: Browse or contribute to the Muto source

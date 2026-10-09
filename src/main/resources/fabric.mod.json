@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "muto",
+  "version": "${version}",
+  "name": "Muto",
+  "description": "Production-grade hot mod reloader for Minecraft. Reload, swap, and update mods seamlessly from the title screen.",
+  "authors": [
+    "fy2ne"
+  ],
+  "contact": {
+    "homepage": "https://muto.fy2ne.me",
+    "sources": "https://github.com/fy2ne/muto",
+    "issues": "https://github.com/fy2ne/muto/issues",
+    "email": "hello@fy2ne.me"
+  },
+  "license": "MIT",
+  "icon": "assets/muto/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "me.fy2ne.muto.MutoMod"
+    ],
+    "client": [
+      "me.fy2ne.muto.client.MutoClient"
+    ],
+    "modmenu": [
+      "me.fy2ne.muto.client.MutoModMenuPlugin"
+    ]
+  },
+  "mixins": [
+    "muto.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~26.3",
+    "java": ">=25"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.modrinth": "https://modrinth.com/project/muto"
+      }
+    }
+  }
+}

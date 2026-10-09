@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.fy2ne.muto.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "MappedRegistryAccessor"
+  ],
+  "client": [
+    "TitleScreenMixin",
+    "PauseScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

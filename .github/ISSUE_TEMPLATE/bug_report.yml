@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a problem with Muto so it can be fixed
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+        Please include logs whenever possible — `logs/muto.log` and `logs/latest.log` are usually enough to diagnose issues.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: When I click the reload button, the game crashes with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. Install Muto with Fabric API
+        2. Go to the title screen
+        3. Click the ↻ button
+        4. Crash
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: input
+    id: muto-version
+    attributes:
+      label: Muto version
+      placeholder: 0.1.0-alpha.1
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Minecraft, Fabric Loader, Fabric API, Java, and OS versions.
+      placeholder: "MC 26.3, Loader 0.19.5, Fabric API 0.161.0+26.3, Java 25, Windows 11"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      options:
+        - "HotSpot / OpenJDK (no DCEVM)"
+        - "JetBrains Runtime (JBR)"
+        - "JVM with DCEVM / AllowEnhancedClassRedefinition"
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste or attach `logs/muto.log` and `logs/latest.log` (or a crash report).
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mod list, screenshots, or anything else that might help.
+    validations:
+      required: false
