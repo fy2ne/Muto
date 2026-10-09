@@ -97,9 +97,6 @@ public final class MutoConfigScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
-        // Natural background extraction: renders in-game blur or title menu panorama
-        this.extractBackground(g, mx, my, dt);
-
         super.extractRenderState(g, mx, my, dt);
 
         int midX = this.width / 2;

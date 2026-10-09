@@ -147,9 +147,6 @@ public final class MutoReloadScreen extends Screen {
         int midX = w / 2;
         int midY = h / 2;
 
-        // Natural background extraction (shows world in-game or panorama on title screen)
-        this.extractBackground(g, mx, my, dt);
-
         // Soft translucent vignette so background remains visible
         g.fill(0, 0, w, h, 0x55000000);
 
