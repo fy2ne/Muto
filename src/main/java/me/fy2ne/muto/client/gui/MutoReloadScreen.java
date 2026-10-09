@@ -69,13 +69,24 @@ public final class MutoReloadScreen extends Screen {
         });
     }
 
+    private void closeOrReturn() {
+        if (this.minecraft == null) return;
+        if (this.minecraft.level != null) {
+            this.minecraft.setScreenAndShow(null);
+        } else if (this.origin != null) {
+            this.minecraft.setScreenAndShow(this.origin);
+        } else {
+            this.minecraft.setScreenAndShow(new TitleScreen());
+        }
+    }
+
     @Override
     protected void init() {
         super.init();
         returnBtn = Button.builder(
-                Component.literal("Return to Title Screen"),
-                btn -> this.minecraft.setScreenAndShow(new TitleScreen())
-        ).bounds(this.width / 2 - 100, this.height / 2 + 58, 200, 20).build();
+                Component.literal("Back"),
+                btn -> closeOrReturn()
+        ).bounds(this.width / 2 - 60, this.height / 2 + 62, 120, 20).build();
         returnBtn.visible = false;
         this.addRenderableWidget(returnBtn);
     }
@@ -103,16 +114,22 @@ public final class MutoReloadScreen extends Screen {
                 if (displayProg >= 0.99f) {
                     done = true;
                     long elapsed = System.currentTimeMillis() - startMs;
+
+                    boolean noChanges = res.diff() == null || !res.diff().hasChanges();
+                    if (noChanges) {
+                        MutoLog.info("reload no-op in {}ms, returning", elapsed);
+                        closeOrReturn();
+                        return;
+                    }
+
                     MutoLog.info("UI reload complete in {}ms, triggering resource reload", elapsed);
                     try {
                         this.minecraft.reloadResourcePacks().thenRun(() ->
-                                this.minecraft.execute(() ->
-                                        this.minecraft.setScreenAndShow(new TitleScreen())
-                                )
+                                this.minecraft.execute(this::closeOrReturn)
                         );
                     } catch (Exception ex) {
                         MutoLog.warn("resource reload error: {}", ex.getMessage());
-                        this.minecraft.setScreenAndShow(new TitleScreen());
+                        closeOrReturn();
                     }
                 }
             } else {
@@ -130,70 +147,68 @@ public final class MutoReloadScreen extends Screen {
         int midX = w / 2;
         int midY = h / 2;
 
-        // Full dark background with subtle gradient
-        g.fill(0, 0, w, h, BG);
-        g.fillGradient(0, 0, w, h / 3, 0x28001020, 0x00000000);
+        // Natural background extraction (shows world in-game or panorama on title screen)
+        this.extractBackground(g, mx, my, dt);
+
+        // Soft translucent vignette so background remains visible
+        g.fill(0, 0, w, h, 0x55000000);
+
+        // Centered floating card
+        int cardW = 300;
+        int cardH = 110;
+        int cLeft = midX - cardW / 2;
+        int cTop = midY - cardH / 2;
+        int cRight = midX + cardW / 2;
+        int cBottom = midY + cardH / 2;
+
+        g.fill(cLeft, cTop, cRight, cBottom, 0xD0111827);
+        g.fill(cLeft, cTop, cRight, cTop + 1, 0x50FFFFFF);
+        g.fill(cLeft, cBottom - 1, cRight, cBottom, 0x50FFFFFF);
+        g.fill(cLeft, cTop, cLeft + 1, cBottom, 0x50FFFFFF);
+        g.fill(cRight - 1, cTop, cRight, cBottom, 0x50FFFFFF);
 
         // Title
-        g.centeredText(this.font, Component.literal("§b§lMUTO"), midX, midY - 56, CYAN);
-        g.centeredText(this.font, Component.literal("§8RELOAD ENGINE"), midX, midY - 42, 0xFF4A5568);
-
-        // Separator
-        int sep = midX - 120;
-        g.fill(sep, midY - 28, sep + 240, midY - 27, 0xFF2D3748);
+        g.centeredText(this.font, Component.literal("§f§lReloading Mods"), midX, cTop + 12, 0xFFFFFFFF);
 
         // Stage label with animated dots
         ReloadResult res = result.get();
         boolean failed = res != null && !res.success();
         String dots = ".".repeat(dotCount);
         String label = stageMsg + (failed ? "" : dots);
-        int stageColor = failed ? RED : DIM;
-        g.centeredText(this.font, Component.literal(label), midX, midY - 14, stageColor);
+        int stageColor = failed ? RED : 0xFFCCCCCC;
+        g.centeredText(this.font, Component.literal(label), midX, cTop + 32, stageColor);
 
         // Progress bar track
-        int barW = 260;
-        int barH = 5;
+        int barW = 240;
+        int barH = 4;
         int barX = midX - barW / 2;
-        int barY = midY + 6;
+        int barY = cTop + 54;
 
         g.fill(barX - 1, barY - 1, barX + barW + 1, barY + barH + 1, 0xFF2D3748);
         g.fill(barX, barY, barX + barW, barY + barH, DARK);
 
-        // Fill — glow effect via second slightly wider bright fill
+        // Fill
         float clampedProg = Math.min(1.0f, displayProg);
         int fillW = (int) (barW * clampedProg);
         if (fillW > 0) {
-            int fillColor = failed ? RED : CYAN;
+            int fillColor = failed ? RED : 0xFF22C55E;
             g.fill(barX, barY, barX + fillW, barY + barH, fillColor);
-            // inner bright stripe (glow line)
-            if (!failed && fillW > 2) {
-                g.fill(barX, barY, barX + fillW, barY + 1, 0x80FFFFFF);
-            }
         }
 
-        // Percentage
+        // Percentage & Elapsed
         int pct = (int) (clampedProg * 100);
-        g.centeredText(this.font, Component.literal("§b" + pct + "%"), midX, midY + 20, CYAN);
-
-        // Elapsed time
         long elapsed = System.currentTimeMillis() - startMs;
-        g.centeredText(this.font, Component.literal("§8" + (elapsed / 1000) + "s"), midX, midY + 34, 0xFF4A5568);
+        g.text(this.font, Component.literal("§7" + pct + "%"), barX, barY + 10, 0xFF888888);
+        g.text(this.font, Component.literal("§7" + (elapsed / 1000) + "s"), barX + barW - 16, barY + 10, 0xFF888888);
 
         // Mod diff summary if finished
         if (res != null && res.diff() != null && res.diff().hasChanges()) {
-            int dy = midY + 46;
             String summary = "§a+" + res.diff().added().size()
                     + " §c-" + res.diff().removed().size()
                     + " §e~" + res.diff().updated().size();
-            g.centeredText(this.font, Component.literal(summary), midX, dy, 0xFFFFFFFF);
+            g.centeredText(this.font, Component.literal(summary), midX, barY + 24, 0xFFFFFFFF);
         }
 
-        // Runtime capability hint if no JBR
-        if (!MutoMod.isJbr()) {
-            g.centeredText(this.font,
-                    Component.literal("§8Tip: use JetBrains Runtime for deeper Tier 1 hotswap"),
-                    midX, h - 18, 0xFF4A5568
-            );
-        }
+        super.extractRenderState(g, mx, my, dt);
     }
 }

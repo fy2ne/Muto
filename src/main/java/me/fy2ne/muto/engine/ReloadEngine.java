@@ -21,7 +21,7 @@ public final class ReloadEngine {
     private final AtomicBoolean reloading = new AtomicBoolean(false);
     private volatile ModSnapshot currentSnapshot = ModSnapshot.empty();
     private volatile MutoClassLoader currentLoader;
-    private final List<Object> activeInstances = new ArrayList<>();
+    private final Map<String, List<Object>> instancesByMod = new LinkedHashMap<>();
 
     private ReloadEngine() {}
 
@@ -70,112 +70,149 @@ public final class ReloadEngine {
         }
 
         long startMs = System.currentTimeMillis();
-        notify(stageNotifier, "Scanning mod directory & validating environment...");
         MutoEvents.RELOAD_START.invoker().onReloadStart(startMs, plan.diff());
 
-        MutoClassLoader candidateLoader = null;
         try {
-            // Stage 1: Build candidate classloader and preflight check
-            notify(stageNotifier, "Constructing candidate classloader & staging checks...");
-            List<Path> reloadableJars = new ArrayList<>();
-            Set<String> reloadableIds = new HashSet<>();
-            for (ScannedMod m : plan.reloadable()) {
-                reloadableJars.add(m.jarPath());
-                reloadableIds.add(m.id());
+            ModDiff diff = plan.diff();
+
+            // Fast path: the mods folder is unchanged. Nothing can be safely
+            // reloaded, and re-invoking the entrypoints of already-loaded mods
+            // would re-run their initializers against global state — which is
+            // exactly what produces errors like "duplicate mod id: sodium".
+            if (!plan.hasWork()) {
+                notify(stageNotifier, "No mod changes detected — nothing to reload.");
+                long noopMs = System.currentTimeMillis() - startMs;
+                MutoLog.info("no mod changes detected, reload is a no-op ({}ms)", noopMs);
+                MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
+                        System.currentTimeMillis(), diff, true, noopMs, null);
+                return ReloadResult.ok(diff, noopMs);
             }
 
-            candidateLoader = new MutoClassLoader(
-                    reloadableJars,
-                    reloadableIds,
-                    getClass().getClassLoader()
-            );
+            notify(stageNotifier, "Scanning mod directory & validating environment...");
 
-            // Preflight check: verify entrypoint classes can be loaded before dropping current state
+            // Fabric already loads every mod that existed at startup on its own
+            // classpath. Re-initializing one of those duplicates its global state,
+            // so the only mods we may initialize are those ADDED after launch:
+            // they are absent from the parent classpath and load fresh in our
+            // child loader. Updated/removed mods still hold live references in
+            // the running game and cannot be hot-swapped safely.
+            List<ScannedMod> initializable = new ArrayList<>();
             for (ScannedMod mod : plan.reloadable()) {
-                preflightCheck(candidateLoader, mod);
-            }
-
-            // Stage 2: Teardown old state child-first
-            notify(stageNotifier, "Tearing down mod runtime contexts (child-first)...");
-            teardownOldInstances();
-
-            for (String rem : plan.diff().removed()) {
-                RegistryFreezer.pruneNamespace(rem);
-            }
-            for (String upd : plan.diff().updated()) {
-                RegistryFreezer.pruneNamespace(upd);
-            }
-
-            if (currentLoader != null) {
-                try {
-                    currentLoader.close();
-                } catch (Exception ex) {
-                    MutoLog.warn("error closing old classloader: {}", ex.getMessage());
+                if (diff.added().contains(mod.id())) {
+                    initializable.add(mod);
                 }
             }
-            System.gc();
 
-            // Stage 3: Unfreeze registries & activate new loader
-            notify(stageNotifier, "Unfreezing registries & activating classloader...");
-            RegistryFreezer.unfreezeAll();
-            currentLoader = candidateLoader;
-            candidateLoader = null;
-
-            // Stage 4: Instantiate & execute entrypoints
-            notify(stageNotifier, "Re-invoking entrypoints & updating registries...");
-            activeInstances.clear();
-            for (ScannedMod mod : plan.reloadable()) {
-                initializeMod(currentLoader, mod);
+            if (!diff.updated().isEmpty() || !diff.removed().isEmpty()) {
+                MutoLog.warn("{} updated / {} removed mod(s) are bound to the running game and "
+                                + "cannot be hot-swapped — restart to apply them",
+                        diff.updated().size(), diff.removed().size());
             }
 
-            // Stage 5: Refreeze registries
-            notify(stageNotifier, "Finalizing engine state & preparing Title Screen...");
-            RegistryFreezer.freezeAll();
+            MutoClassLoader candidateLoader = null;
+            try {
+                // Stage 1: Build candidate classloader and preflight check
+                if (!initializable.isEmpty()) {
+                    notify(stageNotifier, "Constructing candidate classloader & staging checks...");
+                    List<Path> reloadableJars = new ArrayList<>();
+                    Set<String> reloadableIds = new HashSet<>();
+                    for (ScannedMod m : initializable) {
+                        reloadableJars.add(m.jarPath());
+                        reloadableIds.add(m.id());
+                    }
 
-            // Stage 6: Sync loader metadata
-            syncFabricLoader(plan.targetSnapshot());
+                    candidateLoader = new MutoClassLoader(
+                            reloadableJars,
+                            reloadableIds,
+                            getClass().getClassLoader()
+                    );
 
-            currentSnapshot = plan.targetSnapshot();
-            long durationMs = System.currentTimeMillis() - startMs;
-            MutoLog.info("reload finished cleanly in {}ms (+{} -{} ~{})",
-                    durationMs,
-                    plan.diff().added().size(),
-                    plan.diff().removed().size(),
-                    plan.diff().updated().size()
-            );
+                    // Preflight: verify entrypoint classes load before dropping state
+                    for (ScannedMod mod : initializable) {
+                        preflightCheck(candidateLoader, mod);
+                    }
+                }
 
-            MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
-                    System.currentTimeMillis(),
-                    plan.diff(),
-                    true,
-                    durationMs,
-                    null
-            );
+                // Stage 2: Tear down only removed mod contexts. Mods that remain
+                // loaded must be left running or we would drop working functionality.
+                notify(stageNotifier, "Tearing down removed mod contexts...");
+                for (String rem : diff.removed()) {
+                    teardownMod(rem);
+                    RegistryFreezer.pruneNamespace(rem);
+                }
+                for (String upd : diff.updated()) {
+                    RegistryFreezer.pruneNamespace(upd);
+                }
 
-            return ReloadResult.ok(plan.diff(), durationMs);
+                if (currentLoader != null) {
+                    try {
+                        currentLoader.close();
+                    } catch (Exception ex) {
+                        MutoLog.warn("error closing old classloader: {}", ex.getMessage());
+                    }
+                }
+                System.gc();
 
-        } catch (Throwable err) {
-            long durationMs = System.currentTimeMillis() - startMs;
-            MutoLog.error("reload failed, rolling back: {}", err.getMessage(), err);
+                // Stage 3: Unfreeze registries & activate new loader
+                notify(stageNotifier, "Unfreezing registries & activating classloader...");
+                RegistryFreezer.unfreezeAll();
+                currentLoader = candidateLoader;
+                candidateLoader = null;
 
-            if (candidateLoader != null) {
-                try {
-                    candidateLoader.close();
-                } catch (Exception ignored) {}
+                // Stage 4: Instantiate & execute entrypoints (added mods only)
+                notify(stageNotifier, "Re-invoking entrypoints & updating registries...");
+                for (ScannedMod mod : initializable) {
+                    initializeMod(currentLoader, mod);
+                }
+
+                // Stage 5: Refreeze registries
+                notify(stageNotifier, "Finalizing engine state & preparing Title Screen...");
+                RegistryFreezer.freezeAll();
+
+                // Stage 6: Sync loader metadata
+                syncFabricLoader(plan.targetSnapshot(), diff);
+
+                currentSnapshot = plan.targetSnapshot();
+                long durationMs = System.currentTimeMillis() - startMs;
+                MutoLog.info("reload finished cleanly in {}ms (+{} -{} ~{})",
+                        durationMs,
+                        diff.added().size(),
+                        diff.removed().size(),
+                        diff.updated().size()
+                );
+
+                MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
+                        System.currentTimeMillis(),
+                        diff,
+                        true,
+                        durationMs,
+                        null
+                );
+
+                return ReloadResult.ok(diff, durationMs);
+
+            } catch (Throwable err) {
+                long durationMs = System.currentTimeMillis() - startMs;
+                MutoLog.error("reload failed, rolling back: {}", err.getMessage(), err);
+
+                if (candidateLoader != null) {
+                    try {
+                        candidateLoader.close();
+                    } catch (Exception ignored) {}
+                }
+
+                RegistryFreezer.freezeAll();
+
+                MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
+                        System.currentTimeMillis(),
+                        diff,
+                        false,
+                        durationMs,
+                        err
+                );
+
+                return ReloadResult.fail(diff, durationMs, err.getMessage());
             }
-
-            RegistryFreezer.freezeAll();
-
-            MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
-                    System.currentTimeMillis(),
-                    plan.diff(),
-                    false,
-                    durationMs,
-                    err
-            );
-
-            return ReloadResult.fail(plan.diff(), durationMs, err.getMessage());
-
         } finally {
             reloading.set(false);
         }
@@ -190,39 +227,42 @@ public final class ReloadEngine {
         }
     }
 
-    private void teardownOldInstances() {
-        for (Object inst : activeInstances) {
-            if (inst instanceof Closeable c) {
-                try {
-                    c.close();
-                } catch (Exception ex) {
-                    MutoLog.warn("error closing mod instance {}: {}", inst.getClass().getName(), ex.getMessage());
-                }
-            } else if (inst instanceof AutoCloseable ac) {
-                try {
-                    ac.close();
-                } catch (Exception ex) {
-                    MutoLog.warn("error closing mod instance {}: {}", inst.getClass().getName(), ex.getMessage());
-                }
-            }
+    private void teardownMod(String modId) {
+        List<Object> instances = instancesByMod.remove(modId);
+        if (instances == null) return;
+        for (Object inst : instances) {
+            closeQuietly(inst);
         }
-        activeInstances.clear();
+    }
+
+    private void closeQuietly(Object inst) {
+        try {
+            if (inst instanceof Closeable c) {
+                c.close();
+            } else if (inst instanceof AutoCloseable ac) {
+                ac.close();
+            }
+        } catch (Exception ex) {
+            MutoLog.warn("error closing mod instance {}: {}", inst.getClass().getName(), ex.getMessage());
+        }
     }
 
     private void initializeMod(MutoClassLoader loader, ScannedMod mod) {
+        List<Object> created = new ArrayList<>();
+
         // Main entrypoints
         for (String clsName : mod.getClassesFor("main")) {
             try {
                 Class<?> cls = loader.loadClass(clsName);
                 Object obj = cls.getDeclaredConstructor().newInstance();
-                activeInstances.add(obj);
+                created.add(obj);
 
                 if (obj instanceof ModInitializer init) {
                     init.onInitialize();
                     MutoLog.info("initialized main: {}", clsName);
                 }
-            } catch (Exception ex) {
-                MutoLog.error("failed initializing main entrypoint {}: {}", clsName, ex.getMessage());
+            } catch (Throwable ex) {
+                MutoLog.error("failed initializing main entrypoint {}: {}", clsName, ex.getMessage(), ex);
             }
         }
 
@@ -231,41 +271,175 @@ public final class ReloadEngine {
             try {
                 Class<?> cls = loader.loadClass(clsName);
                 Object obj = cls.getDeclaredConstructor().newInstance();
-                activeInstances.add(obj);
+                created.add(obj);
 
                 if (obj instanceof ClientModInitializer clientInit) {
                     clientInit.onInitializeClient();
                     MutoLog.info("initialized client: {}", clsName);
                 }
-            } catch (Exception ex) {
-                MutoLog.error("failed initializing client entrypoint {}: {}", clsName, ex.getMessage());
+            } catch (Throwable ex) {
+                MutoLog.error("failed initializing client entrypoint {}: {}", clsName, ex.getMessage(), ex);
             }
+        }
+
+        if (!created.isEmpty()) {
+            instancesByMod.computeIfAbsent(mod.id(), k -> new ArrayList<>()).addAll(created);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void syncFabricLoader(ModSnapshot snapshot) {
+    private void syncFabricLoader(ModSnapshot snapshot, ModDiff diff) {
         try {
             FabricLoader fl = FabricLoader.getInstance();
             Field modMapField = null;
+            Field modsListField = null;
             Class<?> cur = fl.getClass();
-            while (cur != null && modMapField == null) {
+            while (cur != null && (modMapField == null || modsListField == null)) {
                 try {
-                    modMapField = cur.getDeclaredField("modMap");
-                } catch (NoSuchFieldException e) {
-                    cur = cur.getSuperclass();
-                }
+                    if (modMapField == null) modMapField = cur.getDeclaredField("modMap");
+                } catch (NoSuchFieldException ignored) {}
+                try {
+                    if (modsListField == null) modsListField = cur.getDeclaredField("mods");
+                } catch (NoSuchFieldException ignored) {}
+                cur = cur.getSuperclass();
             }
 
             if (modMapField != null) {
                 modMapField.setAccessible(true);
-                Map<String, ?> map = (Map<String, ?>) modMapField.get(fl);
-                if (map != null) {
-                    MutoLog.info("fabric loader modMap synced (tracked mods: {})", snapshot.mods().size());
+                Map<String, Object> map = (Map<String, Object>) modMapField.get(fl);
+                List<Object> list = null;
+                if (modsListField != null) {
+                    modsListField.setAccessible(true);
+                    list = (List<Object>) modsListField.get(fl);
                 }
+
+                if (diff != null) {
+                    for (String removedId : diff.removed()) {
+                        if (map != null) map.remove(removedId);
+                        if (list != null) {
+                            list.removeIf(item -> {
+                                if (item instanceof net.fabricmc.loader.api.ModContainer mc) {
+                                    return mc.getMetadata().getId().equals(removedId);
+                                }
+                                return false;
+                            });
+                        }
+                    }
+
+                    for (String addedId : diff.added()) {
+                        ScannedMod mod = snapshot.mods().get(addedId);
+                        if (mod == null) continue;
+                        try {
+                            Object container = createContainer(mod);
+                            if (container != null) {
+                                if (map != null) map.put(mod.id(), container);
+                                if (list != null && !list.contains(container)) list.add(container);
+                                syncModMenu(mod.id(), container);
+                                MutoLog.info("synced {} into FabricLoader and ModMenu", mod.id());
+                            }
+                        } catch (Throwable ex) {
+                            MutoLog.warn("failed registering container for {}: {}", mod.id(), ex.getMessage());
+                        }
+                    }
+                }
+
+                MutoLog.info("fabric loader modMap synced (tracked mods: {})", snapshot.mods().size());
             }
         } catch (Throwable t) {
             MutoLog.warn("fabric loader modMap sync skipped: {}", t.getMessage());
+        }
+    }
+
+    private Object createContainer(ScannedMod mod) {
+        try {
+            Optional<net.fabricmc.loader.api.ModContainer> existing = FabricLoader.getInstance().getModContainer(mod.id());
+            if (existing.isPresent()) return existing.get();
+
+            try (java.util.jar.JarFile jf = new java.util.jar.JarFile(mod.jarPath().toFile())) {
+                java.util.jar.JarEntry entry = jf.getJarEntry("fabric.mod.json");
+                if (entry != null) {
+                    try (java.io.InputStream is = jf.getInputStream(entry)) {
+                        Class<?> parserCls = Class.forName("net.fabricmc.loader.impl.metadata.ModMetadataParser");
+                        java.lang.reflect.Method parseMethod = null;
+                        for (java.lang.reflect.Method m : parserCls.getMethods()) {
+                            if (m.getName().equals("parseMetadata")) {
+                                parseMethod = m;
+                                break;
+                            }
+                        }
+                        if (parseMethod != null) {
+                            Object[] args = new Object[parseMethod.getParameterCount()];
+                            args[0] = is;
+                            args[1] = mod.jarPath().toString();
+                            if (args.length > 2) args[2] = List.of();
+                            Object meta = parseMethod.invoke(null, args);
+
+                            Class<?> candidateCls = Class.forName("net.fabricmc.loader.impl.discovery.ModCandidateImpl");
+                            java.lang.reflect.Method createPlain = null;
+                            for (java.lang.reflect.Method m : candidateCls.getDeclaredMethods()) {
+                                if (m.getName().equals("createPlain")) {
+                                    createPlain = m;
+                                    break;
+                                }
+                            }
+                            if (createPlain != null) {
+                                createPlain.setAccessible(true);
+                                Object[] cArgs = new Object[createPlain.getParameterCount()];
+                                cArgs[0] = List.of(mod.jarPath());
+                                cArgs[1] = meta;
+                                if (cArgs.length > 2) cArgs[2] = false;
+                                if (cArgs.length > 3) cArgs[3] = List.of();
+                                Object candidate = createPlain.invoke(null, cArgs);
+
+                                Class<?> containerCls = Class.forName("net.fabricmc.loader.impl.ModContainerImpl");
+                                java.lang.reflect.Constructor<?> ctor = containerCls.getDeclaredConstructor(candidateCls);
+                                ctor.setAccessible(true);
+                                return ctor.newInstance(candidate);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ex) {
+            MutoLog.warn("reflection ModContainer creation failed for {}: {}", mod.id(), ex.getMessage());
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void syncModMenu(String modId, Object container) {
+        try {
+            Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
+            Field modsField = modMenuCls.getDeclaredField("MODS");
+            modsField.setAccessible(true);
+            Map<String, Object> menuMods = (Map<String, Object>) modsField.get(null);
+
+            Field rootModsField = modMenuCls.getDeclaredField("ROOT_MODS");
+            rootModsField.setAccessible(true);
+            List<Object> rootMods = (List<Object>) rootModsField.get(null);
+
+            Class<?> fabricModCls = null;
+            for (String name : List.of(
+                    "com.terraformersmc.modmenu.util.mod.fabric.FabricMod",
+                    "com.terraformersmc.modmenu.util.mod.FabricMod"
+            )) {
+                try {
+                    fabricModCls = Class.forName(name);
+                    break;
+                } catch (ClassNotFoundException ignored) {}
+            }
+
+            if (fabricModCls != null && container instanceof net.fabricmc.loader.api.ModContainer mc) {
+                java.lang.reflect.Constructor<?> ctor = fabricModCls.getConstructor(net.fabricmc.loader.api.ModContainer.class);
+                Object modItem = ctor.newInstance(mc);
+                menuMods.put(modId, modItem);
+                if (!rootMods.contains(modItem)) {
+                    rootMods.add(modItem);
+                }
+                MutoLog.info("synced {} to ModMenu cache", modId);
+            }
+        } catch (Throwable t) {
+            MutoLog.warn("ModMenu sync skipped: {}", t.getMessage());
         }
     }
 

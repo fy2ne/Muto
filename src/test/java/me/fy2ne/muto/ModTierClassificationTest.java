@@ -51,15 +51,15 @@ public class ModTierClassificationTest {
     }
 
     @Test
-    void testModWithoutEntrypointsOrMixinsIsStubborn() {
+    void testModWithoutEntrypointsOrMixinsIsReloadable() {
         ScannedMod mod = new ScannedMod(
                 "empty_lib", "1.0.0", Path.of("empty_lib.jar"), "sha256",
                 false,
                 Map.of(),
                 512L
         );
-        Assertions.assertEquals(ModTier.STUBBORN, ModTier.classify(mod));
-        Assertions.assertFalse(ModTier.classify(mod).isReloadable());
+        Assertions.assertEquals(ModTier.STANDARD, ModTier.classify(mod));
+        Assertions.assertTrue(ModTier.classify(mod).isReloadable());
     }
 
     @Test

@@ -1,135 +1,127 @@
 package me.fy2ne.muto.client.gui;
 
-import me.fy2ne.muto.MutoLog;
 import me.fy2ne.muto.MutoMod;
 import me.fy2ne.muto.engine.ModSnapshot;
 import me.fy2ne.muto.engine.ModTier;
 import me.fy2ne.muto.engine.ReloadEngine;
 import me.fy2ne.muto.engine.ScannedMod;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 public final class MutoConfigScreen extends Screen {
     private final Screen parent;
-    private int scrollOffset;
-    private static final int ROW_H = 22;
-    private static final int LIST_Y = 90;
+    private EditBox searchBox;
+    private ModListWidget listWidget;
+    private String query = "";
 
     public MutoConfigScreen(Screen parent) {
         super(Component.literal("Muto — Mod Reload Manager"));
         this.parent = parent;
-        this.scrollOffset = 0;
     }
 
     @Override
     protected void init() {
         super.init();
+
+        int listTop = 50;
+        int listBottom = this.height - 36;
+        int listHeight = listBottom - listTop;
+
+        int searchW = Math.min(340, this.width - 40);
+        int searchX = (this.width - searchW) / 2;
+        searchBox = new EditBox(this.font, searchX, 24, searchW, 18, Component.literal("Search"));
+        searchBox.setHint(Component.literal("Search mods by id..."));
+        searchBox.setResponder(this::onSearchQueryChanged);
+        searchBox.setValue(query);
+        this.addRenderableWidget(searchBox);
+
+        listWidget = new ModListWidget(this.minecraft, this.width, listHeight, listTop, 26);
+        this.addRenderableWidget(listWidget);
+        refreshEntries();
+
+        // Bottom action buttons
+        int btnW = 120;
+        int gap = 12;
+        int totalBtnW = btnW * 2 + gap;
+        int btnStartX = (this.width - totalBtnW) / 2;
+        int btnY = this.height - 28;
+
         this.addRenderableWidget(
-                Button.builder(Component.literal("← Back"), btn -> this.minecraft.setScreenAndShow(parent))
-                        .bounds(8, 8, 60, 20)
+                Button.builder(Component.literal("Done"), btn -> this.onClose())
+                        .bounds(btnStartX, btnY, btnW, 20)
                         .build()
         );
+
+        this.addRenderableWidget(
+                Button.builder(Component.literal("Reload Mods (↻)"), btn -> {
+                    if (this.minecraft != null) {
+                        this.minecraft.setScreenAndShow(new MutoReloadScreen(this));
+                    }
+                })
+                .bounds(btnStartX + btnW + gap, btnY, btnW, 20)
+                .tooltip(Tooltip.create(Component.literal("Scan /mods and apply hot-reloads")))
+                .build()
+        );
+    }
+
+    private void onSearchQueryChanged(String text) {
+        this.query = text.trim().toLowerCase(Locale.ROOT);
+        refreshEntries();
+    }
+
+    private void refreshEntries() {
+        if (listWidget == null) return;
+        listWidget.clear();
+
+        ModSnapshot snap = ReloadEngine.INSTANCE.currentSnapshot();
+        List<ScannedMod> allMods = new ArrayList<>(snap.mods().values());
+
+        for (ScannedMod mod : allMods) {
+            if (!query.isEmpty() && !mod.id().toLowerCase(Locale.ROOT).contains(query)) {
+                continue;
+            }
+            ModTier tier = snap.tier(mod.id());
+            listWidget.addMod(new ModEntry(mod, tier));
+        }
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
-        // Background
-        g.fill(0, 0, this.width, this.height, 0xFF0A0D14);
-        g.fillGradient(0, 0, this.width, 60, 0xFF0D1B2A, 0xFF0A0D14);
+        // Natural background extraction: renders in-game blur or title menu panorama
+        this.extractBackground(g, mx, my, dt);
+
+        super.extractRenderState(g, mx, my, dt);
 
         int midX = this.width / 2;
 
-        g.centeredText(this.font, Component.literal("§b§lMUTO"), midX, 20, 0xFF00E5FF);
-        g.centeredText(this.font, Component.literal("§8Mod Reload Manager"), midX, 34, 0xFF4A5568);
+        // Header Title
+        g.centeredText(this.font, Component.literal("§f§lMuto Mod Manager"), midX, 10, 0xFFFFFFFF);
 
-        // Runtime flags row
-        String jbrTag = MutoMod.isJbr() ? "§aJBR §7✓" : "§cJBR §7✗";
-        String dcevmTag = MutoMod.hasDcevm() ? "§aDCEVM §7✓" : "§cDCEVM §7✗";
-        g.centeredText(this.font, Component.literal(jbrTag + "   " + dcevmTag), midX, 48, 0xFFFFFFFF);
+        // Header and Footer subtle divider lines
+        g.fill(10, 46, this.width - 10, 47, 0x40FFFFFF);
+        g.fill(10, this.height - 34, this.width - 10, this.height - 33, 0x40FFFFFF);
 
-        // Separator
-        g.fill(24, 68, this.width - 24, 69, 0xFF2D3748);
+        // Header runtime tags in top right corner
+        String jbrTag = MutoMod.isJbr() ? "§aJBR✓" : "§7JBR✗";
+        String dcevmTag = MutoMod.hasDcevm() ? "§aDCEVM✓" : "§7DCEVM✗";
+        g.text(this.font, Component.literal(jbrTag + " " + dcevmTag), this.width - 90, 10, 0xFFFFFFFF);
 
-        // Column headers
-        g.text(this.font, Component.literal("§7Mod ID"), 30, 75, 0xFFFFFFFF);
-        g.text(this.font, Component.literal("§7Version"), midX - 60, 75, 0xFFFFFFFF);
-        g.text(this.font, Component.literal("§7Tier"), midX + 60, 75, 0xFFFFFFFF);
-        g.text(this.font, Component.literal("§7Status"), this.width - 90, 75, 0xFFFFFFFF);
-        g.fill(24, 85, this.width - 24, 86, 0xFF2D3748);
-
-        // Mod list
-        ModSnapshot snap = ReloadEngine.INSTANCE.currentSnapshot();
-        Map<String, ScannedMod> mods = snap.mods();
-
-        List<Map.Entry<String, ScannedMod>> entries = new ArrayList<>(mods.entrySet());
-        int listH = this.height - LIST_Y - 30;
-        int maxVisible = listH / ROW_H;
-        int startIdx = Math.min(scrollOffset, Math.max(0, entries.size() - maxVisible));
-
-        g.enableScissor(0, LIST_Y, this.width, LIST_Y + listH);
-        for (int i = startIdx; i < Math.min(entries.size(), startIdx + maxVisible + 1); i++) {
-            var entry = entries.get(i);
-            ScannedMod mod = entry.getValue();
-            ModTier tier = snap.tier(mod.id());
-            int rowY = LIST_Y + (i - startIdx) * ROW_H;
-
-            // Alternating row background
-            if (i % 2 == 0) {
-                g.fill(24, rowY, this.width - 24, rowY + ROW_H - 2, 0x18FFFFFF);
-            }
-
-            // Mod ID
-            String idLabel = mod.id().length() > 20 ? mod.id().substring(0, 18) + "…" : mod.id();
-            g.text(this.font, Component.literal("§f" + idLabel), 30, rowY + 7, 0xFFFFFFFF);
-
-            // Version
-            g.text(this.font, Component.literal("§7" + mod.version()), midX - 60, rowY + 7, 0xFFFFFFFF);
-
-            // Tier badge
-            String tierLabel = switch (tier) {
-                case CLEAN -> "§a✦ Clean";
-                case STANDARD -> "§e● Standard";
-                case STUBBORN -> "§c■ Stubborn";
-            };
-            g.text(this.font, Component.literal(tierLabel), midX + 60, rowY + 7, 0xFFFFFFFF);
-
-            // Status
-            String status = tier.isReloadable() ? "§a✓ Live" : "§7— Locked";
-            g.text(this.font, Component.literal(status), this.width - 90, rowY + 7, 0xFFFFFFFF);
-        }
-        g.disableScissor();
-
-        // Scroll hint
-        if (entries.size() > maxVisible) {
-            int barH = (int) ((float) maxVisible / entries.size() * listH);
-            int barY = LIST_Y + (int) ((float) startIdx / entries.size() * listH);
-            g.fill(this.width - 6, LIST_Y, this.width - 4, LIST_Y + listH, 0xFF1A202C);
-            g.fill(this.width - 6, barY, this.width - 4, barY + barH, 0xFF00E5FF);
-        }
-
-        // Footer: total counts
-        int reloadable = snap.reloadableMods().size();
-        int stubborn = snap.stubbornMods().size();
-        g.centeredText(this.font, Component.literal(
-                "§7" + mods.size() + " total  §a" + reloadable + " live  §c" + stubborn + " locked"
-        ), midX, this.height - 18, 0xFFFFFFFF);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+        // Summary stats on bottom left
         ModSnapshot snap = ReloadEngine.INSTANCE.currentSnapshot();
         int total = snap.mods().size();
-        int listH = this.height - LIST_Y - 30;
-        int maxVisible = listH / ROW_H;
-        int maxOffset = Math.max(0, total - maxVisible);
-        scrollOffset = (int) Math.max(0, Math.min(maxOffset, scrollOffset - dy));
-        return true;
+        int live = snap.reloadableMods().size();
+        int stubborn = snap.stubbornMods().size();
+        g.text(this.font, Component.literal("§7" + total + " mods  §a" + live + " live  §7" + stubborn + " core"), 14, this.height - 22, 0xFF888888);
     }
 
     @Override
@@ -139,6 +131,86 @@ public final class MutoConfigScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreenAndShow(parent);
+        if (this.minecraft != null) {
+            this.minecraft.setScreenAndShow(parent);
+        }
+    }
+
+    public final class ModListWidget extends ObjectSelectionList<ModEntry> {
+        public ModListWidget(Minecraft mc, int width, int height, int y, int itemHeight) {
+            super(mc, width, height, y, itemHeight);
+        }
+
+        public void clear() {
+            this.clearEntries();
+        }
+
+        public void addMod(ModEntry entry) {
+            this.addEntry(entry);
+        }
+
+        @Override
+        public int getRowWidth() {
+            return Math.min(420, MutoConfigScreen.this.width - 32);
+        }
+
+        @Override
+        protected int scrollBarX() {
+            return (MutoConfigScreen.this.width + getRowWidth()) / 2 + 6;
+        }
+    }
+
+    public final class ModEntry extends ObjectSelectionList.Entry<ModEntry> {
+        private final ScannedMod mod;
+        private final ModTier tier;
+
+        public ModEntry(ScannedMod mod, ModTier tier) {
+            this.mod = mod;
+            this.tier = tier;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor g, int x, int y, boolean hovered, float dt) {
+            int rowW = listWidget.getRowWidth();
+
+            // Hover highlight
+            if (hovered) {
+                g.fill(x - 4, y, x + rowW + 4, y + 24, 0x1AFFFFFF);
+                g.fill(x - 4, y, x - 2, y + 24, 0xFF00E5FF);
+            }
+
+            // Mod name / ID
+            String idStr = mod.id().length() > 22 ? mod.id().substring(0, 20) + "…" : mod.id();
+            g.text(font, Component.literal("§f§l" + idStr), x + 4, y + 4, 0xFFFFFFFF);
+
+            // Version
+            g.text(font, Component.literal("§8v" + mod.version()), x + 150, y + 5, 0xFF888888);
+
+            // Tier & Status Badge
+            String badge = switch (tier) {
+                case CLEAN -> "§a[ Clean ]";
+                case STANDARD -> "§2[ Live ]";
+                case STUBBORN -> "§7[ Core ]";
+            };
+            g.text(font, Component.literal(badge), x + rowW - 55, y + 5, 0xFFFFFFFF);
+
+            // Tooltip on hover
+            if (hovered) {
+                List<Component> tooltip = List.of(
+                        Component.literal("§e" + mod.id() + " §7v" + mod.version()),
+                        Component.literal("§7" + tier.desc()),
+                        Component.literal("§8Jar: " + mod.jarPath().getFileName()),
+                        tier.isReloadable()
+                                ? Component.literal("§a✓ Dynamic reloadable")
+                                : Component.literal("§c✗ Engine bound (requires restart)")
+                );
+                g.setComponentTooltipForNextFrame(font, tooltip, x + 30, y);
+            }
+        }
+
+        @Override
+        public Component getNarration() {
+            return Component.literal(mod.id());
+        }
     }
 }

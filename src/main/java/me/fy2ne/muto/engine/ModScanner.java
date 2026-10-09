@@ -109,6 +109,20 @@ public final class ModScanner {
                 } else {
                     nextPos = valStart + 1;
                 }
+            } else if (firstChar == '{') {
+                int braceEnd = findMatchingBrace(block, valStart);
+                if (braceEnd > valStart) {
+                    String obj = block.substring(valStart, braceEnd + 1);
+                    String val = extractJsonString(obj, "value");
+                    if (val != null && !val.isBlank()) {
+                        classes.add(val);
+                    } else {
+                        extractClassesFromArray(obj, classes);
+                    }
+                    nextPos = braceEnd + 1;
+                } else {
+                    nextPos = valStart + 1;
+                }
             } else if (firstChar == '"') {
                 int endQuote = block.indexOf('"', valStart + 1);
                 if (endQuote > valStart) {
@@ -135,12 +149,29 @@ public final class ModScanner {
             if (q2 < 0) break;
 
             String token = arr.substring(q1 + 1, q2);
-            if ("value".equals(token) || "adapter".equals(token)) {
+            if ("value".equals(token)) {
+                int colon = arr.indexOf(':', q2 + 1);
+                if (colon > 0) {
+                    int vq1 = arr.indexOf('"', colon + 1);
+                    if (vq1 > 0) {
+                        int vq2 = arr.indexOf('"', vq1 + 1);
+                        if (vq2 > vq1) {
+                            String target = arr.substring(vq1 + 1, vq2);
+                            if (target.contains(".") && !target.endsWith(".json") && !out.contains(target)) {
+                                out.add(target);
+                            }
+                            idx = vq2 + 1;
+                            continue;
+                        }
+                    }
+                }
+            }
+            if ("adapter".equals(token)) {
                 idx = q2 + 1;
                 continue;
             }
 
-            if (token.contains(".") && !token.endsWith(".json")) {
+            if (token.contains(".") && !token.endsWith(".json") && !out.contains(token)) {
                 out.add(token);
             }
             idx = q2 + 1;

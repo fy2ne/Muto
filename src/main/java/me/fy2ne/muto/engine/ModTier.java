@@ -47,11 +47,6 @@ public enum ModTier {
             return STUBBORN;
         }
 
-        // stubborn if touching raw launcher bytecode or zero entrypoints
-        if (mod.entrypoints().isEmpty() && !mod.hasMixins()) {
-            return STUBBORN;
-        }
-
         // clean: pure client-side tweaks without server or common hooks
         if (mod.hasEntrypoint("client") && !mod.hasEntrypoint("main") && !mod.hasEntrypoint("server") && !mod.hasMixins()) {
             return CLEAN;

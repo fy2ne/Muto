@@ -138,6 +138,30 @@ public class ReloadShellTest {
     }
 
     @Test
+    void testNoChangesReloadIsNoOp(@TempDir Path tempDir) throws IOException {
+        createMockJar(tempDir, "stable-mod.jar", "stable_mod", "1.0.0", "java.lang.Object");
+
+        ReloadPlan first = ReloadEngine.INSTANCE.plan(tempDir);
+        Assertions.assertTrue(first.hasWork());
+        Assertions.assertTrue(ReloadEngine.INSTANCE.execute(first, s -> {}).success());
+
+        // Re-scanning the untouched folder must report no work...
+        ReloadPlan second = ReloadEngine.INSTANCE.plan(tempDir);
+        Assertions.assertFalse(second.hasWork());
+        Assertions.assertTrue(second.diff().unchanged().contains("stable_mod"));
+
+        // ...and executing it must be a safe no-op that never re-invokes entrypoints.
+        List<String> stages = new ArrayList<>();
+        ReloadResult result = ReloadEngine.INSTANCE.execute(second, stages::add);
+
+        Assertions.assertTrue(result.success());
+        Assertions.assertNull(result.error());
+        Assertions.assertTrue(
+                stages.stream().anyMatch(m -> m.toLowerCase().contains("no mod changes")),
+                "no-op reload should report that nothing changed");
+    }
+
+    @Test
     void testCrashingModRollbackAndSafety(@TempDir Path tempDir) throws IOException {
         // deliberate broken mod with nonexistent entrypoint class
         createMockJar(tempDir, "broken-mod.jar", "broken_mod", "0.0.1", "me.fy2ne.missing.NonExistentClass");

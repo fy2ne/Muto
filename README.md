@@ -22,7 +22,7 @@ Reload, swap, and update mods seamlessly from the title screen — no full game 
 
 Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft. Drop in a new jar, remove one, or swap a build — then hit reload from the title screen and keep iterating.
 
-**Status: alpha.** The reload engine is under active development. The UI, event API, and runtime capability detection are in place; the full classloader-swap pipeline is being hardened.
+**Status: beta.** The reload engine is under active development. The UI, event API, and runtime capability detection are in place; the full classloader-swap pipeline is being hardened.
 
 ## Features
 
