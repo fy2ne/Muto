@@ -22,6 +22,7 @@ public final class MutoToasts {
     }
 
     public static void showReloadSuccess(net.minecraft.client.Minecraft mc, int added, int removed, int updated, long durationMs) {
+        if (!me.fy2ne.muto.config.MutoConfig.get().showToasts) return;
         String summary = buildSummary(added, removed, updated) + " in " + durationMs + "ms";
         SystemToast.add(
                 mc.gui.toastManager(),
@@ -32,6 +33,7 @@ public final class MutoToasts {
     }
 
     public static void showReloadFailure(net.minecraft.client.Minecraft mc, String error) {
+        if (!me.fy2ne.muto.config.MutoConfig.get().showToasts) return;
         String msg = error != null ? error : "Unknown error — check logs/muto.log";
         if (msg.length() > 80) msg = msg.substring(0, 77) + "…";
         SystemToast.add(

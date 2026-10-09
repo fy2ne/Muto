@@ -3,7 +3,9 @@ package me.fy2ne.muto.client.gui;
 import me.fy2ne.muto.MutoMod;
 import me.fy2ne.muto.api.ModDiff;
 import me.fy2ne.muto.client.ModIconManager;
+import me.fy2ne.muto.config.MutoConfig;
 import me.fy2ne.muto.engine.*;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -12,10 +14,15 @@ import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -26,18 +33,24 @@ import java.util.Locale;
 
 public final class MutoConfigScreen extends Screen {
     private static final int TAB_MODS = 0;
-    private static final int TAB_HISTORY = 1;
-    private static final int TAB_DIAGNOSTICS = 2;
+    private static final int TAB_SETTINGS = 1;
+    private static final int TAB_DEVELOPER = 2;
+    private static final int TAB_HISTORY = 3;
+    private static final int TAB_DIAGNOSTICS = 4;
 
     private final Screen parent;
     private int activeTab = TAB_MODS;
 
     private EditBox searchBox;
     private ModListWidget modListWidget;
+    private SettingsListWidget settingsListWidget;
+    private SettingsListWidget devListWidget;
     private HistoryListWidget historyListWidget;
     private String query = "";
 
     private Button tabModsBtn;
+    private Button tabSettingsBtn;
+    private Button tabDevBtn;
     private Button tabHistoryBtn;
     private Button tabDiagBtn;
 
@@ -54,26 +67,36 @@ public final class MutoConfigScreen extends Screen {
         int topY = 40;
         int bottomY = this.height - 36;
         int panelHeight = bottomY - topY;
-        int rightPanelX = sidebarWidth + 12;
+        int rightPanelX = sidebarWidth + 14;
         int rightPanelWidth = this.width - rightPanelX - 12;
 
-        // Left Category Sidebar Tabs
+        // Category Sidebar Buttons
         tabModsBtn = Button.builder(Component.literal("Loaded Mods"), btn -> setTab(TAB_MODS))
-                .bounds(10, topY, sidebarWidth, 22)
+                .bounds(10, topY, sidebarWidth, 20)
                 .build();
         this.addRenderableWidget(tabModsBtn);
 
+        tabSettingsBtn = Button.builder(Component.literal("Settings"), btn -> setTab(TAB_SETTINGS))
+                .bounds(10, topY + 24, sidebarWidth, 20)
+                .build();
+        this.addRenderableWidget(tabSettingsBtn);
+
+        tabDevBtn = Button.builder(Component.literal("Developer"), btn -> setTab(TAB_DEVELOPER))
+                .bounds(10, topY + 48, sidebarWidth, 20)
+                .build();
+        this.addRenderableWidget(tabDevBtn);
+
         tabHistoryBtn = Button.builder(Component.literal("Reload History"), btn -> setTab(TAB_HISTORY))
-                .bounds(10, topY + 26, sidebarWidth, 22)
+                .bounds(10, topY + 72, sidebarWidth, 20)
                 .build();
         this.addRenderableWidget(tabHistoryBtn);
 
         tabDiagBtn = Button.builder(Component.literal("Diagnostics"), btn -> setTab(TAB_DIAGNOSTICS))
-                .bounds(10, topY + 52, sidebarWidth, 22)
+                .bounds(10, topY + 96, sidebarWidth, 20)
                 .build();
         this.addRenderableWidget(tabDiagBtn);
 
-        // Search Box (only for Mods tab)
+        // Search Box (only for Loaded Mods tab)
         searchBox = new EditBox(this.font, rightPanelX, topY, rightPanelWidth, 18, Component.literal("Search"));
         searchBox.setHint(Component.literal("Search mods by name or id..."));
         searchBox.setResponder(this::onSearchQueryChanged);
@@ -83,6 +106,16 @@ public final class MutoConfigScreen extends Screen {
         // Mod List Widget
         modListWidget = new ModListWidget(this.minecraft, rightPanelWidth, panelHeight - 24, topY + 24, 38, rightPanelX);
         this.addRenderableWidget(modListWidget);
+
+        // General Settings List Widget
+        settingsListWidget = new SettingsListWidget(this.minecraft, rightPanelWidth, panelHeight, topY, 36, rightPanelX);
+        buildGeneralSettings();
+        this.addRenderableWidget(settingsListWidget);
+
+        // Developer Settings List Widget
+        devListWidget = new SettingsListWidget(this.minecraft, rightPanelWidth, panelHeight, topY, 36, rightPanelX);
+        buildDeveloperSettings();
+        this.addRenderableWidget(devListWidget);
 
         // History List Widget
         historyListWidget = new HistoryListWidget(this.minecraft, rightPanelWidth, panelHeight, topY, 48, rightPanelX);
@@ -112,13 +145,191 @@ public final class MutoConfigScreen extends Screen {
         refreshEntries();
     }
 
+    private void buildGeneralSettings() {
+        if (settingsListWidget == null) return;
+        settingsListWidget.clear();
+
+        MutoConfig cfg = MutoConfig.get();
+
+        settingsListWidget.addSetting(new HeaderEntry("GENERAL PREFERENCES"));
+
+        settingsListWidget.addSetting(new ToggleSettingEntry(
+                "Confirm Before Reload",
+                "Display confirmation dialog before starting hot-reload scan",
+                () -> cfg.confirmBeforeReload,
+                v -> cfg.confirmBeforeReload = v
+        ));
+
+        settingsListWidget.addSetting(new ToggleSettingEntry(
+                "Auto-Reload Textures & Assets",
+                "Flush client textures and re-sync resources after mod reload",
+                () -> cfg.autoReloadResources,
+                v -> cfg.autoReloadResources = v
+        ));
+
+        settingsListWidget.addSetting(new ToggleSettingEntry(
+                "In-Game Notifications",
+                "Display notification toasts upon reload completion or error",
+                () -> cfg.showToasts,
+                v -> cfg.showToasts = v
+        ));
+
+        settingsListWidget.addSetting(new ToggleSettingEntry(
+                "Clean Shadow Cache on Exit",
+                "Purge temporary sandboxed shadow jars when shutting down",
+                () -> cfg.autoPruneShadowCache,
+                v -> cfg.autoPruneShadowCache = v
+        ));
+
+        settingsListWidget.addSetting(new ToggleSettingEntry(
+                "Title Screen Quick Button",
+                "Render official 20x20 reload icon button on main title screen",
+                () -> cfg.showTitleScreenButton,
+                v -> cfg.showTitleScreenButton = v
+        ));
+    }
+
+    private void buildDeveloperSettings() {
+        if (devListWidget == null) return;
+        devListWidget.clear();
+
+        MutoConfig cfg = MutoConfig.get();
+
+        devListWidget.addSetting(new HeaderEntry("DEVELOPER SUITE & INTERNALS"));
+
+        devListWidget.addSetting(new ToggleSettingEntry(
+                "Master Developer Mode",
+                "Unlock experimental bytecode controls, memory metrics, and debug tools",
+                () -> cfg.developerMode,
+                v -> {
+                    cfg.developerMode = v;
+                    buildDeveloperSettings();
+                }
+        ));
+
+        devListWidget.addSetting(new ToggleSettingEntry(
+                "Verbose Classloader Logs",
+                "Log granular class definition traces and ASM transforms to muto.log",
+                () -> cfg.verboseLogging,
+                v -> cfg.verboseLogging = v,
+                () -> cfg.developerMode
+        ));
+
+        devListWidget.addSetting(new ToggleSettingEntry(
+                "Force Core/Stubborn Reload",
+                "Experimental: Attempt live reload on engine-bound boot mods",
+                () -> cfg.allowStubbornReload,
+                v -> cfg.allowStubbornReload = v,
+                () -> cfg.developerMode
+        ));
+
+        devListWidget.addSetting(new ToggleSettingEntry(
+                "Bypass Preflight Checks",
+                "Mount dynamic classloaders without pre-verifying entrypoint classes",
+                () -> cfg.skipPreflightCheck,
+                v -> cfg.skipPreflightCheck = v,
+                () -> cfg.developerMode
+        ));
+
+        devListWidget.addSetting(new ToggleSettingEntry(
+                "Track Heap & GC Delta",
+                "Measure JVM memory consumption and GC pressure during reload cycles",
+                () -> cfg.trackAllocationMetrics,
+                v -> cfg.trackAllocationMetrics = v,
+                () -> cfg.developerMode
+        ));
+
+        devListWidget.addSetting(new HeaderEntry("DEVELOPER ACTIONS"));
+
+        // Action 1: Purge Shadow Cache
+        ActionSettingEntry purgeEntry = new ActionSettingEntry(
+                "Purge Shadow Cache",
+                "Delete cached shadow jars in temp folder to free disk space",
+                "Clear Cache",
+                () -> {}
+        );
+        purgeEntry.setAction(() -> {
+            Path cacheDir = Path.of(System.getProperty("java.io.tmpdir"), "muto_shadow_cache");
+            long bytes = 0;
+            int count = 0;
+            if (Files.exists(cacheDir)) {
+                try (var s = Files.walk(cacheDir)) {
+                    for (Path p : (Iterable<Path>) s::iterator) {
+                        if (Files.isRegularFile(p)) {
+                            bytes += Files.size(p);
+                            try { Files.delete(p); count++; } catch (Exception ignored) {}
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            double mb = bytes / (1024.0 * 1024.0);
+            purgeEntry.setStatus(String.format("Purged %d shadow jars (%.2f MB freed)", count, mb));
+        });
+        devListWidget.addSetting(purgeEntry);
+
+        // Action 2: Dump ClassLoader Hierarchy
+        ActionSettingEntry dumpEntry = new ActionSettingEntry(
+                "Dump ClassLoader Tree",
+                "Write active classloader hierarchy and jar catalog to logs file",
+                "Dump Tree",
+                () -> {}
+        );
+        dumpEntry.setAction(() -> {
+            try {
+                Path dumpPath = FabricLoader.getInstance().getGameDir().resolve("logs").resolve("muto-classloader-dump.txt");
+                Files.createDirectories(dumpPath.getParent());
+                List<String> dump = new ArrayList<>();
+                dump.add("=== MUTO CLASSLOADER DUMP ===");
+                dump.add("Timestamp: " + Instant.now());
+                dump.add("JVM: " + System.getProperty("java.vm.name") + " " + System.getProperty("java.version"));
+                dump.add("DCEVM: " + MutoMod.hasDcevm() + " | JBR: " + MutoMod.isJbr());
+                dump.add("");
+                dump.add("Active Dynamic Mod Registry:");
+                for (var e : ReloadEngine.INSTANCE.currentSnapshot().mods().entrySet()) {
+                    dump.add(String.format("  - [%s] v%s -> %s (Tier: %s)",
+                            e.getKey(), e.getValue().version(), e.getValue().jarPath().getFileName(),
+                            ReloadEngine.INSTANCE.currentSnapshot().tier(e.getKey())));
+                }
+                Files.write(dumpPath, dump);
+                dumpEntry.setStatus("Dump written to logs/muto-classloader-dump.txt");
+            } catch (Exception e) {
+                dumpEntry.setStatus("Dump error: " + e.getMessage());
+            }
+        });
+        devListWidget.addSetting(dumpEntry);
+
+        // Action 3: Dry-Run Scan
+        ActionSettingEntry scanEntry = new ActionSettingEntry(
+                "Simulate Scan (Dry-Run)",
+                "Scan /mods folder and compute diffs without touching running JVM",
+                "Dry Run",
+                () -> {}
+        );
+        scanEntry.setAction(() -> {
+            try {
+                Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+                ReloadPlan plan = ReloadEngine.INSTANCE.plan(modsDir);
+                ModDiff diff = plan.diff();
+                scanEntry.setStatus(String.format("Dry run: +%d added, -%d removed, ~%d changed",
+                        diff.added().size(), diff.removed().size(), diff.updated().size()));
+            } catch (Exception e) {
+                scanEntry.setStatus("Scan failed: " + e.getMessage());
+            }
+        });
+        devListWidget.addSetting(scanEntry);
+    }
+
     private void setTab(int tab) {
         this.activeTab = tab;
         boolean isMods = (tab == TAB_MODS);
+        boolean isSettings = (tab == TAB_SETTINGS);
+        boolean isDev = (tab == TAB_DEVELOPER);
         boolean isHistory = (tab == TAB_HISTORY);
 
         if (searchBox != null) searchBox.visible = isMods;
         if (modListWidget != null) modListWidget.visible = isMods;
+        if (settingsListWidget != null) settingsListWidget.visible = isSettings;
+        if (devListWidget != null) devListWidget.visible = isDev;
         if (historyListWidget != null) {
             historyListWidget.visible = isHistory;
             if (isHistory) refreshHistory();
@@ -127,6 +338,10 @@ public final class MutoConfigScreen extends Screen {
 
     private void promptReload() {
         if (this.minecraft != null) {
+            if (!MutoConfig.get().confirmBeforeReload) {
+                this.minecraft.setScreenAndShow(new MutoReloadScreen(this));
+                return;
+            }
             this.minecraft.setScreenAndShow(new ConfirmScreen(
                     accepted -> {
                         if (accepted && this.minecraft != null) {
@@ -192,8 +407,8 @@ public final class MutoConfigScreen extends Screen {
         g.fill(sidebarSepX, 36, sidebarSepX + 1, this.height - 36, 0x30FFFFFF);
 
         // Highlight indicator on the active category tab
-        int activeTabY = 40 + activeTab * 26;
-        g.fill(8, activeTabY + 2, 10, activeTabY + 20, 0xFF38BDF8);
+        int activeTabY = 40 + activeTab * 24;
+        g.fill(8, activeTabY + 2, 10, activeTabY + 18, 0xFF38BDF8);
 
         // Header runtime tags in top right corner
         String jbrTag = MutoMod.isJbr() ? "§aJBR✓" : "§7JBR✗";
@@ -374,6 +589,239 @@ public final class MutoConfigScreen extends Screen {
         @Override
         public Component getNarration() {
             return Component.literal(mod.id());
+        }
+    }
+
+    public final class SettingsListWidget extends ObjectSelectionList<SettingsBaseEntry> {
+        private final int customX;
+
+        public SettingsListWidget(Minecraft mc, int width, int height, int y, int itemHeight, int customX) {
+            super(mc, width, height, y, itemHeight);
+            this.customX = customX;
+            this.updateSizeAndPosition(width, height, customX, y);
+        }
+
+        public void clear() {
+            this.clearEntries();
+        }
+
+        public void addSetting(SettingsBaseEntry entry) {
+            this.addEntry(entry);
+        }
+
+        @Override
+        public int getRowWidth() {
+            return this.width - 16;
+        }
+
+        @Override
+        public int getRowLeft() {
+            return this.customX + 4;
+        }
+
+        @Override
+        protected int scrollBarX() {
+            return this.customX + this.width - 6;
+        }
+
+        @Override
+        protected boolean entriesCanBeSelected() {
+            return false;
+        }
+
+        @Override
+        protected void extractListBackground(GuiGraphicsExtractor g) {
+            g.fill(this.customX, this.getY(), this.customX + this.width, this.getBottom(), 0x18000000);
+        }
+
+        @Override
+        protected void extractListSeparators(GuiGraphicsExtractor g) {}
+    }
+
+    public abstract static class SettingsBaseEntry extends ObjectSelectionList.Entry<SettingsBaseEntry> {
+        @Override
+        public Component getNarration() {
+            return Component.empty();
+        }
+    }
+
+    public static final class HeaderEntry extends SettingsBaseEntry {
+        private final String title;
+
+        public HeaderEntry(String title) {
+            this.title = title;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor g, int mx, int my, boolean hovered, float dt) {
+            int x = this.getContentX();
+            int y = this.getContentY();
+            int w = this.getContentWidth();
+            var font = Minecraft.getInstance().font;
+
+            g.text(font, Component.literal("§6§l" + title), x + 6, y + 8, 0xFFFFFFFF);
+            g.fill(x + 4, y + 22, x + w - 4, y + 23, 0x30FFFFFF);
+        }
+    }
+
+    public static final class ToggleSettingEntry extends SettingsBaseEntry {
+        private final String title;
+        private final String description;
+        private final java.util.function.Supplier<Boolean> getter;
+        private final java.util.function.Consumer<Boolean> setter;
+        private final java.util.function.Supplier<Boolean> enabledCheck;
+
+        public ToggleSettingEntry(String title, String description,
+                                  java.util.function.Supplier<Boolean> getter,
+                                  java.util.function.Consumer<Boolean> setter) {
+            this(title, description, getter, setter, () -> true);
+        }
+
+        public ToggleSettingEntry(String title, String description,
+                                  java.util.function.Supplier<Boolean> getter,
+                                  java.util.function.Consumer<Boolean> setter,
+                                  java.util.function.Supplier<Boolean> enabledCheck) {
+            this.title = title;
+            this.description = description;
+            this.getter = getter;
+            this.setter = setter;
+            this.enabledCheck = enabledCheck;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor g, int mx, int my, boolean hovered, float dt) {
+            int x = this.getContentX();
+            int y = this.getContentY();
+            int w = this.getContentWidth();
+            int h = this.getContentHeight();
+            var font = Minecraft.getInstance().font;
+
+            g.fill(x, y, x + w, y + h, hovered ? 0x351E293B : 0x200F172A);
+
+            boolean enabled = enabledCheck.get();
+            boolean val = getter.get();
+
+            int accent = !enabled ? 0xFF475569 : (val ? 0xFF22C55E : 0xFF64748B);
+            g.fill(x, y, x + 3, y + h, accent);
+
+            String titleColor = enabled ? "§f§l" : "§7§l";
+            g.text(font, Component.literal(titleColor + title), x + 10, y + 6, 0xFFFFFFFF);
+            g.text(font, Component.literal("§8" + description), x + 10, y + 20, 0xFF888888);
+
+            int btnW = 56;
+            int btnH = 20;
+            int btnX = x + w - btnW - 8;
+            int btnY = y + 7;
+
+            boolean btnHover = enabled && mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH;
+            int btnBg = !enabled ? 0x20334155 : (btnHover ? 0x50334155 : 0x301E293B);
+            g.fill(btnX, btnY, btnX + btnW, btnY + btnH, btnBg);
+
+            int borderCol = !enabled ? 0x4064748B : (val ? 0xFF22C55E : 0xFF94A3B8);
+            g.fill(btnX, btnY, btnX + btnW, btnY + 1, borderCol);
+            g.fill(btnX, btnY + btnH - 1, btnX + btnW, btnY + btnH, borderCol);
+            g.fill(btnX, btnY, btnX + 1, btnY + btnH, borderCol);
+            g.fill(btnX + btnW - 1, btnY, btnX + btnW, btnY + btnH, borderCol);
+
+            String label = !enabled ? "§8LOCKED" : (val ? "§aTRUE" : "§cFALSE");
+            int labelW = font.width(label);
+            g.text(font, Component.literal(label), btnX + (btnW - labelW) / 2, btnY + 6, 0xFFFFFFFF);
+        }
+
+        @Override
+        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            if (event.button() != 0 || !enabledCheck.get()) return false;
+            int x = this.getContentX();
+            int y = this.getContentY();
+            int w = this.getContentWidth();
+            int btnW = 56;
+            int btnH = 20;
+            int btnX = x + w - btnW - 8;
+            int btnY = y + 7;
+
+            if (event.x() >= btnX && event.x() <= btnX + btnW && event.y() >= btnY && event.y() <= btnY + btnH) {
+                setter.accept(!getter.get());
+                MutoConfig.save();
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public static final class ActionSettingEntry extends SettingsBaseEntry {
+        private final String title;
+        private final String description;
+        private final String buttonText;
+        private Runnable action;
+        private String status = "";
+
+        public ActionSettingEntry(String title, String description, String buttonText, Runnable action) {
+            this.title = title;
+            this.description = description;
+            this.buttonText = buttonText;
+            this.action = action;
+        }
+
+        public void setAction(Runnable r) {
+            this.action = r;
+        }
+
+        public void setStatus(String s) {
+            this.status = s;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor g, int mx, int my, boolean hovered, float dt) {
+            int x = this.getContentX();
+            int y = this.getContentY();
+            int w = this.getContentWidth();
+            int h = this.getContentHeight();
+            var font = Minecraft.getInstance().font;
+
+            g.fill(x, y, x + w, y + h, hovered ? 0x351E293B : 0x200F172A);
+            g.fill(x, y, x + 3, y + h, 0xFF38BDF8);
+
+            g.text(font, Component.literal("§f§l" + title), x + 10, y + 6, 0xFFFFFFFF);
+            String desc = status.isEmpty() ? ("§8" + description) : ("§e" + status);
+            g.text(font, Component.literal(desc), x + 10, y + 20, 0xFF888888);
+
+            int btnW = 82;
+            int btnH = 20;
+            int btnX = x + w - btnW - 8;
+            int btnY = y + 7;
+
+            boolean btnHover = mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH;
+            int btnBg = btnHover ? 0x60334155 : 0x351E293B;
+            g.fill(btnX, btnY, btnX + btnW, btnY + btnH, btnBg);
+
+            int borderCol = btnHover ? 0xFF38BDF8 : 0xFF64748B;
+            g.fill(btnX, btnY, btnX + btnW, btnY + 1, borderCol);
+            g.fill(btnX, btnY + btnH - 1, btnX + btnW, btnY + btnH, borderCol);
+            g.fill(btnX, btnY, btnX + 1, btnY + btnH, borderCol);
+            g.fill(btnX + btnW - 1, btnY, btnX + btnW, btnY + btnH, borderCol);
+
+            int labelW = font.width(buttonText);
+            g.text(font, Component.literal(buttonText), btnX + (btnW - labelW) / 2, btnY + 6, 0xFFFFFFFF);
+        }
+
+        @Override
+        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            if (event.button() != 0) return false;
+            int x = this.getContentX();
+            int y = this.getContentY();
+            int w = this.getContentWidth();
+            int btnW = 82;
+            int btnH = 20;
+            int btnX = x + w - btnW - 8;
+            int btnY = y + 7;
+
+            if (event.x() >= btnX && event.x() <= btnX + btnW && event.y() >= btnY && event.y() <= btnY + btnH) {
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                if (action != null) action.run();
+                return true;
+            }
+            return false;
         }
     }
 

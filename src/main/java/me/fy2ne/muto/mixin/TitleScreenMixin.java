@@ -27,6 +27,10 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("RETURN"))
     private void muto$addTitleReloadButton(CallbackInfo ci) {
+        if (!me.fy2ne.muto.config.MutoConfig.get().showTitleScreenButton) {
+            return;
+        }
+
         int expectedRowY = this.height / 4 + 48 + 72;
 
         // Collect existing 20x20 icon buttons on this row (Friends, Language, Accessibility, ModMenu)
@@ -47,6 +51,10 @@ public abstract class TitleScreenMixin extends Screen {
                 Component.literal("Reload Mods"),
                 btn -> {
                     if (this.minecraft != null) {
+                        if (!me.fy2ne.muto.config.MutoConfig.get().confirmBeforeReload) {
+                            this.minecraft.setScreenAndShow(new MutoReloadScreen(this));
+                            return;
+                        }
                         this.minecraft.setScreenAndShow(new ConfirmScreen(
                                 accepted -> {
                                     if (accepted && this.minecraft != null) {
