@@ -178,6 +178,16 @@ public class ReloadShellTest {
         Assertions.assertFalse(ReloadEngine.INSTANCE.isReloading());
     }
 
+    @Test
+    void testProbeTestingMods() {
+        Path testingDir = Path.of("modsfortesting");
+        if (!Files.exists(testingDir)) return;
+        List<ScannedMod> mods = ModScanner.scan(testingDir);
+        for (ScannedMod m : mods) {
+            System.out.println("Probed mod: " + m.id() + " v" + m.version() + " from " + m.jarPath().getFileName());
+        }
+    }
+
     private static Path createMockJar(Path dir, String fileName, String modId, String version, String mainClass) throws IOException {
         Path jarPath = dir.resolve(fileName);
         try (JarOutputStream jos = new JarOutputStream(Files.newOutputStream(jarPath))) {

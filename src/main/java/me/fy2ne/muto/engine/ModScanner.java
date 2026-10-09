@@ -1,9 +1,18 @@
 package me.fy2ne.muto.engine;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import me.fy2ne.muto.MutoLog;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.*;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.jar.JarEntry;
@@ -33,162 +42,84 @@ public final class ModScanner {
     }
 
     public static ScannedMod probe(Path jarPath) {
-        try (JarFile jf = new JarFile(jarPath.toFile())) {
-            JarEntry fmj = jf.getJarEntry("fabric.mod.json");
-            if (fmj == null) return null;
+        int attempts = 0;
+        while (attempts < 4) {
+            try (JarFile jf = new JarFile(jarPath.toFile())) {
+                JarEntry fmj = jf.getJarEntry("fabric.mod.json");
+                if (fmj == null) return null;
 
-            String hash = sha256(jarPath);
-            String modId;
-            String version;
-            boolean hasMixins;
-            Map<String, List<String>> entrypoints = new LinkedHashMap<>();
+                String hash = sha256(jarPath);
+                String modId;
+                String version;
+                boolean hasMixins = false;
+                Map<String, List<String>> entrypoints = new LinkedHashMap<>();
 
-            try (InputStream in = jf.getInputStream(fmj)) {
-                String raw = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-                modId = extractJsonString(raw, "id");
-                version = extractJsonString(raw, "version");
-                hasMixins = raw.contains("\"mixins\"") && !raw.contains("\"mixins\": []");
-                parseEntrypoints(raw, entrypoints);
-            }
+                try (InputStream in = jf.getInputStream(fmj);
+                     InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                    JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+                    if (!root.has("id")) return null;
+                    modId = root.get("id").getAsString();
+                    version = root.has("version") ? root.get("version").getAsString() : "?";
 
-            if (modId == null || modId.isEmpty()) return null;
-
-            return new ScannedMod(
-                    modId,
-                    version != null ? version : "?",
-                    jarPath,
-                    hash,
-                    hasMixins,
-                    entrypoints,
-                    Files.size(jarPath)
-            );
-        } catch (Exception ex) {
-            MutoLog.warn("skipping jar {}: {}", jarPath.getFileName(), ex.getMessage());
-            return null;
-        }
-    }
-
-    private static void parseEntrypoints(String raw, Map<String, List<String>> out) {
-        int epStart = raw.indexOf("\"entrypoints\"");
-        if (epStart < 0) return;
-
-        int open = raw.indexOf('{', epStart);
-        if (open < 0) return;
-        int close = findMatchingBrace(raw, open);
-        if (close <= open) return;
-
-        String block = raw.substring(open + 1, close);
-        int cur = 0;
-        while (cur < block.length()) {
-            int q1 = block.indexOf('"', cur);
-            if (q1 < 0) break;
-            int q2 = block.indexOf('"', q1 + 1);
-            if (q2 < 0) break;
-
-            String epKey = block.substring(q1 + 1, q2);
-            int colon = block.indexOf(':', q2 + 1);
-            if (colon < 0) break;
-
-            int valStart = colon + 1;
-            while (valStart < block.length() && Character.isWhitespace(block.charAt(valStart))) {
-                valStart++;
-            }
-
-            if (valStart >= block.length()) break;
-            char firstChar = block.charAt(valStart);
-
-            List<String> classes = new ArrayList<>();
-            int nextPos;
-
-            if (firstChar == '[') {
-                int bracketEnd = findMatchingBracket(block, valStart);
-                if (bracketEnd > valStart) {
-                    String arr = block.substring(valStart + 1, bracketEnd);
-                    extractClassesFromArray(arr, classes);
-                    nextPos = bracketEnd + 1;
-                } else {
-                    nextPos = valStart + 1;
-                }
-            } else if (firstChar == '{') {
-                int braceEnd = findMatchingBrace(block, valStart);
-                if (braceEnd > valStart) {
-                    String obj = block.substring(valStart, braceEnd + 1);
-                    String val = extractJsonString(obj, "value");
-                    if (val != null && !val.isBlank()) {
-                        classes.add(val);
-                    } else {
-                        extractClassesFromArray(obj, classes);
+                    if (root.has("mixins")) {
+                        JsonElement m = root.get("mixins");
+                        if (m.isJsonArray()) {
+                            hasMixins = !m.getAsJsonArray().isEmpty();
+                        } else if (m.isJsonPrimitive()) {
+                            hasMixins = true;
+                        }
                     }
-                    nextPos = braceEnd + 1;
-                } else {
-                    nextPos = valStart + 1;
-                }
-            } else if (firstChar == '"') {
-                int endQuote = block.indexOf('"', valStart + 1);
-                if (endQuote > valStart) {
-                    classes.add(block.substring(valStart + 1, endQuote));
-                    nextPos = endQuote + 1;
-                } else {
-                    nextPos = valStart + 1;
-                }
-            } else {
-                nextPos = valStart + 1;
-            }
 
-            out.put(epKey, classes);
-            cur = nextPos;
-        }
-    }
-
-    private static void extractClassesFromArray(String arr, List<String> out) {
-        int idx = 0;
-        while (idx < arr.length()) {
-            int q1 = arr.indexOf('"', idx);
-            if (q1 < 0) break;
-            int q2 = arr.indexOf('"', q1 + 1);
-            if (q2 < 0) break;
-
-            String token = arr.substring(q1 + 1, q2);
-            if ("value".equals(token)) {
-                int colon = arr.indexOf(':', q2 + 1);
-                if (colon > 0) {
-                    int vq1 = arr.indexOf('"', colon + 1);
-                    if (vq1 > 0) {
-                        int vq2 = arr.indexOf('"', vq1 + 1);
-                        if (vq2 > vq1) {
-                            String target = arr.substring(vq1 + 1, vq2);
-                            if (target.contains(".") && !target.endsWith(".json") && !out.contains(target)) {
-                                out.add(target);
+                    if (root.has("entrypoints") && root.get("entrypoints").isJsonObject()) {
+                        JsonObject epObj = root.getAsJsonObject("entrypoints");
+                        for (Map.Entry<String, JsonElement> entry : epObj.entrySet()) {
+                            List<String> list = new ArrayList<>();
+                            JsonElement el = entry.getValue();
+                            if (el.isJsonArray()) {
+                                for (JsonElement item : el.getAsJsonArray()) {
+                                    if (item.isJsonPrimitive()) {
+                                        list.add(item.getAsString());
+                                    } else if (item.isJsonObject() && item.getAsJsonObject().has("value")) {
+                                        list.add(item.getAsJsonObject().get("value").getAsString());
+                                    }
+                                }
+                            } else if (el.isJsonPrimitive()) {
+                                list.add(el.getAsString());
+                            } else if (el.isJsonObject() && el.getAsJsonObject().has("value")) {
+                                list.add(el.getAsJsonObject().get("value").getAsString());
                             }
-                            idx = vq2 + 1;
-                            continue;
+                            entrypoints.put(entry.getKey(), list);
                         }
                     }
                 }
-            }
-            if ("adapter".equals(token)) {
-                idx = q2 + 1;
-                continue;
-            }
 
-            if (token.contains(".") && !token.endsWith(".json") && !out.contains(token)) {
-                out.add(token);
-            }
-            idx = q2 + 1;
-        }
-    }
+                if (modId == null || modId.isEmpty()) return null;
 
-    private static int findMatchingBracket(String s, int openPos) {
-        int depth = 0;
-        for (int i = openPos; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '[') depth++;
-            else if (c == ']') {
-                depth--;
-                if (depth == 0) return i;
+                return new ScannedMod(
+                        modId,
+                        version != null ? version : "?",
+                        jarPath,
+                        hash,
+                        hasMixins,
+                        entrypoints,
+                        Files.size(jarPath)
+                );
+            } catch (IOException ex) {
+                attempts++;
+                if (attempts < 4) {
+                    try {
+                        Thread.sleep(120);
+                    } catch (InterruptedException ignored) {}
+                    continue;
+                }
+                MutoLog.warn("skipping jar {}: {}", jarPath.getFileName(), ex.getMessage());
+                return null;
+            } catch (Exception ex) {
+                MutoLog.warn("skipping jar {}: {}", jarPath.getFileName(), ex.getMessage());
+                return null;
             }
         }
-        return -1;
+        return null;
     }
 
     private static String sha256(Path file) throws Exception {
@@ -198,32 +129,5 @@ public final class ModScanner {
         StringBuilder sb = new StringBuilder(64);
         for (byte b : digest) sb.append(String.format("%02x", b));
         return sb.toString();
-    }
-
-    static String extractJsonString(String json, String key) {
-        String needle = "\"" + key + "\"";
-        int kIdx = json.indexOf(needle);
-        if (kIdx < 0) return null;
-        int colon = json.indexOf(':', kIdx + needle.length());
-        if (colon < 0) return null;
-        int qOpen = json.indexOf('"', colon + 1);
-        if (qOpen < 0) return null;
-        int qClose = json.indexOf('"', qOpen + 1);
-        if (qClose < 0) return null;
-        return json.substring(qOpen + 1, qClose);
-    }
-
-    static int findMatchingBrace(String s, int openPos) {
-        if (openPos < 0 || openPos >= s.length()) return -1;
-        int depth = 0;
-        for (int i = openPos; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '{') depth++;
-            else if (c == '}') {
-                depth--;
-                if (depth == 0) return i;
-            }
-        }
-        return -1;
     }
 }

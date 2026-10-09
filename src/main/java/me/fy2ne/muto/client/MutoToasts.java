@@ -21,9 +21,9 @@ public final class MutoToasts {
         // Disabled by default to avoid alarming startup warning popups
     }
 
-    public static void showReloadSuccess(net.minecraft.client.Minecraft mc, int added, int removed, int updated, long durationMs) {
+    public static void showReloadSuccess(net.minecraft.client.Minecraft mc, me.fy2ne.muto.api.ModDiff diff, long durationMs) {
         if (!me.fy2ne.muto.config.MutoConfig.get().showToasts) return;
-        String summary = buildSummary(added, removed, updated) + " in " + durationMs + "ms";
+        String summary = buildSummary(diff) + " in " + durationMs + "ms";
         SystemToast.add(
                 mc.gui.toastManager(),
                 MUTO_RELOAD_DONE,
@@ -44,11 +44,27 @@ public final class MutoToasts {
         );
     }
 
-    private static String buildSummary(int added, int removed, int updated) {
+    private static String buildSummary(me.fy2ne.muto.api.ModDiff diff) {
+        if (diff == null) return "No changes detected";
+        int added = diff.added().size();
+        int removed = diff.removed().size();
+        int updated = diff.updated().size();
+
         StringBuilder sb = new StringBuilder();
-        if (added > 0) sb.append("+").append(added).append(" added");
-        if (removed > 0) { if (!sb.isEmpty()) sb.append(", "); sb.append("-").append(removed).append(" removed"); }
-        if (updated > 0) { if (!sb.isEmpty()) sb.append(", "); sb.append(updated).append(" updated"); }
+        if (added > 0) {
+            sb.append("+").append(added).append(" added");
+            if (added <= 2) {
+                sb.append(" (").append(String.join(", ", diff.added())).append(")");
+            }
+        }
+        if (removed > 0) {
+            if (!sb.isEmpty()) sb.append(", ");
+            sb.append("-").append(removed).append(" removed");
+        }
+        if (updated > 0) {
+            if (!sb.isEmpty()) sb.append(", ");
+            sb.append("~").append(updated).append(" updated");
+        }
         if (sb.isEmpty()) sb.append("No changes detected");
         return sb.toString();
     }

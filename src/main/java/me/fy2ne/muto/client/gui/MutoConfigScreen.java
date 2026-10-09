@@ -141,6 +141,17 @@ public final class MutoConfigScreen extends Screen {
                         .build()
         );
 
+        if (me.fy2ne.muto.update.MutoUpdateChecker.isUpdateAvailable()) {
+            Button updateBtn = Button.builder(
+                    Component.literal("§a● Update v" + me.fy2ne.muto.update.MutoUpdateChecker.getLatestVersion()),
+                    btn -> openModrinthUrl()
+            )
+            .bounds(this.width - 150, 6, 140, 20)
+            .tooltip(Tooltip.create(Component.literal("§a● New Muto release available on Modrinth!\n§7Click to open project download page.")))
+            .build();
+            this.addRenderableWidget(updateBtn);
+        }
+
         setTab(activeTab);
         refreshEntries();
     }
@@ -156,6 +167,7 @@ public final class MutoConfigScreen extends Screen {
         settingsListWidget.addSetting(new ToggleSettingEntry(
                 "Confirm Before Reload",
                 "Display confirmation dialog before starting hot-reload scan",
+                true,
                 () -> cfg.confirmBeforeReload,
                 v -> cfg.confirmBeforeReload = v
         ));
@@ -163,6 +175,7 @@ public final class MutoConfigScreen extends Screen {
         settingsListWidget.addSetting(new ToggleSettingEntry(
                 "Auto-Reload Textures & Assets",
                 "Flush client textures and re-sync resources after mod reload",
+                true,
                 () -> cfg.autoReloadResources,
                 v -> cfg.autoReloadResources = v
         ));
@@ -170,6 +183,7 @@ public final class MutoConfigScreen extends Screen {
         settingsListWidget.addSetting(new ToggleSettingEntry(
                 "In-Game Notifications",
                 "Display notification toasts upon reload completion or error",
+                true,
                 () -> cfg.showToasts,
                 v -> cfg.showToasts = v
         ));
@@ -177,6 +191,7 @@ public final class MutoConfigScreen extends Screen {
         settingsListWidget.addSetting(new ToggleSettingEntry(
                 "Clean Shadow Cache on Exit",
                 "Purge temporary sandboxed shadow jars when shutting down",
+                true,
                 () -> cfg.autoPruneShadowCache,
                 v -> cfg.autoPruneShadowCache = v
         ));
@@ -184,8 +199,17 @@ public final class MutoConfigScreen extends Screen {
         settingsListWidget.addSetting(new ToggleSettingEntry(
                 "Title Screen Quick Button",
                 "Render official 20x20 reload icon button on main title screen",
+                true,
                 () -> cfg.showTitleScreenButton,
                 v -> cfg.showTitleScreenButton = v
+        ));
+
+        settingsListWidget.addSetting(new ToggleSettingEntry(
+                "Check Modrinth Updates",
+                "Query Modrinth API on startup to check for new Muto releases",
+                true,
+                () -> cfg.checkModrinthUpdates,
+                v -> cfg.checkModrinthUpdates = v
         ));
     }
 
@@ -200,6 +224,7 @@ public final class MutoConfigScreen extends Screen {
         devListWidget.addSetting(new ToggleSettingEntry(
                 "Master Developer Mode",
                 "Unlock experimental bytecode controls, memory metrics, and debug tools",
+                false,
                 () -> cfg.developerMode,
                 v -> {
                     cfg.developerMode = v;
@@ -210,6 +235,7 @@ public final class MutoConfigScreen extends Screen {
         devListWidget.addSetting(new ToggleSettingEntry(
                 "Verbose Classloader Logs",
                 "Log granular class definition traces and ASM transforms to muto.log",
+                false,
                 () -> cfg.verboseLogging,
                 v -> cfg.verboseLogging = v,
                 () -> cfg.developerMode
@@ -218,6 +244,7 @@ public final class MutoConfigScreen extends Screen {
         devListWidget.addSetting(new ToggleSettingEntry(
                 "Force Core/Stubborn Reload",
                 "Experimental: Attempt live reload on engine-bound boot mods",
+                false,
                 () -> cfg.allowStubbornReload,
                 v -> cfg.allowStubbornReload = v,
                 () -> cfg.developerMode
@@ -226,6 +253,7 @@ public final class MutoConfigScreen extends Screen {
         devListWidget.addSetting(new ToggleSettingEntry(
                 "Bypass Preflight Checks",
                 "Mount dynamic classloaders without pre-verifying entrypoint classes",
+                false,
                 () -> cfg.skipPreflightCheck,
                 v -> cfg.skipPreflightCheck = v,
                 () -> cfg.developerMode
@@ -234,8 +262,18 @@ public final class MutoConfigScreen extends Screen {
         devListWidget.addSetting(new ToggleSettingEntry(
                 "Track Heap & GC Delta",
                 "Measure JVM memory consumption and GC pressure during reload cycles",
+                true,
                 () -> cfg.trackAllocationMetrics,
                 v -> cfg.trackAllocationMetrics = v,
+                () -> cfg.developerMode
+        ));
+
+        devListWidget.addSetting(new ToggleSettingEntry(
+                "Simulate Update Available",
+                "Simulate an available Modrinth update to preview the green jewel badge",
+                false,
+                () -> cfg.simulateUpdateAvailable,
+                v -> cfg.simulateUpdateAvailable = v,
                 () -> cfg.developerMode
         ));
 
@@ -325,6 +363,13 @@ public final class MutoConfigScreen extends Screen {
         boolean isSettings = (tab == TAB_SETTINGS);
         boolean isDev = (tab == TAB_DEVELOPER);
         boolean isHistory = (tab == TAB_HISTORY);
+        boolean isDiag = (tab == TAB_DIAGNOSTICS);
+
+        if (tabModsBtn != null) tabModsBtn.setMessage(Component.literal(isMods ? "§a● §f§lLoaded Mods" : "§7Loaded Mods"));
+        if (tabSettingsBtn != null) tabSettingsBtn.setMessage(Component.literal(isSettings ? "§a● §f§lSettings" : "§7Settings"));
+        if (tabDevBtn != null) tabDevBtn.setMessage(Component.literal(isDev ? "§a● §f§lDeveloper" : "§7Developer"));
+        if (tabHistoryBtn != null) tabHistoryBtn.setMessage(Component.literal(isHistory ? "§a● §f§lReload History" : "§7Reload History"));
+        if (tabDiagBtn != null) tabDiagBtn.setMessage(Component.literal(isDiag ? "§a● §f§lDiagnostics" : "§7Diagnostics"));
 
         if (searchBox != null) searchBox.visible = isMods;
         if (modListWidget != null) modListWidget.visible = isMods;
@@ -333,6 +378,16 @@ public final class MutoConfigScreen extends Screen {
         if (historyListWidget != null) {
             historyListWidget.visible = isHistory;
             if (isHistory) refreshHistory();
+        }
+    }
+
+    private void openModrinthUrl() {
+        try {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(me.fy2ne.muto.update.MutoUpdateChecker.getUpdateUrl()));
+        } catch (Throwable t) {
+            try {
+                new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", me.fy2ne.muto.update.MutoUpdateChecker.getUpdateUrl()).start();
+            } catch (Throwable ignored) {}
         }
     }
 
@@ -408,7 +463,7 @@ public final class MutoConfigScreen extends Screen {
 
         // Highlight indicator on the active category tab
         int activeTabY = 40 + activeTab * 24;
-        g.fill(8, activeTabY + 2, 10, activeTabY + 18, 0xFF38BDF8);
+        g.fill(8, activeTabY + 2, 10, activeTabY + 18, 0xFF22C55E);
 
         // Header runtime tags in top right corner
         String jbrTag = MutoMod.isJbr() ? "§aJBR✓" : "§7JBR✗";
@@ -667,22 +722,24 @@ public final class MutoConfigScreen extends Screen {
     public static final class ToggleSettingEntry extends SettingsBaseEntry {
         private final String title;
         private final String description;
+        private final boolean defaultValue;
         private final java.util.function.Supplier<Boolean> getter;
         private final java.util.function.Consumer<Boolean> setter;
         private final java.util.function.Supplier<Boolean> enabledCheck;
 
-        public ToggleSettingEntry(String title, String description,
+        public ToggleSettingEntry(String title, String description, boolean defaultValue,
                                   java.util.function.Supplier<Boolean> getter,
                                   java.util.function.Consumer<Boolean> setter) {
-            this(title, description, getter, setter, () -> true);
+            this(title, description, defaultValue, getter, setter, () -> true);
         }
 
-        public ToggleSettingEntry(String title, String description,
+        public ToggleSettingEntry(String title, String description, boolean defaultValue,
                                   java.util.function.Supplier<Boolean> getter,
                                   java.util.function.Consumer<Boolean> setter,
                                   java.util.function.Supplier<Boolean> enabledCheck) {
             this.title = title;
             this.description = description;
+            this.defaultValue = defaultValue;
             this.getter = getter;
             this.setter = setter;
             this.enabledCheck = enabledCheck;
@@ -700,6 +757,7 @@ public final class MutoConfigScreen extends Screen {
 
             boolean enabled = enabledCheck.get();
             boolean val = getter.get();
+            boolean isDefault = (val == defaultValue);
 
             int accent = !enabled ? 0xFF475569 : (val ? 0xFF22C55E : 0xFF64748B);
             g.fill(x, y, x + 3, y + h, accent);
@@ -708,11 +766,17 @@ public final class MutoConfigScreen extends Screen {
             g.text(font, Component.literal(titleColor + title), x + 10, y + 6, 0xFFFFFFFF);
             g.text(font, Component.literal("§8" + description), x + 10, y + 20, 0xFF888888);
 
-            int btnW = 56;
+            int resetW = 20;
+            int resetH = 20;
+            int resetX = x + w - resetW - 8;
+            int resetY = y + 7;
+
+            int btnW = 54;
             int btnH = 20;
-            int btnX = x + w - btnW - 8;
+            int btnX = resetX - btnW - 4;
             int btnY = y + 7;
 
+            // Toggle Button
             boolean btnHover = enabled && mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH;
             int btnBg = !enabled ? 0x20334155 : (btnHover ? 0x50334155 : 0x301E293B);
             g.fill(btnX, btnY, btnX + btnW, btnY + btnH, btnBg);
@@ -723,9 +787,28 @@ public final class MutoConfigScreen extends Screen {
             g.fill(btnX, btnY, btnX + 1, btnY + btnH, borderCol);
             g.fill(btnX + btnW - 1, btnY, btnX + btnW, btnY + btnH, borderCol);
 
-            String label = !enabled ? "§8LOCKED" : (val ? "§aTRUE" : "§cFALSE");
+            String label = !enabled ? "§8LOCKED" : (val ? "§aTrue" : "§cFalse");
             int labelW = font.width(label);
             g.text(font, Component.literal(label), btnX + (btnW - labelW) / 2, btnY + 6, 0xFFFFFFFF);
+
+            // Cloth Config Reset Button (↺)
+            boolean resetHover = enabled && !isDefault && mx >= resetX && mx <= resetX + resetW && my >= resetY && my <= resetY + resetH;
+            int resetBg = !enabled || isDefault ? 0x15334155 : (resetHover ? 0x50334155 : 0x251E293B);
+            g.fill(resetX, resetY, resetX + resetW, resetY + resetH, resetBg);
+
+            int resetBorder = !enabled || isDefault ? 0x2564748B : (resetHover ? 0xFFE2E8F0 : 0x6094A3B8);
+            g.fill(resetX, resetY, resetX + resetW, resetY + 1, resetBorder);
+            g.fill(resetX, resetY + resetH - 1, resetX + resetW, resetY + resetH, resetBorder);
+            g.fill(resetX, resetY, resetX + 1, resetY + resetH, resetBorder);
+            g.fill(resetX + resetW - 1, resetY, resetX + resetW, resetY + resetH, resetBorder);
+
+            String resetIcon = isDefault ? "§8↺" : (resetHover ? "§e↺" : "§f↺");
+            int iconW = font.width(resetIcon);
+            g.text(font, Component.literal(resetIcon), resetX + (resetW - iconW) / 2, resetY + 6, 0xFFFFFFFF);
+
+            if (resetHover) {
+                g.setComponentTooltipForNextFrame(font, List.of(Component.literal("§7Reset to default (" + (defaultValue ? "§aTrue" : "§cFalse") + "§7)")), mx, my);
+            }
         }
 
         @Override
@@ -734,16 +817,33 @@ public final class MutoConfigScreen extends Screen {
             int x = this.getContentX();
             int y = this.getContentY();
             int w = this.getContentWidth();
-            int btnW = 56;
+
+            int resetW = 20;
+            int resetH = 20;
+            int resetX = x + w - resetW - 8;
+            int resetY = y + 7;
+
+            int btnW = 54;
             int btnH = 20;
-            int btnX = x + w - btnW - 8;
+            int btnX = resetX - btnW - 4;
             int btnY = y + 7;
 
+            // Click Toggle
             if (event.x() >= btnX && event.x() <= btnX + btnW && event.y() >= btnY && event.y() <= btnY + btnH) {
                 setter.accept(!getter.get());
                 MutoConfig.save();
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
+            }
+
+            // Click Reset
+            if (event.x() >= resetX && event.x() <= resetX + resetW && event.y() >= resetY && event.y() <= resetY + resetH) {
+                if (getter.get() != defaultValue) {
+                    setter.accept(defaultValue);
+                    MutoConfig.save();
+                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    return true;
+                }
             }
             return false;
         }

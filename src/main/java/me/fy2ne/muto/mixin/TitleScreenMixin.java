@@ -25,6 +25,8 @@ public abstract class TitleScreenMixin extends Screen {
         super(title);
     }
 
+    private SpriteIconButton muto$reloadBtn;
+
     @Inject(method = "init", at = @At("RETURN"))
     private void muto$addTitleReloadButton(CallbackInfo ci) {
         if (!me.fy2ne.muto.config.MutoConfig.get().showTitleScreenButton) {
@@ -77,7 +79,13 @@ public abstract class TitleScreenMixin extends Screen {
         .sprite(Identifier.fromNamespaceAndPath("muto", "icon/reload"), 15, 15)
         .build();
 
-        reloadBtn.setTooltip(Tooltip.create(Component.literal("Reload Mods")));
+        if (me.fy2ne.muto.update.MutoUpdateChecker.isUpdateAvailable()) {
+            reloadBtn.setTooltip(Tooltip.create(Component.literal("Reload Mods\n§a● Update available: v" + me.fy2ne.muto.update.MutoUpdateChecker.getLatestVersion())));
+        } else {
+            reloadBtn.setTooltip(Tooltip.create(Component.literal("Reload Mods")));
+        }
+
+        this.muto$reloadBtn = reloadBtn;
 
         // Add to icon row as the 5th button
         iconRow.add(reloadBtn);
@@ -95,5 +103,30 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         MutoLog.info("aligned {} icon buttons on title screen (muto at index {})", totalCount, totalCount - 1);
+    }
+
+    @Inject(method = "extractRenderState", at = @At("RETURN"))
+    private void muto$renderUpdateBadge(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (this.muto$reloadBtn != null && this.muto$reloadBtn.visible && me.fy2ne.muto.update.MutoUpdateChecker.isUpdateAvailable()) {
+            int x = this.muto$reloadBtn.getX() + 13;
+            int y = this.muto$reloadBtn.getY() - 2;
+
+            // Dark outline
+            graphics.fill(x + 2, y, x + 6, y + 1, 0xFF052E16);
+            graphics.fill(x + 1, y + 1, x + 7, y + 2, 0xFF052E16);
+            graphics.fill(x, y + 2, x + 8, y + 6, 0xFF052E16);
+            graphics.fill(x + 1, y + 6, x + 7, y + 7, 0xFF052E16);
+            graphics.fill(x + 2, y + 7, x + 6, y + 8, 0xFF052E16);
+
+            // Emerald green fill
+            graphics.fill(x + 2, y + 1, x + 6, y + 2, 0xFF22C55E);
+            graphics.fill(x + 1, y + 2, x + 7, y + 6, 0xFF22C55E);
+            graphics.fill(x + 2, y + 6, x + 6, y + 7, 0xFF22C55E);
+
+            // Highlight shine (mint crescent and white specular pip)
+            graphics.fill(x + 2, y + 2, x + 4, y + 3, 0xFF86EFAC);
+            graphics.fill(x + 2, y + 3, x + 3, y + 4, 0xFF86EFAC);
+            graphics.fill(x + 4, y + 4, x + 6, y + 5, 0xFFFFFFFF);
+        }
     }
 }

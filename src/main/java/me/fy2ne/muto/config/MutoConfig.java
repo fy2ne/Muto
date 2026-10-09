@@ -22,6 +22,7 @@ public final class MutoConfig {
     public boolean showToasts = true;
     public boolean autoPruneShadowCache = true;
     public boolean showTitleScreenButton = true;
+    public boolean checkModrinthUpdates = true;
 
     // Developer & diagnostic settings
     public boolean developerMode = false;
@@ -29,6 +30,7 @@ public final class MutoConfig {
     public boolean allowStubbornReload = false;
     public boolean skipPreflightCheck = false;
     public boolean trackAllocationMetrics = true;
+    public boolean simulateUpdateAvailable = false;
 
     public static MutoConfig get() {
         if (INSTANCE == null) {

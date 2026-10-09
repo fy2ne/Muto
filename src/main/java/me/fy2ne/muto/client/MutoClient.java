@@ -11,14 +11,15 @@ public final class MutoClient implements ClientModInitializer {
     public void onInitializeClient() {
         MutoLog.info("muto client initialized");
 
+        if (me.fy2ne.muto.config.MutoConfig.get().checkModrinthUpdates) {
+            me.fy2ne.muto.update.MutoUpdateChecker.checkAsync();
+        }
+
         MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc == null) return;
             if (success) {
-                int added   = diff != null ? diff.added().size() : 0;
-                int removed = diff != null ? diff.removed().size() : 0;
-                int updated = diff != null ? diff.updated().size() : 0;
-                mc.execute(() -> MutoToasts.showReloadSuccess(mc, added, removed, updated, durationMs));
+                mc.execute(() -> MutoToasts.showReloadSuccess(mc, diff, durationMs));
             } else {
                 String msg = error != null ? error.getMessage() : null;
                 mc.execute(() -> MutoToasts.showReloadFailure(mc, msg));
