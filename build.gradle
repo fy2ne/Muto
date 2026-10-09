@@ -69,6 +69,30 @@ publishing {
 		create("mavenJava", MavenPublication) {
 			artifactId = project.archives_base_name
 			from components.java
+
+			pom {
+				name = "Muto"
+				description = "Dynamic runtime mod reloader and hot-swap pipeline for Fabric."
+				url = "https://muto.fy2ne.me"
+				licenses {
+					license {
+						name = "The Apache License, Version 2.0"
+						url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+					}
+				}
+				developers {
+					developer {
+						id = "fy2ne"
+						name = "fy2ne"
+						url = "https://fy2ne.me"
+					}
+				}
+				scm {
+					connection = "scm:git:git://github.com/fy2ne/muto.git"
+					developerConnection = "scm:git:ssh://github.com:fy2ne/muto.git"
+					url = "https://github.com/fy2ne/muto"
+				}
+			}
 		}
 	}
 
