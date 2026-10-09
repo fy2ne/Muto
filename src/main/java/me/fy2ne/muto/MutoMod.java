@@ -16,6 +16,7 @@ public final class MutoMod implements ModInitializer {
         try {
             java.nio.file.Path modsDir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("mods");
             me.fy2ne.muto.engine.ReloadEngine.INSTANCE.recordInitialSnapshot(modsDir);
+            me.fy2ne.muto.automation.MutoTriggerWatcher.start();
         } catch (Throwable t) {
             MutoLog.warn("baseline snapshot deferred: {}", t.getMessage());
         }

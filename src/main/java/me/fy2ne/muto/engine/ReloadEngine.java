@@ -324,6 +324,7 @@ public final class ReloadEngine {
                                 return false;
                             });
                         }
+                        syncModMenuRemove(removedId);
                     }
 
                     for (String addedId : diff.added()) {
@@ -334,7 +335,7 @@ public final class ReloadEngine {
                             if (container != null) {
                                 if (map != null) map.put(mod.id(), container);
                                 if (list != null && !list.contains(container)) list.add(container);
-                                syncModMenu(mod.id(), container);
+                                syncModMenuAdd(mod.id(), container);
                                 MutoLog.info("synced {} into FabricLoader and ModMenu", mod.id());
                             }
                         } catch (Throwable ex) {
@@ -368,10 +369,42 @@ public final class ReloadEngine {
                             }
                         }
                         if (parseMethod != null) {
-                            Object[] args = new Object[parseMethod.getParameterCount()];
-                            args[0] = is;
-                            args[1] = mod.jarPath().toString();
-                            if (args.length > 2) args[2] = List.of();
+                            Object vOverrides = null;
+                            try {
+                                Class<?> voCls = Class.forName("net.fabricmc.loader.impl.metadata.VersionOverrides");
+                                vOverrides = voCls.getDeclaredConstructor().newInstance();
+                            } catch (Throwable ignored) {}
+
+                            Object dOverrides = null;
+                            try {
+                                Class<?> doCls = Class.forName("net.fabricmc.loader.impl.metadata.DependencyOverrides");
+                                dOverrides = doCls.getDeclaredConstructor(java.nio.file.Path.class).newInstance(FabricLoader.getInstance().getConfigDir());
+                            } catch (Throwable ignored) {}
+
+                            Class<?>[] pTypes = parseMethod.getParameterTypes();
+                            Object[] args = new Object[pTypes.length];
+                            for (int i = 0; i < pTypes.length; i++) {
+                                Class<?> pt = pTypes[i];
+                                if (java.io.InputStream.class.isAssignableFrom(pt)) {
+                                    args[i] = is;
+                                } else if (String.class.isAssignableFrom(pt)) {
+                                    args[i] = mod.jarPath().toString();
+                                } else if (List.class.isAssignableFrom(pt)) {
+                                    args[i] = List.of();
+                                } else if (pt.getName().contains("VersionOverrides")) {
+                                    args[i] = vOverrides;
+                                } else if (pt.getName().contains("DependencyOverrides")) {
+                                    args[i] = dOverrides;
+                                } else if (pt == boolean.class) {
+                                    args[i] = Boolean.FALSE;
+                                } else if (pt == int.class) {
+                                    args[i] = 0;
+                                } else if (pt.isPrimitive()) {
+                                    args[i] = 0;
+                                } else {
+                                    args[i] = null;
+                                }
+                            }
                             Object meta = parseMethod.invoke(null, args);
 
                             Class<?> candidateCls = Class.forName("net.fabricmc.loader.impl.discovery.ModCandidateImpl");
@@ -384,11 +417,26 @@ public final class ReloadEngine {
                             }
                             if (createPlain != null) {
                                 createPlain.setAccessible(true);
-                                Object[] cArgs = new Object[createPlain.getParameterCount()];
-                                cArgs[0] = List.of(mod.jarPath());
-                                cArgs[1] = meta;
-                                if (cArgs.length > 2) cArgs[2] = false;
-                                if (cArgs.length > 3) cArgs[3] = List.of();
+                                Class<?>[] cpTypes = createPlain.getParameterTypes();
+                                Object[] cArgs = new Object[cpTypes.length];
+                                for (int i = 0; i < cpTypes.length; i++) {
+                                    Class<?> pt = cpTypes[i];
+                                    if (List.class.isAssignableFrom(pt)) {
+                                        cArgs[i] = List.of(mod.jarPath());
+                                    } else if (Collection.class.isAssignableFrom(pt)) {
+                                        cArgs[i] = List.of();
+                                    } else if (pt.isInstance(meta) || pt.getName().contains("Metadata")) {
+                                        cArgs[i] = meta;
+                                    } else if (pt == boolean.class) {
+                                        cArgs[i] = Boolean.FALSE;
+                                    } else if (pt == int.class) {
+                                        cArgs[i] = 0;
+                                    } else if (pt.isPrimitive()) {
+                                        cArgs[i] = 0;
+                                    } else {
+                                        cArgs[i] = null;
+                                    }
+                                }
                                 Object candidate = createPlain.invoke(null, cArgs);
 
                                 Class<?> containerCls = Class.forName("net.fabricmc.loader.impl.ModContainerImpl");
@@ -401,13 +449,100 @@ public final class ReloadEngine {
                 }
             }
         } catch (Throwable ex) {
-            MutoLog.warn("reflection ModContainer creation failed for {}: {}", mod.id(), ex.getMessage());
+            Throwable root = ex.getCause() != null ? ex.getCause() : ex;
+            MutoLog.warn("reflection ModContainer creation error for {}: {}, using dynamic proxy", mod.id(), root.toString());
         }
-        return null;
+
+        return createFallbackProxyContainer(mod);
+    }
+
+    private Object createFallbackProxyContainer(ScannedMod mod) {
+        try {
+            ClassLoader cl = getClass().getClassLoader();
+            Class<?> modContainerInterface = net.fabricmc.loader.api.ModContainer.class;
+            Class<?> modMetadataInterface = net.fabricmc.loader.api.metadata.ModMetadata.class;
+
+            Object metaProxy = java.lang.reflect.Proxy.newProxyInstance(cl, new Class<?>[]{modMetadataInterface}, (proxy, method, args) -> {
+                String name = method.getName();
+                Class<?> ret = method.getReturnType();
+                if ("getId".equals(name) || "getName".equals(name)) return mod.id();
+                if ("getVersion".equals(name)) {
+                    return net.fabricmc.loader.api.Version.parse(mod.version().isBlank() ? "1.0.0" : mod.version());
+                }
+                if ("getType".equals(name)) return "fabric";
+                if ("getDescription".equals(name)) return "Dynamically loaded by Muto";
+                if ("getAuthors".equals(name) || "getContributors".equals(name) || "getLicense".equals(name)) {
+                    return List.of();
+                }
+                if ("getContact".equals(name)) return net.fabricmc.loader.api.metadata.ContactInformation.EMPTY;
+                if ("getProvides".equals(name) || "getDependencies".equals(name)) return List.of();
+                if ("getCustomValues".equals(name)) return Map.of();
+                if ("getEnvironment".equals(name)) return net.fabricmc.api.EnvType.CLIENT;
+                if ("loadsInEnvironment".equals(name)) return Boolean.TRUE;
+                if ("isBuiltin".equals(name)) return Boolean.FALSE;
+                if ("containsCustomValue".equals(name)) return Boolean.FALSE;
+                if ("getIcons".equals(name) || "getIconPath".equals(name)) return Optional.empty();
+                if ("toString".equals(name)) return mod.id() + " " + mod.version();
+
+                if (ret == boolean.class) return Boolean.FALSE;
+                if (ret == int.class) return 0;
+                if (ret == long.class) return 0L;
+                if (ret == float.class) return 0.0f;
+                if (ret == double.class) return 0.0d;
+                if (List.class.isAssignableFrom(ret) || Collection.class.isAssignableFrom(ret)) return List.of();
+                if (Set.class.isAssignableFrom(ret)) return Set.of();
+                if (Map.class.isAssignableFrom(ret)) return Map.of();
+                if (Optional.class.isAssignableFrom(ret)) return Optional.empty();
+                return null;
+            });
+
+            Class<?> modOriginInterface = net.fabricmc.loader.api.metadata.ModOrigin.class;
+            Object originProxy = java.lang.reflect.Proxy.newProxyInstance(cl, new Class<?>[]{modOriginInterface}, (proxy, method, mArgs) -> {
+                String mName = method.getName();
+                Class<?> ret = method.getReturnType();
+                if ("getPaths".equals(mName)) return List.of(mod.jarPath());
+                if ("getKind".equals(mName)) {
+                    for (Object c : ret.getEnumConstants()) {
+                        if ("PATH".equals(c.toString())) return c;
+                    }
+                }
+                if (ret == boolean.class) return Boolean.FALSE;
+                if (ret == int.class) return 0;
+                if (List.class.isAssignableFrom(ret)) return List.of();
+                return null;
+            });
+
+            return java.lang.reflect.Proxy.newProxyInstance(cl, new Class<?>[]{modContainerInterface}, (proxy, method, args) -> {
+                String name = method.getName();
+                Class<?> ret = method.getReturnType();
+                if ("getMetadata".equals(name)) return metaProxy;
+                if ("getRootPaths".equals(name)) return List.of(mod.jarPath());
+                if ("getRootPath".equals(name)) return mod.jarPath();
+                if ("getOrigin".equals(name)) return originProxy;
+                if ("getContainingMod".equals(name)) return Optional.empty();
+                if ("getContainedMods".equals(name)) return List.of();
+                if ("findPath".equals(name) || "getPath".equals(name)) return Optional.empty();
+                if ("toString".equals(name)) return mod.id() + " " + mod.version();
+
+                if (ret == boolean.class) return Boolean.FALSE;
+                if (ret == int.class) return 0;
+                if (ret == long.class) return 0L;
+                if (ret == float.class) return 0.0f;
+                if (ret == double.class) return 0.0d;
+                if (List.class.isAssignableFrom(ret) || Collection.class.isAssignableFrom(ret)) return List.of();
+                if (Set.class.isAssignableFrom(ret)) return Set.of();
+                if (Map.class.isAssignableFrom(ret)) return Map.of();
+                if (Optional.class.isAssignableFrom(ret)) return Optional.empty();
+                return null;
+            });
+        } catch (Throwable t) {
+            MutoLog.warn("failed creating fallback proxy container: {}", t.getMessage());
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")
-    private void syncModMenu(String modId, Object container) {
+    private void syncModMenuAdd(String modId, Object container) {
         try {
             Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
             Field modsField = modMenuCls.getDeclaredField("MODS");
@@ -416,7 +551,7 @@ public final class ReloadEngine {
 
             Field rootModsField = modMenuCls.getDeclaredField("ROOT_MODS");
             rootModsField.setAccessible(true);
-            List<Object> rootMods = (List<Object>) rootModsField.get(null);
+            Map<String, Object> rootMods = (Map<String, Object>) rootModsField.get(null);
 
             Class<?> fabricModCls = null;
             for (String name : List.of(
@@ -430,16 +565,63 @@ public final class ReloadEngine {
             }
 
             if (fabricModCls != null && container instanceof net.fabricmc.loader.api.ModContainer mc) {
-                java.lang.reflect.Constructor<?> ctor = fabricModCls.getConstructor(net.fabricmc.loader.api.ModContainer.class);
-                Object modItem = ctor.newInstance(mc);
-                menuMods.put(modId, modItem);
-                if (!rootMods.contains(modItem)) {
-                    rootMods.add(modItem);
+                java.lang.reflect.Constructor<?> ctor = null;
+                for (java.lang.reflect.Constructor<?> c : fabricModCls.getDeclaredConstructors()) {
+                    c.setAccessible(true);
+                    if (c.getParameterCount() == 2) {
+                        ctor = c;
+                        break;
+                    } else if (c.getParameterCount() == 1 && ctor == null) {
+                        ctor = c;
+                    }
                 }
-                MutoLog.info("synced {} to ModMenu cache", modId);
+
+                if (ctor != null) {
+                    Object modItem = (ctor.getParameterCount() == 2)
+                            ? ctor.newInstance(mc, Collections.emptySet())
+                            : ctor.newInstance(mc);
+
+                    menuMods.put(modId, modItem);
+                    rootMods.put(modId, modItem);
+                    MutoLog.info("synced {} into ModMenu active cache", modId);
+
+                    try {
+                        java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
+                        clear.setAccessible(true);
+                        clear.invoke(null);
+                    } catch (Throwable ignored) {}
+                }
             }
         } catch (Throwable t) {
-            MutoLog.warn("ModMenu sync skipped: {}", t.getMessage());
+            Throwable root = t.getCause() != null ? t.getCause() : t;
+            MutoLog.warn("ModMenu add sync skipped: {}", root.toString());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void syncModMenuRemove(String modId) {
+        try {
+            Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
+            Field modsField = modMenuCls.getDeclaredField("MODS");
+            modsField.setAccessible(true);
+            Map<String, Object> menuMods = (Map<String, Object>) modsField.get(null);
+
+            Field rootModsField = modMenuCls.getDeclaredField("ROOT_MODS");
+            rootModsField.setAccessible(true);
+            Map<String, Object> rootMods = (Map<String, Object>) rootModsField.get(null);
+
+            if (menuMods != null) menuMods.remove(modId);
+            if (rootMods != null) rootMods.remove(modId);
+
+            try {
+                java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
+                clear.setAccessible(true);
+                clear.invoke(null);
+            } catch (Throwable ignored) {}
+
+            MutoLog.info("removed {} from ModMenu active cache", modId);
+        } catch (Throwable t) {
+            MutoLog.warn("ModMenu remove sync skipped: {}", t.getMessage());
         }
     }
 
