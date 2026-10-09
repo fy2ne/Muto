@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/fy2ne/muto/main/src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Logo" />
+
 # Muto
 
 **Dynamic runtime mod reloader and hot-swap pipeline for Fabric.**

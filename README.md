@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Logo" />
+
 # Muto
 
 **Production-grade hot mod reloader for Minecraft**
