@@ -52,6 +52,12 @@ skills-lock.json
 AGENTS.local.md
 
 # --------------------------------------
+# Web Documentation (Private, deployed via Cloudflare)
+# --------------------------------------
+web/
+/web/
+
+# --------------------------------------
 # Misc
 # --------------------------------------
 *.hprof
