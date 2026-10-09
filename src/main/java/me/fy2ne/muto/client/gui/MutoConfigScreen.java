@@ -11,6 +11,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -65,7 +66,19 @@ public final class MutoConfigScreen extends Screen {
         this.addRenderableWidget(
                 Button.builder(Component.literal("Reload Mods (↻)"), btn -> {
                     if (this.minecraft != null) {
-                        this.minecraft.setScreenAndShow(new MutoReloadScreen(this));
+                        this.minecraft.setScreenAndShow(new ConfirmScreen(
+                                accepted -> {
+                                    if (accepted && this.minecraft != null) {
+                                        this.minecraft.setScreenAndShow(new MutoReloadScreen(this));
+                                    } else if (this.minecraft != null) {
+                                        this.minecraft.setScreenAndShow(this);
+                                    }
+                                },
+                                Component.literal("§f§lReload Mods?"),
+                                Component.literal("§7Muto will scan /mods, update active classes, and synchronize loader registries.\n\n§eUnsaved world state should be saved before proceeding."),
+                                Component.literal("Yes"),
+                                Component.literal("No")
+                        ));
                     }
                 })
                 .bounds(btnStartX + btnW + gap, btnY, btnW, 20)
@@ -147,8 +160,24 @@ public final class MutoConfigScreen extends Screen {
         }
 
         @Override
+        protected boolean entriesCanBeSelected() {
+            return false;
+        }
+
+        @Override
+        protected void extractListBackground(GuiGraphicsExtractor g) {
+            // soft translucent fill instead of solid dirt tiling
+            g.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0x33000000);
+        }
+
+        @Override
+        protected void extractListSeparators(GuiGraphicsExtractor g) {
+            // omit thick vanilla dirt separators
+        }
+
+        @Override
         public int getRowWidth() {
-            return Math.min(420, MutoConfigScreen.this.width - 32);
+            return Math.min(440, MutoConfigScreen.this.width - 32);
         }
 
         @Override
@@ -167,29 +196,39 @@ public final class MutoConfigScreen extends Screen {
         }
 
         @Override
-        public void extractContent(GuiGraphicsExtractor g, int x, int y, boolean hovered, float dt) {
-            int rowW = listWidget.getRowWidth();
+        public void extractContent(GuiGraphicsExtractor g, int mx, int my, boolean hovered, float dt) {
+            int x = this.getContentX();
+            int y = this.getContentY();
+            int w = this.getContentWidth();
+            int h = this.getContentHeight();
 
-            // Hover highlight
-            if (hovered) {
-                g.fill(x - 4, y, x + rowW + 4, y + 24, 0x1AFFFFFF);
-                g.fill(x - 4, y, x - 2, y + 24, 0xFF00E5FF);
-            }
+            // Card background
+            int bg = hovered ? 0x401E293B : 0x220B132B;
+            g.fill(x, y, x + w, y + h, bg);
+
+            // Left indicator bar
+            int accent = switch (tier) {
+                case CLEAN -> 0xFF22C55E;
+                case STANDARD -> 0xFF00E5FF;
+                case STUBBORN -> 0xFF94A3B8;
+            };
+            g.fill(x, y, x + 3, y + h, hovered ? 0xFFFFFFFF : accent);
 
             // Mod name / ID
             String idStr = mod.id().length() > 22 ? mod.id().substring(0, 20) + "…" : mod.id();
-            g.text(font, Component.literal("§f§l" + idStr), x + 4, y + 4, 0xFFFFFFFF);
+            g.text(font, Component.literal("§f§l" + idStr), x + 8, y + 4, 0xFFFFFFFF);
 
             // Version
-            g.text(font, Component.literal("§8v" + mod.version()), x + 150, y + 5, 0xFF888888);
+            g.text(font, Component.literal("§7v" + mod.version()), x + 155, y + 5, 0xFFA0AEC0);
 
             // Tier & Status Badge
             String badge = switch (tier) {
                 case CLEAN -> "§a[ Clean ]";
-                case STANDARD -> "§2[ Live ]";
+                case STANDARD -> "§b[ Live ]";
                 case STUBBORN -> "§7[ Core ]";
             };
-            g.text(font, Component.literal(badge), x + rowW - 55, y + 5, 0xFFFFFFFF);
+            int badgeW = font.width(badge);
+            g.text(font, Component.literal(badge), x + w - badgeW - 8, y + 5, 0xFFFFFFFF);
 
             // Tooltip on hover
             if (hovered) {
@@ -201,7 +240,7 @@ public final class MutoConfigScreen extends Screen {
                                 ? Component.literal("§a✓ Dynamic reloadable")
                                 : Component.literal("§c✗ Engine bound (requires restart)")
                 );
-                g.setComponentTooltipForNextFrame(font, tooltip, x + 30, y);
+                g.setComponentTooltipForNextFrame(font, tooltip, mx, my);
             }
         }
 

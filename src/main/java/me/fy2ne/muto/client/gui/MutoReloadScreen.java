@@ -1,7 +1,6 @@
 package me.fy2ne.muto.client.gui;
 
 import me.fy2ne.muto.MutoLog;
-import me.fy2ne.muto.MutoMod;
 import me.fy2ne.muto.engine.ReloadEngine;
 import me.fy2ne.muto.engine.ReloadResult;
 import net.fabricmc.loader.api.FabricLoader;
@@ -12,16 +11,16 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class MutoReloadScreen extends Screen {
-    private static final int CYAN  = 0xFF00E5FF;
-    private static final int DIM   = 0xFF718096;
-    private static final int DARK  = 0xFF1A202C;
-    private static final int RED   = 0xFFFF5555;
-    private static final int BG    = 0xF20D1117;
+    private static final int DARK_PANEL = 0xD810141D;
+    private static final int BORDER_COLOR = 0x40FFFFFF;
+    private static final int BAR_BG = 0xFF141923;
+    private static final int BAR_FILL = 0xFF22C55E;
+    private static final int RED = 0xFFFF5555;
 
     private static final String[] STAGE_LABELS = {
         "Scanning mod directory…",
@@ -40,13 +39,15 @@ public final class MutoReloadScreen extends Screen {
     private final AtomicReference<ReloadResult> result = new AtomicReference<>();
     private boolean done;
     private Button returnBtn;
-    // collected log lines for the detail panel
-    private final List<String> log = new ArrayList<>();
+    private Button detailsToggleBtn;
+    private boolean showLogs = false;
+
+    private final List<String> log = new CopyOnWriteArrayList<>();
     private long dotTimer;
     private int dotCount;
 
     public MutoReloadScreen(Screen origin) {
-        super(Component.literal("Muto — Reloading Mods"));
+        super(Component.literal("Reloading Mods"));
         this.origin = origin;
         this.startMs = System.currentTimeMillis();
         this.done = false;
@@ -56,7 +57,6 @@ public final class MutoReloadScreen extends Screen {
         ReloadEngine.INSTANCE.reloadAsync(modsDir, msg -> {
             stageMsg = msg;
             log.add(msg);
-            // map stage message to progress bucket
             if (msg.startsWith("Scanning"))          targetProg = 0.18f;
             else if (msg.startsWith("Constructing") || msg.startsWith("Building")) targetProg = 0.38f;
             else if (msg.startsWith("Tearing"))      targetProg = 0.58f;
@@ -83,12 +83,39 @@ public final class MutoReloadScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        int midX = this.width / 2;
+        int midY = this.height / 2;
+
+        detailsToggleBtn = Button.builder(
+                Component.literal(showLogs ? "▲ Hide Logs" : "▼ Details"),
+                btn -> {
+                    showLogs = !showLogs;
+                    detailsToggleBtn.setMessage(Component.literal(showLogs ? "▲ Hide Logs" : "▼ Details"));
+                    repositionWidgets();
+                }
+        ).bounds(midX - 45, midY + 18, 90, 16).build();
+        this.addRenderableWidget(detailsToggleBtn);
+
         returnBtn = Button.builder(
                 Component.literal("Back"),
                 btn -> closeOrReturn()
-        ).bounds(this.width / 2 - 60, this.height / 2 + 62, 120, 20).build();
+        ).bounds(midX - 50, midY + 45, 100, 20).build();
         returnBtn.visible = false;
         this.addRenderableWidget(returnBtn);
+
+        repositionWidgets();
+    }
+
+    private void repositionWidgets() {
+        int midX = this.width / 2;
+        int midY = this.height / 2;
+        if (showLogs) {
+            if (detailsToggleBtn != null) detailsToggleBtn.setY(midY + 74);
+            if (returnBtn != null) returnBtn.setY(midY + 96);
+        } else {
+            if (detailsToggleBtn != null) detailsToggleBtn.setY(midY + 18);
+            if (returnBtn != null) returnBtn.setY(midY + 42);
+        }
     }
 
     @Override
@@ -99,12 +126,10 @@ public final class MutoReloadScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
-        // smooth progress interpolation — 15% per tick toward target
         float gap = targetProg - displayProg;
         displayProg += gap * 0.18f;
         if (Math.abs(gap) < 0.005f) displayProg = targetProg;
 
-        // animated dots
         dotTimer++;
         if (dotTimer % 10 == 0) dotCount = (dotCount + 1) % 4;
 
@@ -136,6 +161,8 @@ public final class MutoReloadScreen extends Screen {
                 done = true;
                 stageMsg = res.error() != null ? "Failed: " + res.error() : "Reload failed — check muto.log";
                 if (returnBtn != null) returnBtn.visible = true;
+                showLogs = true;
+                repositionWidgets();
             }
         }
     }
@@ -147,63 +174,82 @@ public final class MutoReloadScreen extends Screen {
         int midX = w / 2;
         int midY = h / 2;
 
-        // Soft translucent vignette so background remains visible
-        g.fill(0, 0, w, h, 0x55000000);
+        // Translucent background
+        g.fill(0, 0, w, h, 0x66000000);
 
-        // Centered floating card
-        int cardW = 300;
-        int cardH = 110;
+        int cardW = 340;
+        int cardH = showLogs ? 210 : 100;
         int cLeft = midX - cardW / 2;
-        int cTop = midY - cardH / 2;
+        int cTop = midY - (showLogs ? 95 : 45);
         int cRight = midX + cardW / 2;
-        int cBottom = midY + cardH / 2;
+        int cBottom = cTop + cardH;
 
-        g.fill(cLeft, cTop, cRight, cBottom, 0xD0111827);
-        g.fill(cLeft, cTop, cRight, cTop + 1, 0x50FFFFFF);
-        g.fill(cLeft, cBottom - 1, cRight, cBottom, 0x50FFFFFF);
-        g.fill(cLeft, cTop, cLeft + 1, cBottom, 0x50FFFFFF);
-        g.fill(cRight - 1, cTop, cRight, cBottom, 0x50FFFFFF);
+        // Card container
+        g.fill(cLeft, cTop, cRight, cBottom, DARK_PANEL);
+        g.fill(cLeft, cTop, cRight, cTop + 1, BORDER_COLOR);
+        g.fill(cLeft, cBottom - 1, cRight, cBottom, BORDER_COLOR);
+        g.fill(cLeft, cTop, cLeft + 1, cBottom, BORDER_COLOR);
+        g.fill(cRight - 1, cTop, cRight, cBottom, BORDER_COLOR);
 
         // Title
         g.centeredText(this.font, Component.literal("§f§lReloading Mods"), midX, cTop + 12, 0xFFFFFFFF);
 
-        // Stage label with animated dots
+        // Stage label
         ReloadResult res = result.get();
         boolean failed = res != null && !res.success();
         String dots = ".".repeat(dotCount);
         String label = stageMsg + (failed ? "" : dots);
         int stageColor = failed ? RED : 0xFFCCCCCC;
-        g.centeredText(this.font, Component.literal(label), midX, cTop + 32, stageColor);
+        g.centeredText(this.font, Component.literal(label), midX, cTop + 30, stageColor);
 
         // Progress bar track
-        int barW = 240;
-        int barH = 4;
+        int barW = 280;
+        int barH = 5;
         int barX = midX - barW / 2;
-        int barY = cTop + 54;
+        int barY = cTop + 48;
 
         g.fill(barX - 1, barY - 1, barX + barW + 1, barY + barH + 1, 0xFF2D3748);
-        g.fill(barX, barY, barX + barW, barY + barH, DARK);
+        g.fill(barX, barY, barX + barW, barY + barH, BAR_BG);
 
-        // Fill
+        // Progress bar fill
         float clampedProg = Math.min(1.0f, displayProg);
         int fillW = (int) (barW * clampedProg);
         if (fillW > 0) {
-            int fillColor = failed ? RED : 0xFF22C55E;
+            int fillColor = failed ? RED : BAR_FILL;
             g.fill(barX, barY, barX + fillW, barY + barH, fillColor);
         }
 
         // Percentage & Elapsed
         int pct = (int) (clampedProg * 100);
         long elapsed = System.currentTimeMillis() - startMs;
-        g.text(this.font, Component.literal("§7" + pct + "%"), barX, barY + 10, 0xFF888888);
-        g.text(this.font, Component.literal("§7" + (elapsed / 1000) + "s"), barX + barW - 16, barY + 10, 0xFF888888);
+        g.text(this.font, Component.literal("§7" + pct + "%"), barX, barY + 8, 0xFFA0AEC0);
+        g.text(this.font, Component.literal("§7" + (elapsed / 1000) + "s"), barX + barW - 18, barY + 8, 0xFFA0AEC0);
 
-        // Mod diff summary if finished
-        if (res != null && res.diff() != null && res.diff().hasChanges()) {
-            String summary = "§a+" + res.diff().added().size()
-                    + " §c-" + res.diff().removed().size()
-                    + " §e~" + res.diff().updated().size();
-            g.centeredText(this.font, Component.literal(summary), midX, barY + 24, 0xFFFFFFFF);
+        // Logs console drawer when expanded
+        if (showLogs) {
+            int logBoxX = barX;
+            int logBoxY = barY + 22;
+            int logBoxW = barW;
+            int logBoxH = 92;
+
+            g.fill(logBoxX, logBoxY, logBoxX + logBoxW, logBoxY + logBoxH, 0xE6080B11);
+            g.fill(logBoxX, logBoxY, logBoxX + logBoxW, logBoxY + 1, 0x30FFFFFF);
+            g.fill(logBoxX, logBoxY + logBoxH - 1, logBoxX + logBoxW, logBoxY + logBoxH, 0x30FFFFFF);
+            g.fill(logBoxX, logBoxY, logBoxX + 1, logBoxY + logBoxH, 0x30FFFFFF);
+            g.fill(logBoxX + logBoxW - 1, logBoxY, logBoxX + logBoxW, logBoxY + logBoxH, 0x30FFFFFF);
+
+            int startIdx = Math.max(0, log.size() - 6);
+            int textY = logBoxY + 6;
+            if (log.isEmpty()) {
+                g.text(this.font, Component.literal("§8Listening to reload engine..."), logBoxX + 8, textY, 0xFF718096);
+            } else {
+                for (int i = startIdx; i < log.size(); i++) {
+                    String line = log.get(i);
+                    if (line.length() > 46) line = line.substring(0, 44) + "…";
+                    g.text(this.font, Component.literal("§7> §f" + line), logBoxX + 6, textY, 0xFFE2E8F0);
+                    textY += 13;
+                }
+            }
         }
 
         super.extractRenderState(g, mx, my, dt);
