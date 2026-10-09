@@ -3,7 +3,7 @@
   "id": "muto",
   "version": "${version}",
   "name": "Muto",
-  "description": "Production-grade hot mod reloader for Minecraft. Reload, swap, and update mods seamlessly from the title screen.",
+  "description": "Dynamic runtime mod reloader and hot-swap pipeline for Fabric.",
   "authors": [
     "fy2ne"
   ],
