@@ -29,7 +29,7 @@ Instead of restarting the entire game process just to test code or mod updates, 
 - **Atomic Failure Rollback**: If a new or updated mod throws an exception during initialization, Muto catches the fault, aborts the swap, rolls back to the prior stable mod snapshot, and surfaces the stack trace.
 - **Mod Lifecycle Events & Developer API**: Other mods can hook into `MutoEvents.RELOAD_START` and `MutoEvents.RELOAD_FINISH` to tear down caches, flush listeners, or re-initialize custom subsystems.
 - **Enhanced Bytecode Redefinition (JBR/DCEVM)**: When running under JetBrains Runtime with `-XX:+AllowEnhancedClassRedefinition`, Muto leverages live class retransformation for deeper class swaps.
-- **ModMenu Inspection**: Adds a config screen inside ModMenu listing all detected mods, their versions, and their classification tier (`Clean`, `Standard`, or `Stubborn`).
+- **Built-in Configuration UI**: Native 5-tab configuration screen (Mods, Settings, Developer, History, Diagnostics) accessible via ModMenu with zero external library requirements (Cloth Config not needed).
 
 ---
 
@@ -73,8 +73,10 @@ The `ModDiff` record gives you direct access to `added()`, `removed()`, `updated
 2. Launch Minecraft.
 3. To reload:
    - Save and exit to the **Title Screen** (in-world reloads are disabled to prevent world state desync).
-   - Click the reload icon (**↻**) on the title screen.
+   - Click the reload icon button (**↻**) in the utility row at the bottom of the title screen.
+   - Confirm the reload prompt to launch the staged reload screen.
    - The reload pipeline executes, swaps loaders, re-executes entrypoints, and updates your active mod set.
+   - A native Mojang toast confirms the reload summary (+added, -removed, ~updated).
 
 ---
 
@@ -83,3 +85,4 @@ The `ModDiff` record gives you direct access to `added()`, `removed()`, `updated
 - **Platform:** Fabric Loader
 - **Minecraft:** Java Edition
 - **Java Runtime:** JVM (Java 21 / 25+, JetBrains Runtime optional for DCEVM)
+- **Dependencies:** Fabric API (Zero external config libraries required)

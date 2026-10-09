@@ -26,10 +26,10 @@ Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft.
 
 ## Features
 
-- **Reload button on the title screen** — one click starts a reload sequence with a staged progress UI
-- **Safe by design in-game** — the pause screen shows a disabled reload button with guidance (leave the world first)
-- **ModMenu integration** — browse loaded mods, tier classification (Clean, Standard, Stubborn), and live status via ModMenu
-- **Native Mojang SystemToasts** — subtle in-game notification toasts for capability guidance, reload summary (+added, -removed, ~updated), and failures
+- **Reload icon button on title screen** — 20x20 sprite button (**↻**) in the bottom utility row with confirmation dialog and staged reload screen
+- **Safe by design in-game** — pause screen mounts a disabled **↻** button with a tooltip (*"Leave world to reload mods."*) to prevent world desync
+- **Built-in Configuration UI** — native 5-tab GUI (Mods, Settings, Developer, History, Diagnostics) accessible via ModMenu with zero external library requirements (Cloth Config not needed)
+- **Native Mojang SystemToasts** — clean in-game notification toasts for reload summary (+added, -removed, ~updated), capability guidance, and failure rollback alerts
 - **Atomic rollback safety** — if an added/updated mod crashes during reload, Muto catches the error and cleanly rolls back to the previous snapshot
 - **Mod diffing API** — `ModDiff` tracks added, removed, updated, and unchanged mods
 - **Event hooks** — subscribe to `RELOAD_START` and `RELOAD_FINISH` to observe or extend reload behavior
@@ -43,22 +43,23 @@ Muto is a Fabric mod that hot-reloads your mod set without restarting Minecraft.
 | Platform | Fabric Loader |
 | Minecraft | Java Edition |
 | Java Runtime | JVM (Java 21 / 25+, JBR optional for DCEVM bytecode swap) |
-| Java | 25+ |
+| Dependencies | Fabric API (Zero external config libraries required) |
 
 > **Tip:** For best hot-reload results, run the game on the [JetBrains Runtime](https://www.jetbrains.com/runtime/) or a JVM with DCEVM/`AllowEnhancedClassRedefinition` enabled. Muto reports both automatically at startup.
 
 ## Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.3
+1. Install [Fabric Loader](https://fabricmc.net/use/installer/)
 2. Drop `muto-<version>.jar` and [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods/` folder
-3. Launch the game — a **↻** button appears on the title screen
+3. Launch the game — a **↻** icon button appears in the bottom utility button row on the title screen
 
 ## Usage
 
 1. Whenever you add, delete, or update jars in your `mods/` folder, return to the **title screen**
-2. Click the **↻** button (in the bottom utility button row)
-3. Muto walks through reload stages with a progress bar
-4. When complete, you are returned to the title screen with the new mod set active
+2. Click the **↻** icon button (in the bottom utility row next to ModMenu/Options)
+3. Confirm the reload prompt to open the staged reload screen
+4. Muto scans your `mods/` directory, rotates classloaders, unfreezes registries, and updates ModMenu
+5. A native Mojang toast confirms the reload summary (+added, -removed, ~updated) and duration
 
 Mods that change registries, mixins, or world data may still require a full restart. Muto is safest for client-side and resource-focused mods during development.
 
