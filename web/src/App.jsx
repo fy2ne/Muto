@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   RotateCw,
   Cpu,
@@ -7,21 +7,18 @@ import {
   Sliders,
   Code2,
   HelpCircle,
-  ExternalLink,
   Check,
   Copy,
-  Search,
+  ChevronDown,
+  ChevronRight,
   Download,
-  Info,
-  ArrowLeft,
-  Bell,
   Lock,
-  History,
-  FileCode,
-  Terminal,
   Zap,
+  Terminal,
+  FileCode,
   Wrench,
-  BookOpen
+  BookOpen,
+  ArrowUpRight
 } from 'lucide-react';
 
 function GithubIcon({ size = 15, style = {} }) {
@@ -43,14 +40,14 @@ function CodeBox({ code, language = "java", filename }) {
   };
 
   return (
-    <div className="code-box">
-      <div className="code-box-header">
+    <div className="code-block">
+      <div className="code-header">
         <span>{filename || language}</span>
         <button
           onClick={handleCopy}
           style={{
-            background: '#1c2028',
-            border: '1px solid #303744',
+            background: '#141822',
+            border: '1px solid #283142',
             color: '#e5e7eb',
             borderRadius: '4px',
             padding: '0.15rem 0.5rem',
@@ -58,14 +55,15 @@ function CodeBox({ code, language = "java", filename }) {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.3rem'
+            gap: '0.3rem',
+            transition: 'color 0.15s ease'
           }}
         >
           {copied ? <Check size={11} color="#22c55e" /> : <Copy size={11} />}
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre className="code-box-pre">
+      <pre className="code-pre">
         <code>{code}</code>
       </pre>
     </div>
@@ -73,57 +71,131 @@ function CodeBox({ code, language = "java", filename }) {
 }
 
 export default function App() {
+  const [selectedId, setSelectedId] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [featuresOpen, setFeaturesOpen] = useState(true);
+  const [guidesOpen, setGuidesOpen] = useState(true);
+  const [archOpen, setArchOpen] = useState(true);
 
-  // Articles data formatted with steps and key badges (Image 2 style)
   const articles = {
-    'start-reloading': {
-      title: 'Hot-Reloading Mods on the Fly',
-      category: 'Live Reload Engine',
+    overview: {
+      title: 'Muto Architecture & Hot-Swap Overview',
+      subtitle: 'Dynamic Runtime Mod Reloader for Minecraft Java Edition (Fabric 26.3)',
+      showcaseCards: true,
       sections: [
         {
-          title: 'Adding a new mod jar',
+          heading: 'How does live hot-swapping work in Minecraft?',
+          content: (
+            <>
+              For over 15 years, Java modding treated mod discovery and class loading as immutable boot-time events. Changing a single mod required closing Minecraft and waiting through a 60-second JVM relaunch.
+              <br /><br />
+              Muto breaks this limitation by deploying dynamic <span className="key-badge">MutoClassLoader</span> child instances. Reloadable mods are isolated into their own classloader trees, allowing them to be loaded, unloaded, garbage collected, and swapped dynamically directly from the title screen in under 500 milliseconds.
+            </>
+          ),
+          steps: [
+            <>Drop or replace your mod jar inside the <span className="key-badge">mods</span> directory.</>,
+            <>Return to the Minecraft <span className="key-badge">Title Screen</span>.</>,
+            <>Click the yellow <span className="key-badge">↻ Reload</span> button or trigger it via the public API.</>,
+            <>Muto rotates the child classloader, unfreezes registries, and updates ModMenu in real time.</>
+          ]
+        },
+        {
+          heading: 'Can external mods like Resourcify integrate with Muto?',
+          content: (
+            <>
+              Yes. External downloaders can query <span className="key-badge">FabricLoader.getInstance().isModLoaded("muto")</span> and invoke <span className="key-badge">MutoApi.reloadAsync()</span>. This allows players to browse, download, and activate mods inside Minecraft without ever closing the game.
+            </>
+          ),
+          codeSnippet: {
+            filename: 'DownloaderIntegration.java',
+            code: `if (FabricLoader.getInstance().isModLoaded("muto")) {
+    if (me.fy2ne.muto.api.MutoApi.isSafeToReload()) {
+        me.fy2ne.muto.api.MutoApi.reloadAsync().thenAccept(res -> {
+            if (res.success()) {
+                System.out.println("Mod active! Reloaded in " + res.durationMs() + "ms");
+            }
+        });
+    }
+}`
+          }
+        }
+      ],
+      related: [
+        { id: 'resourcify-guide', label: 'Resourcify & Downloader API', icon: Layers },
+        { id: 'mod-tiers', label: 'Mod Classification Tiers', icon: Cpu },
+        { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
+        { id: 'file-locks', label: 'Windows File Locking Solution', icon: Wrench }
+      ]
+    },
+    'start-reloading': {
+      title: 'Hot-Reloading Mods on the Fly',
+      subtitle: 'Adding, updating, and removing mods without restarting the client',
+      sections: [
+        {
+          heading: 'Adding a new mod jar',
           steps: [
             <>Exit to the <span className="key-badge">Title Screen</span> of Minecraft (never reload inside a live world).</>,
             <>Open your Minecraft instance directory and navigate to the <span className="key-badge">mods</span> folder.</>,
-            <>Copy or move your new mod jar file (e.g. <span className="key-badge">appleskin-fabric-*.jar</span>) into the <span className="key-badge">mods</span> folder.</>,
-            <>Return to Minecraft and click the yellow circular <span className="key-badge">↻ Reload</span> button on the title screen.</>,
-            <>Wait for the reload sequence. A native toast notification will appear in the top-right corner confirming <span className="key-badge">+1 added</span> with the exact reload duration in milliseconds.</>
+            <>Move your new mod jar (e.g. <span className="key-badge">appleskin-fabric-*.jar</span>) into <span className="key-badge">mods</span>.</>,
+            <>Click the yellow circular <span className="key-badge">↻ Reload</span> button on the title screen.</>,
+            <>A native toast notification will appear in the top-right corner confirming <span className="key-badge">+1 added</span> along with the reload duration in milliseconds.</>
           ]
         },
         {
-          title: 'Updating an existing mod jar',
+          heading: 'Updating an existing mod',
           steps: [
             <>Return to the <span className="key-badge">Title Screen</span>.</>,
-            <>Replace the older jar in <span className="key-badge">mods/</span> with the new updated version.</>,
+            <>Replace the older jar in <span className="key-badge">mods</span> with the new updated version.</>,
             <>Press the <span className="key-badge">↻ Reload</span> button.</>,
-            <>Muto rotates the child classloader, unbinds the old jar references, and re-initializes entrypoints cleanly.</>
-          ]
-        },
-        {
-          title: 'Removing or disabling a mod',
-          steps: [
-            <>On the <span className="key-badge">Title Screen</span>, delete the mod jar or append <span className="key-badge">.disabled</span> to its filename.</>,
-            <>Click the <span className="key-badge">↻ Reload</span> button.</>,
-            <>Muto detects the removal, notifies listeners via <span className="key-badge">MutoEvents.RELOAD_FINISH</span>, and unregisters its resources.</>
+            <>Muto rotates the child classloader, tears down old instances, and boots the new entrypoints cleanly.</>
           ]
         }
+      ],
+      related: [
+        { id: 'mod-tiers', label: 'Mod Classification Tiers', icon: Cpu },
+        { id: 'file-locks', label: 'Windows File Locking Guide', icon: Wrench }
+      ]
+    },
+    'mod-tiers': {
+      title: 'Mod Classification Tiers',
+      subtitle: 'Understanding Clean, Standard, and Stubborn mods',
+      sections: [
+        {
+          heading: 'Three operational tiers for maximum stability',
+          content: (
+            <>
+              To guarantee zero JVM crashes, Muto categorizes all discovered mods into three isolated operational tiers based on their entrypoint signatures and registry interactions.
+            </>
+          ),
+          steps: [
+            <><strong style={{ color: '#22c55e' }}>Clean Mods (Tier 1):</strong> Client-side tweaks, HUDs, and UI helpers (e.g. AppleSkin, FullBright). They reload instantly in milliseconds without mutating registry topologies.</>,
+            <><strong style={{ color: '#f59e0b' }}>Standard Mods (Tier 2):</strong> Mods that register custom blocks, items, sound events, or recipes (e.g. Distant Horizons, Structory). Reloaded via child classloader rotation with temporary registry unfreezing.</>,
+            <><strong style={{ color: '#ef4444' }}>Stubborn / Core Mods (Tier 3):</strong> Foundational runtime modules (Fabric Loader, Fabric API, core mixin hooks). Locked in the root classloader to preserve native JVM memory safety.</>
+          ]
+        }
+      ],
+      related: [
+        { id: 'start-reloading', label: 'Start Reloading Guide', icon: RotateCw },
+        { id: 'arch-rotation', label: 'Child ClassLoader Rotation', icon: Zap }
       ]
     },
     'resourcify-guide': {
-      title: 'Resourcify & In-Game Downloader Integration',
-      category: 'For Developers',
+      title: 'Resourcify & Downloader Integration',
+      subtitle: 'Enabling in-game mod downloading and live hot-swapping',
       sections: [
         {
-          title: 'How soft-dependency integration works',
-          desc: 'External mods (like Resourcify) can allow players to search and download mods in-game, automatically hot-reloading them with Muto without restarting the client.',
+          heading: 'Soft-dependency architecture',
+          content: (
+            <>
+              External mods (like Resourcify) can allow players to search and download mods in-game, automatically hot-reloading them with Muto without restarting the client.
+            </>
+          ),
           steps: [
             <>Add Muto API as a <span className="key-badge">modCompileOnly</span> dependency in your <span className="key-badge">build.gradle</span>.</>,
             <>Add <span className="key-badge">"muto": "&gt;=0.1.0-beta.1"</span> under <span className="key-badge">suggests</span> in your <span className="key-badge">fabric.mod.json</span>.</>,
-            <>When your downloader finishes saving a jar to disk, query <span className="key-badge">FabricLoader.getInstance().isModLoaded("muto")</span>.</>,
-            <>If Muto is active, verify <span className="key-badge">MutoApi.isSafeToReload()</span> and invoke <span className="key-badge">MutoApi.reloadAsync()</span>.</>,
-            <>If Muto is absent, display a fallback message: <span className="key-badge">Restart Minecraft to apply</span>.</>
+            <>When your downloader finishes saving a jar to disk, check <span className="key-badge">FabricLoader.getInstance().isModLoaded("muto")</span>.</>,
+            <>If Muto is present, verify <span className="key-badge">MutoApi.isSafeToReload()</span> and call <span className="key-badge">MutoApi.reloadAsync()</span>.</>,
+            <>If Muto is absent, display a fallback message: <span className="key-badge">Restart Minecraft to apply changes</span>.</>
           ],
           codeSnippet: {
             filename: 'DownloaderIntegration.java',
@@ -144,11 +216,10 @@ if (FabricLoader.getInstance().isModLoaded("muto")) {
           }
         },
         {
-          title: 'Gradle dependency configuration',
+          heading: 'Gradle dependency configuration',
           steps: [
-            <>Open your project's <span className="key-badge">build.gradle</span>.</>,
             <>Add the Modrinth Maven repository to your <span className="key-badge">repositories</span> block.</>,
-            <>Declare the Muto dependency using <span className="key-badge">modCompileOnly</span>.</>
+            <>Declare Muto as a <span className="key-badge">modCompileOnly</span> dependency.</>
           ],
           codeSnippet: {
             filename: 'build.gradle',
@@ -164,66 +235,51 @@ dependencies {
 }`
           }
         }
-      ]
-    },
-    'mod-tiers': {
-      title: 'Mod Classification Tiers',
-      category: 'Mod Classification',
-      sections: [
-        {
-          title: 'Understanding Clean, Standard, and Stubborn mods',
-          steps: [
-            <><strong style={{ color: '#22c55e' }}>Clean Mods:</strong> Client-side tweaks, UI helpers, HUDs, and visual mods. They reload instantly without mutating registry topologies.</>,
-            <><strong style={{ color: '#f59e0b' }}>Standard Mods:</strong> Mods registering custom blocks, items, or recipes. Handled by Muto through child classloader rotation and registry thawing.</>,
-            <><strong style={{ color: '#ef4444' }}>Stubborn / Core Mods:</strong> Foundational modules (Fabric Loader, Fabric API, core mixins). Locked in the root classloader to preserve native JVM memory safety.</>
-          ]
-        }
+      ],
+      related: [
+        { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
+        { id: 'overview', label: 'Architecture Overview', icon: BookOpen }
       ]
     },
     'file-locks': {
       title: 'Windows File Locking & Shadow Cache',
-      category: 'Troubleshooting',
+      subtitle: 'Eliminating the "File in use by another process" Windows operating system lock',
       sections: [
         {
-          title: 'Resolving "File in use by another process"',
-          desc: 'Windows locks open jar files from being overwritten or deleted. Muto implements an automated shadow-cache architecture to eliminate this issue.',
+          heading: 'Why Windows locks jar files and how Muto solves it',
+          content: (
+            <>
+              On Windows, the operating system prevents open jar files from being overwritten or deleted (`ERROR_SHARING_VIOLATION`). If a player attempts to delete an active mod jar while Minecraft is open, Windows rejects the file action.
+              <br /><br />
+              Muto solves this by copying loaded jars into a sandboxed memory-mapped shadow cache. The physical file in <span className="key-badge">mods/</span> is released immediately, allowing players and downloaders to freely overwrite or delete jars while Minecraft remains running.
+            </>
+          ),
           steps: [
-            <>When dropping large jars into <span className="key-badge">mods/</span>, Windows Explorer briefly locks the file during copy.</>,
-            <>Muto uses an exponential retry loop with 120ms backoff when inspecting jar headers.</>,
-            <>Jar contents are mapped through sandboxed memory buffers so the operating system lock is safely released.</>,
-            <>If a file remains locked by another application (e.g. antivirus), Muto flags it with a retry toast rather than crashing the client.</>
+            <>Jars dropped into <span className="key-badge">mods</span> are indexed through sandboxed memory buffers.</>,
+            <>Muto uses an exponential retry loop with 120ms backoff when inspecting jar headers during file-copy operations.</>,
+            <>Operating system file descriptors are released immediately after entrypoint mapping.</>,
+            <>If an external antivirus locks the file, Muto displays an alert toast rather than crashing the client.</>
           ]
         }
-      ]
-    },
-    'jbr-setup': {
-      title: 'JetBrains Runtime (JBR) & DCEVM Setup',
-      category: 'Installation',
-      sections: [
-        {
-          title: 'Enabling advanced class redefinition',
-          steps: [
-            <>Download and install <span className="key-badge">JetBrains Runtime 25</span> with DCEVM support.</>,
-            <>In your Minecraft launcher, edit your installation profile.</>,
-            <>Under <span className="key-badge">Java Executable</span>, browse and select the JBR <span className="key-badge">bin/java.exe</span>.</>,
-            <>In <span className="key-badge">JVM Arguments</span>, append the flag: <span className="key-badge">-XX:+AllowEnhancedClassRedefinition</span>.</>,
-            <>Launch Minecraft. Open Muto's Cloth Config screen to verify that enhanced class redefinition is detected.</>
-          ]
-        }
+      ],
+      related: [
+        { id: 'start-reloading', label: 'Hot-Reloading Guide', icon: RotateCw },
+        { id: 'arch-rotation', label: 'Child ClassLoader Rotation', icon: Zap }
       ]
     },
     'api-reference': {
-      title: 'Muto Public API Reference',
-      category: 'For Developers',
+      title: 'Public MutoApi Reference',
+      subtitle: 'API methods and event lifecycle hooks for external mod developers',
       sections: [
         {
-          title: 'Class MutoApi methods',
+          heading: 'MutoApi static methods',
           steps: [
-            <><span className="key-badge">MutoApi.isAvailable()</span> — Returns true if Muto is active in Fabric.</>,
-            <><span className="key-badge">MutoApi.isReloading()</span> — Returns true if a reload transaction is currently running.</>,
+            <><span className="key-badge">MutoApi.isAvailable()</span> — Returns true if Muto is active in the Fabric runtime.</>,
+            <><span className="key-badge">MutoApi.isReloading()</span> — Returns true if a reload transaction is currently underway.</>,
             <><span className="key-badge">MutoApi.isSafeToReload()</span> — Returns true if client is safely on the Title Screen.</>,
             <><span className="key-badge">MutoApi.reloadAsync()</span> — Dispatches non-blocking hot-reload returning CompletableFuture.</>,
-            <><span className="key-badge">MutoApi.getReloadableModIds()</span> — Returns tracked mod IDs eligible for live reloading.</>
+            <><span className="key-badge">MutoApi.getReloadableModIds()</span> — Returns tracked mod IDs eligible for live reloading.</>,
+            <><span className="key-badge">MutoApi.getStubbornModIds()</span> — Returns IDs of root-locked mods.</>
           ],
           codeSnippet: {
             filename: 'me.fy2ne.muto.api.MutoApi',
@@ -237,112 +293,96 @@ dependencies {
 }`
           }
         }
+      ],
+      related: [
+        { id: 'resourcify-guide', label: 'Resourcify Integration', icon: Layers },
+        { id: 'overview', label: 'Muto Overview', icon: BookOpen }
       ]
     },
-    'config-screen': {
-      title: 'In-Game Cloth Config Screen',
-      category: 'Settings & Profiles',
+    'arch-rotation': {
+      title: 'Child ClassLoader Rotation & Registry Thawing',
+      subtitle: 'Deep technical internals of the Muto hot-swap engine',
       sections: [
         {
-          title: 'Accessing and configuring Muto',
+          heading: 'Dynamic ClassLoader isolation',
+          content: (
+            <>
+              Standard Fabric mods are loaded by Knot / SpongeMixin ClassLoaders at game start. Because Java does not allow unloading classes from a running ClassLoader without garbage-collecting the loader itself, Muto separates mods into child classloader trees.
+              <br /><br />
+              During a reload transaction:
+            </>
+          ),
           steps: [
-            <>Open the Minecraft <span className="key-badge">Title Screen</span> or ModMenu.</>,
-            <>Click the <span className="key-badge">Muto</span> config button.</>,
-            <>In the <span className="key-badge">Loaded Mods</span> tab, review all active jars, versions, and classification tiers.</>,
-            <>In the <span className="key-badge">Settings</span> tab, toggle reload confirmation modals, toast alerts, or Modrinth updates. Click the <span className="key-badge">↺</span> button to reset any value to default.</>,
-            <>In the <span className="key-badge">Developer Suite</span>, enable heap delta logging or preflight bypass for benchmarking.</>
+            <>The existing child ClassLoader is detached from active references.</>,
+            <>Minecraft's <span className="key-badge">MappedRegistry</span> is unfrozen, allowing new entries to be registered.</>,
+            <>A fresh child ClassLoader is initialized with the updated jar files.</>,
+            <>The new mod entrypoints execute, ModMenu receives refreshed metadata, and registries are refrozen.</>
           ]
         }
+      ],
+      related: [
+        { id: 'mod-tiers', label: 'Mod Classification Tiers', icon: Cpu },
+        { id: 'overview', label: 'Architecture Overview', icon: BookOpen }
       ]
     }
   };
 
-  const featureCategories = [
-    {
-      category: 'Live Reload Engine',
-      items: [
-        { id: 'start-reloading', label: 'Start Reloading', icon: RotateCw },
-        { id: 'start-reloading', label: 'Title Screen Trigger (↻)', icon: Sliders },
-        { id: 'start-reloading', label: 'Safe Execution Guard', icon: ShieldCheck },
-      ]
-    },
-    {
-      category: 'Mod Classification',
-      items: [
-        { id: 'mod-tiers', label: 'Clean Mods (UI / Tweaks)', icon: Zap },
-        { id: 'mod-tiers', label: 'Standard Mods (Content)', icon: Cpu },
-        { id: 'mod-tiers', label: 'Stubborn / Core Mods', icon: Lock },
-      ]
-    },
-    {
-      category: 'Ecosystem & Sync',
-      items: [
-        { id: 'start-reloading', label: 'ModMenu Sync Hook', icon: Terminal },
-        { id: 'start-reloading', label: 'Mojang Native Toasts', icon: Bell },
-        { id: 'resourcify-guide', label: 'Modrinth Update Jewels', icon: Download },
-      ]
-    },
-    {
-      category: 'Settings & Profiles',
-      items: [
-        { id: 'config-screen', label: 'Cloth Config UI', icon: Sliders },
-        { id: 'config-screen', label: 'Developer Suite Flags', icon: Code2 },
-        { id: 'config-screen', label: 'Reload History Log', icon: History },
-      ]
-    }
+  const featureLinks = [
+    { id: 'overview', label: 'Architecture Overview', icon: BookOpen },
+    { id: 'start-reloading', label: 'Start Reloading', icon: RotateCw },
+    { id: 'mod-tiers', label: 'Mod Classification Tiers', icon: Cpu },
+    { id: 'start-reloading', label: 'Title Screen (↻) Trigger', icon: Sliders },
+    { id: 'overview', label: 'Safe Execution Guard', icon: ShieldCheck },
+    { id: 'overview', label: 'ModMenu Live Sync', icon: Terminal },
+    { id: 'overview', label: 'Cloth Config UI', icon: Sliders },
   ];
 
-  const guideCategories = [
-    {
-      category: 'Troubleshooting',
-      items: [
-        { id: 'file-locks', label: 'Windows File Locks (Shadow Cache)', icon: Wrench },
-        { id: 'mod-tiers', label: 'Mixin Reload Boundaries', icon: HelpCircle },
-        { id: 'file-locks', label: 'Crash Logs & Rollback Protection', icon: ShieldCheck },
-      ]
-    },
-    {
-      category: 'Installation',
-      items: [
-        { id: 'jbr-setup', label: 'Fabric Loader 26.3 Setup', icon: Download },
-        { id: 'jbr-setup', label: 'JetBrains Runtime (JBR)', icon: Cpu },
-        { id: 'jbr-setup', label: 'JVM Launch Flags', icon: Terminal },
-      ]
-    },
-    {
-      category: 'For Developers / Integrators',
-      items: [
-        { id: 'resourcify-guide', label: 'Resourcify & Downloader Integration', icon: Layers },
-        { id: 'resourcify-guide', label: 'Soft Dependency Pattern', icon: FileCode },
-        { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
-        { id: 'api-reference', label: 'MutoEvents Lifecycle Hooks', icon: RotateCw },
-      ]
-    }
+  const guideLinks = [
+    { id: 'resourcify-guide', label: 'Resourcify & Downloader API', icon: Layers },
+    { id: 'file-locks', label: 'Windows File Locking Solution', icon: Wrench },
+    { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
+    { id: 'overview', label: 'JVM & JBR Arguments', icon: Terminal },
   ];
 
-  const currentArticle = selectedArticle ? articles[selectedArticle] : null;
+  const archLinks = [
+    { id: 'arch-rotation', label: 'Child ClassLoader Rotation', icon: Zap },
+    { id: 'arch-rotation', label: 'MappedRegistry Thawing', icon: Lock },
+    { id: 'overview', label: 'Atomic Rollback Guarantee', icon: ShieldCheck },
+  ];
+
+  const currentArticle = articles[selectedId] || articles.overview;
+
+  const tocItems = [
+    { id: 'overview', number: '1.', label: 'What is Muto?' },
+    { id: 'start-reloading', number: '2.', label: 'Hot-Swap & Reload Guide' },
+    { id: 'mod-tiers', number: '3.', label: 'Mod Classification Tiers' },
+    { id: 'resourcify-guide', number: '4.', label: 'In-Game Downloader API (Resourcify)' },
+    { id: 'file-locks', number: '5.', label: 'Windows Lock Resolution' },
+    { id: 'api-reference', number: '6.', label: 'Public MutoApi Reference' },
+    { id: 'arch-rotation', number: '7.', label: 'Child ClassLoader Rotation' },
+  ];
 
   return (
-    <div className="bg-grid-pattern" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Navigation Bar */}
-      <header style={{ borderBottom: '1px solid var(--grid-line)', background: '#050608' }}>
-        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+    <div className="bg-grid" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Header */}
+      <header style={{ borderBottom: '1px solid var(--border-grid)', background: 'rgba(6, 7, 9, 0.95)', backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+          
+          {/* Logo with transparent background and yellow reload icon */}
           <div 
-            onClick={() => { setSelectedArticle(null); setSearchQuery(''); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+            onClick={() => setSelectedId('overview')}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
           >
-            <img 
-              src="/icon.png" 
-              alt="Muto Logo" 
-              style={{ width: '28px', height: '28px', borderRadius: '5px' }}
-            />
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            {/* Zero background wrapper, clean yellow SVG icon */}
+            <RotateCw size={22} color="#f59e0b" strokeWidth={2.4} />
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem' }}>
               <span style={{ fontWeight: 700, fontSize: '1.15rem', color: '#fff', letterSpacing: '-0.02em' }}>Muto</span>
-              <span style={{ color: 'var(--gold-main)', fontSize: '0.82rem', fontWeight: 600 }}>Wiki &amp; Docs</span>
+              <span style={{ color: 'var(--gold-main)', fontSize: '0.8rem', fontWeight: 600 }}>Wiki</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Header Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <a
               href="https://github.com/fy2ne/muto"
               target="_blank"
@@ -351,13 +391,14 @@ dependencies {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                background: '#121418',
-                border: '1px solid #242933',
+                background: '#0d1017',
+                border: '1px solid var(--border-ui)',
                 color: '#e5e7eb',
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
                 fontSize: '0.82rem',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                transition: 'color 0.15s ease'
               }}
             >
               <GithubIcon size={14} />
@@ -372,12 +413,13 @@ dependencies {
                 alignItems: 'center',
                 gap: '0.45rem',
                 background: 'var(--gold-main)',
-                color: '#050608',
+                color: '#060709',
                 fontWeight: 600,
                 padding: '0.35rem 0.85rem',
                 borderRadius: '5px',
                 fontSize: '0.82rem',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                transition: 'background-color 0.15s ease'
               }}
             >
               <Download size={14} />
@@ -387,154 +429,271 @@ dependencies {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main style={{ flex: 1, maxWidth: '1240px', width: '100%', margin: '0 auto', padding: '1.75rem 1.5rem 5rem' }}>
-        {/* Top Banner Notice and Search Bar (matching Image 1) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'center', marginBottom: '2.5rem' }}>
-          <div className="top-notice-banner">
-            <Info size={16} color="var(--gold-main)" style={{ flexShrink: 0 }} />
-            <span>Welcome to the all-in-one location for help with Muto Mod for Minecraft Java Edition.</span>
-          </div>
-          <div style={{ minWidth: '260px' }}>
-            <input
-              type="text"
-              placeholder="Search wiki..."
-              className="search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          </div>
-        </div>
-
-        {/* View Mode: Article Reader (Image 2 style) */}
-        {currentArticle ? (
-          <div className="article-container">
-            <button
-              onClick={() => setSelectedArticle(null)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--gold-main)',
-                fontSize: '0.86rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                marginBottom: '1.5rem',
-                padding: 0
-              }}
-            >
-              <ArrowLeft size={14} />
-              <span>Back to Wiki Hub</span>
-            </button>
-
-            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--gold-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-              {currentArticle.category}
+      {/* 3-Column Layout (Matching Screenshot) */}
+      <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', flex: 1 }}>
+        <div className="wiki-layout">
+          
+          {/* LEFT COLUMN: Tree Navigation */}
+          <aside className="nav-sidebar" style={{ borderRight: '1px solid var(--border-grid)', padding: '1.5rem 1rem', overflowY: 'auto' }}>
+            
+            {/* Features Collapsible */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div 
+                className="category-toggle" 
+                onClick={() => setFeaturesOpen(!featuresOpen)}
+                style={{ color: '#f59e0b' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {featuresOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span>Features</span>
+                </span>
+              </div>
+              {featuresOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem', paddingLeft: '0.5rem' }}>
+                  {featureLinks
+                    .filter(link => !searchQuery || link.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((link, idx) => {
+                      const Icon = link.icon;
+                      const active = selectedId === link.id;
+                      return (
+                        <div
+                          key={idx}
+                          className={`nav-tree-item ${active ? 'active' : ''}`}
+                          onClick={() => setSelectedId(link.id)}
+                        >
+                          <Icon size={13} style={{ color: active ? '#f59e0b' : '#6b7280', flexShrink: 0 }} />
+                          <span>{link.label}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
-            <h1 style={{ color: '#fff', fontSize: '1.85rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1.75rem' }}>
-              {currentArticle.title}
-            </h1>
 
-            {currentArticle.sections.map((section, idx) => (
-              <div key={idx} className="article-section">
-                <div className="article-title">{section.title}</div>
-                {section.desc && <p style={{ color: '#9ca3af', marginBottom: '1rem', fontSize: '0.94rem' }}>{section.desc}</p>}
-                
-                <ol className="step-list">
-                  {section.steps.map((step, sIdx) => (
-                    <li key={sIdx} className="step-item">
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ol>
+            {/* Guides Collapsible */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div 
+                className="category-toggle" 
+                onClick={() => setGuidesOpen(!guidesOpen)}
+                style={{ color: '#d97706' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {guidesOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span>Guides</span>
+                </span>
+              </div>
+              {guidesOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem', paddingLeft: '0.5rem' }}>
+                  {guideLinks
+                    .filter(link => !searchQuery || link.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((link, idx) => {
+                      const Icon = link.icon;
+                      const active = selectedId === link.id;
+                      return (
+                        <div
+                          key={idx}
+                          className={`nav-tree-item ${active ? 'active' : ''}`}
+                          onClick={() => setSelectedId(link.id)}
+                        >
+                          <Icon size={13} style={{ color: active ? '#d97706' : '#6b7280', flexShrink: 0 }} />
+                          <span>{link.label}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
 
-                {section.codeSnippet && (
-                  <div style={{ marginTop: '1.25rem' }}>
-                    <CodeBox
-                      filename={section.codeSnippet.filename}
-                      code={section.codeSnippet.code}
-                    />
+            {/* Architecture Collapsible */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div 
+                className="category-toggle" 
+                onClick={() => setArchOpen(!archOpen)}
+                style={{ color: '#eab308' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {archOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span>Architecture</span>
+                </span>
+              </div>
+              {archOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem', paddingLeft: '0.5rem' }}>
+                  {archLinks
+                    .filter(link => !searchQuery || link.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((link, idx) => {
+                      const Icon = link.icon;
+                      const active = selectedId === link.id;
+                      return (
+                        <div
+                          key={idx}
+                          className={`nav-tree-item ${active ? 'active' : ''}`}
+                          onClick={() => setSelectedId(link.id)}
+                        >
+                          <Icon size={13} style={{ color: active ? '#eab308' : '#6b7280', flexShrink: 0 }} />
+                          <span>{link.label}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+          </aside>
+
+          {/* CENTER COLUMN: Main Content */}
+          <main style={{ padding: '2rem 2.5rem', overflowY: 'auto' }}>
+            
+            {/* Top Showcase Cards (like top items in screenshot) */}
+            {currentArticle.showcaseCards && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+                <div className="tier-card" style={{ borderLeft: '3px solid #22c55e' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#22c55e', fontWeight: 600, textTransform: 'uppercase' }}>Tier 1</span>
+                    <Zap size={14} color="#22c55e" />
                   </div>
+                  <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.98rem' }}>Clean Mods</div>
+                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>HUDs, UI tweaks, graphics (AppleSkin, FullBright). Zero registry overhead.</div>
+                </div>
+
+                <div className="tier-card" style={{ borderLeft: '3px solid #f59e0b', background: '#0c0f16' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#f59e0b', fontWeight: 600, textTransform: 'uppercase' }}>Tier 2</span>
+                    <Cpu size={14} color="#f59e0b" />
+                  </div>
+                  <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.98rem' }}>Standard Mods</div>
+                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>Blocks, items, worldgen (Distant Horizons, Structory). Registry unfreezing.</div>
+                </div>
+
+                <div className="tier-card" style={{ borderLeft: '3px solid #ef4444' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#ef4444', fontWeight: 600, textTransform: 'uppercase' }}>Tier 3</span>
+                    <Lock size={14} color="#ef4444" />
+                  </div>
+                  <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.98rem' }}>Stubborn Mods</div>
+                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>Fabric Loader, Fabric API, core mixin injectors. Locked in root classloader.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Article Header */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h1 style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.4rem' }}>
+                {currentArticle.title}
+              </h1>
+              <p style={{ color: '#9ca3af', fontSize: '0.94rem' }}>
+                {currentArticle.subtitle}
+              </p>
+            </div>
+
+            {/* Article Sections (Matching screenshot's clean paragraphs and questions) */}
+            {currentArticle.sections.map((sec, idx) => (
+              <div key={idx} style={{ marginBottom: '2.5rem' }}>
+                <h2 style={{ color: '#fff', fontSize: '1.18rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+                  {sec.heading}
+                </h2>
+                
+                {sec.content && (
+                  <p style={{ color: '#9ca3af', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: '1.25rem' }}>
+                    {sec.content}
+                  </p>
+                )}
+
+                {sec.steps && (
+                  <ol style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                    {sec.steps.map((st, sIdx) => (
+                      <li key={sIdx} style={{ color: '#d1d5db', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                        {st}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+
+                {sec.codeSnippet && (
+                  <CodeBox
+                    filename={sec.codeSnippet.filename}
+                    code={sec.codeSnippet.code}
+                  />
                 )}
               </div>
             ))}
-          </div>
-        ) : (
-          /* View Mode: Wiki Hub Directory (Image 1 layout, Golden Yellow) */
-          <div>
-            {/* Features Section (Golden Yellow) */}
-            <div style={{ marginBottom: '3.5rem' }}>
-              <div className="section-title-gold">Features</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem 2rem' }}>
-                {featureCategories.map((cat, idx) => (
-                  <div key={idx}>
-                    <div className="category-title">{cat.category}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      {cat.items
-                        .filter(item => !searchQuery || item.label.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map((item, itemIdx) => {
-                          const Icon = item.icon;
-                          return (
-                            <div
-                              key={itemIdx}
-                              className="wiki-link"
-                              onClick={() => setSelectedArticle(item.id)}
-                            >
-                              <Icon size={15} />
-                              <span>{item.label}</span>
-                            </div>
-                          );
-                        })}
+
+            {/* Related Pages Section (like screenshot's bottom left) */}
+            {currentArticle.related && currentArticle.related.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border-grid)', paddingTop: '1.75rem', marginTop: '2rem' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#fff', marginBottom: '0.75rem' }}>
+                  Related Pages
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  {currentArticle.related.map((rel, rIdx) => {
+                    const RelIcon = rel.icon;
+                    return (
+                      <div
+                        key={rIdx}
+                        className="related-link"
+                        onClick={() => setSelectedId(rel.id)}
+                      >
+                        <RelIcon size={14} />
+                        <span>{rel.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* RIGHT COLUMN: Search + Table of Contents (Matching Screenshot) */}
+          <aside className="toc-sidebar" style={{ borderLeft: '1px solid var(--border-grid)', padding: '1.5rem 1.25rem', overflowY: 'auto' }}>
+            
+            {/* Minimal Search Input (top right) */}
+            <div style={{ marginBottom: '1.75rem' }}>
+              <input
+                type="text"
+                placeholder="Search wiki..."
+                className="search-box"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Numbered Table of Contents (matching 1., 2., 3., 4., 5. in screenshot) */}
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
+                On This Page
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                {tocItems.map((toc, idx) => {
+                  const active = selectedId === toc.id;
+                  return (
+                    <div
+                      key={idx}
+                      className={`toc-link ${active ? 'active' : ''}`}
+                      onClick={() => setSelectedId(toc.id)}
+                    >
+                      <span style={{ color: active ? 'var(--gold-hover)' : 'var(--text-muted)', marginRight: '0.4rem' }}>{toc.number}</span>
+                      <span>{toc.label}</span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {/* Guides Section (Warm Amber/Gold) */}
-            <div style={{ borderTop: '1px solid var(--grid-line)', paddingTop: '3rem' }}>
-              <div className="section-title-gold" style={{ color: '#f59e0b' }}>Guides</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem 2rem' }}>
-                {guideCategories.map((cat, idx) => (
-                  <div key={idx}>
-                    <div className="category-title">{cat.category}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      {cat.items
-                        .filter(item => !searchQuery || item.label.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map((item, itemIdx) => {
-                          const Icon = item.icon;
-                          return (
-                            <div
-                              key={itemIdx}
-                              className="wiki-link"
-                              onClick={() => setSelectedArticle(item.id)}
-                            >
-                              <Icon size={15} />
-                              <span>{item.label}</span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+          </aside>
+
+        </div>
+      </div>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid var(--grid-line)', padding: '1.75rem 1.5rem', background: '#050608' }}>
-        <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', color: '#6b7280' }}>
+      <footer style={{ borderTop: '1px solid var(--border-grid)', padding: '1.25rem 1.5rem', background: '#060709' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', color: '#6b7280' }}>
           <div>
-            Muto Mod for Minecraft Java Edition. Created by <a href="https://github.com/fy2ne" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-main)', textDecoration: 'none' }}>Anas Khezaz (fy2ne)</a>.
+            Muto Mod for Minecraft Java Edition. Created by <a href="https://github.com/fy2ne" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-main)', textDecoration: 'none' }}>fy2ne</a>.
           </div>
           <div style={{ display: 'flex', gap: '1.25rem' }}>
-            <a href="https://github.com/fy2ne/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
-            <a href="https://modrinth.com/project/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none' }}>Modrinth</a>
-            <a href="https://fy2ne.me" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none' }}>fy2ne.me</a>
+            <a href="https://github.com/fy2ne/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none', transition: 'color 0.15s ease' }}>GitHub</a>
+            <a href="https://modrinth.com/project/muto" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none', transition: 'color 0.15s ease' }}>Modrinth</a>
+            <a href="https://fy2ne.me" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', textDecoration: 'none', transition: 'color 0.15s ease' }}>fy2ne.me</a>
           </div>
         </div>
       </footer>

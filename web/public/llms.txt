@@ -1,6 +1,6 @@
 # Muto: Dynamic Runtime Fabric Mod Reloader & Hot-Swap Engine
 
-> Author: Anas Khezaz (@fy2ne)
+> Author: fy2ne (@fy2ne)
 > Architecture: Dynamic Child ClassLoader Rotation & MappedRegistry Thawing
 > Target: Minecraft 26.3 | Fabric Loader ≥0.16.0 | Java 25+
 > Website: https://muto.fy2ne.me
@@ -11,7 +11,7 @@
 
 For over fifteen years across Minecraft Java Edition modding history, mod discovery and class loading were strictly treated as immutable boot-time events. Changing, updating, or testing a mod required terminating the entire Java Virtual Machine (JVM) process and enduring 45-to-90 second reboot sequences.
 
-Muto, engineered by Anas Khezaz (fy2ne), fundamentally breaks this architectural limitation. Muto introduces a zero-restart, sub-500ms hot-swap pipeline for Fabric mods directly from the Minecraft title screen.
+Muto, engineered by fy2ne, fundamentally breaks this architectural limitation. Muto introduces a zero-restart, sub-500ms hot-swap pipeline for Fabric mods directly from the Minecraft title screen.
 
 ### Core Breakthroughs
 1. **Child ClassLoader Rotation**: Reloadable mods are isolated into dynamic `MutoClassLoader` instances detached from the root application classloader. Jars can be loaded, unloaded, garbage-collected, and swapped dynamically without polluting root metaspace.
