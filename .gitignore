@@ -52,10 +52,11 @@ skills-lock.json
 AGENTS.local.md
 
 # --------------------------------------
-# Web Documentation (Private, deployed via Cloudflare)
+# Web Documentation
 # --------------------------------------
-web/
-/web/
+web/node_modules/
+web/dist/
+web/.wrangler/
 
 # --------------------------------------
 # Misc
@@ -65,3 +66,4 @@ web/
 *.jar
 !gradle/wrapper/*.jar
 run-*/
+config/

@@ -9,6 +9,7 @@ import net.minecraft.resources.Identifier;
 
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
@@ -57,6 +58,39 @@ public final class ModIconManager {
         }
 
         return FALLBACK_ICON;
+    }
+
+    public static Identifier getIconForPath(String modId, Path jarPath) {
+        if (jarPath == null || !Files.exists(jarPath)) return FALLBACK_ICON;
+        return ICON_CACHE.computeIfAbsent(modId != null ? modId : jarPath.getFileName().toString(), id -> {
+            try (JarFile jf = new JarFile(jarPath.toFile())) {
+                JarEntry entry = (modId != null) ? jf.getJarEntry("assets/" + modId + "/icon.png") : null;
+                if (entry == null) entry = jf.getJarEntry("icon.png");
+                if (entry == null) {
+                    var entries = jf.entries();
+                    while (entries.hasMoreElements()) {
+                        var e = entries.nextElement();
+                        String name = e.getName().toLowerCase();
+                        if (name.endsWith("icon.png") && !e.isDirectory()) {
+                            entry = e;
+                            break;
+                        }
+                    }
+                }
+                if (entry != null) {
+                    try (InputStream is = jf.getInputStream(entry)) {
+                        NativeImage nativeImg = NativeImage.read(is);
+                        DynamicTexture dynTex = new DynamicTexture(() -> "muto_mod_icon_" + id, nativeImg);
+                        Identifier resId = Identifier.fromNamespaceAndPath("muto", "dynamic_icon/" + id.toLowerCase().replaceAll("[^a-z0-9_.-]", "_"));
+                        Minecraft.getInstance().getTextureManager().register(resId, dynTex);
+                        return resId;
+                    }
+                }
+            } catch (Exception ex) {
+                MutoLog.warn("failed to load icon for jar {}: {}", jarPath.getFileName(), ex.getMessage());
+            }
+            return FALLBACK_ICON;
+        });
     }
 
     public static void clear() {

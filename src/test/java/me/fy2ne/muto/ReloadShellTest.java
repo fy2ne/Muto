@@ -3,6 +3,7 @@ package me.fy2ne.muto;
 import me.fy2ne.muto.api.ModDiff;
 import me.fy2ne.muto.api.MutoEvents;
 import me.fy2ne.muto.engine.*;
+import me.fy2ne.muto.engine.mixin.DynamicMixinEngine;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -186,6 +187,20 @@ public class ReloadShellTest {
         for (ScannedMod m : mods) {
             System.out.println("Probed mod: " + m.id() + " v" + m.version() + " from " + m.jarPath().getFileName());
         }
+    }
+
+    @Test
+    void testProbeMixinTargets() throws Exception {
+        Path jar = Path.of("Modsfortesting/skinlayers3d-fabric-1.11.3-mc26.3.jar");
+        Assertions.assertTrue(Files.exists(jar));
+
+        List<String> configs = DynamicMixinEngine.extractConfigs(jar);
+        System.out.println("Configs extracted: " + configs);
+        Assertions.assertFalse(configs.isEmpty());
+
+        Set<String> targets = DynamicMixinEngine.scanJarMixinTargets(jar);
+        System.out.println("Bytecode mixin targets resolved: " + targets);
+        Assertions.assertFalse(targets.isEmpty());
     }
 
     private static Path createMockJar(Path dir, String fileName, String modId, String version, String mainClass) throws IOException {

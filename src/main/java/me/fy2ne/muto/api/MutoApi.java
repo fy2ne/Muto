@@ -39,10 +39,25 @@ public final class MutoApi {
     public static boolean isSafeToReload() {
         try {
             var client = net.minecraft.client.Minecraft.getInstance();
-            return client != null && client.level == null && client.gui != null && client.gui.screen() instanceof net.minecraft.client.gui.screens.TitleScreen;
+            return client != null && !isReloading();
         } catch (Throwable ignored) {
             return false;
         }
+    }
+
+    /**
+     * Triggers a safe boundary reload from any screen or world state.
+     * <p>
+     * If the player is in an active singleplayer world or multiplayer server,
+     * this safely saves state, executes the reload pipeline, and reconnects.
+     */
+    public static void triggerBoundaryReload(net.minecraft.client.gui.screens.Screen returnScreen) {
+        try {
+            var client = net.minecraft.client.Minecraft.getInstance();
+            if (client != null) {
+                me.fy2ne.muto.engine.boundary.ReloadBoundaryManager.triggerReload(client, returnScreen);
+            }
+        } catch (Throwable ignored) {}
     }
 
     /**

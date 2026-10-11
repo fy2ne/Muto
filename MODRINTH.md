@@ -4,12 +4,15 @@
 
 # Muto
 
-**Dynamic runtime mod reloader and hot-swap pipeline for Fabric.**
+**The industrial-grade hot mod reloader for Minecraft.**
 
-[![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-Java%20Edition-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
+Enable, disable, load, and hot-swap Fabric mods live in-game without restarting Minecraft.
+
+[![CurseForge](https://img.shields.io/badge/CurseForge-muto-F16436?style=flat-square)](https://www.curseforge.com/minecraft/mc-mods/muto)
+[![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-26.3-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
 [![Fabric](https://img.shields.io/badge/Platform-Fabric-DBB26A?style=flat-square)](https://fabricmc.net/)
-[![Java](https://img.shields.io/badge/Java-JVM-orange?style=flat-square)](https://openjdk.org/)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-25+-orange?style=flat-square)](https://openjdk.org/)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square)](https://github.com/fy2ne/muto/blob/main/LICENSE)
 
 </div>
 
@@ -17,74 +20,84 @@
 
 ## Overview
 
-**Muto** hot-reloads your active mod set on the fly. Whenever you add, remove, or update Fabric mod jars in your `mods/` directory, Muto dynamically applies those changes directly from the title screen without restarting the JVM or relaunching Minecraft.
+In Minecraft's history, resource packs have `F3+T` and datapacks have `/reload`. **Mods never had an in-game reload.** Whenever you tweaked a mod, tested an update, or needed to turn off a conflicting mod, you had to close the game, wait minutes for Java and assets to restart, and repeat that dozens of times.
 
-Instead of restarting the entire game process just to test code or mod updates, Muto rescans your `mods/` directory, isolates candidate classes in disposable child classloaders, thaws registry entries for new registrations, and re-invokes entrypoints cleanly.
+**Muto changes that.**
 
----
-
-## Key Capabilities
-
-- **Runtime Mod Hot-Reloading**: Rescans your `mods/` directory and applies added, removed, or updated mod jars directly from the main menu.
-- **Child ClassLoader Isolation**: Dynamic mods are loaded into isolated `MutoClassLoader` instances that can be discarded and garbage-collected when reloaded, preventing stale class leaks.
-- **Registry Lifecycle Control**: Hooks into Vanilla's `MappedRegistry` to unfreeze frozen registries during the reload pass, allowing new blocks, items, or identifiers to register without throwing `IllegalStateException`.
-- **Atomic Failure Rollback**: If a new or updated mod throws an exception during initialization, Muto catches the fault, aborts the swap, rolls back to the prior stable mod snapshot, and surfaces the stack trace.
-- **Mod Lifecycle Events & Developer API**: Other mods can hook into `MutoEvents.RELOAD_START` and `MutoEvents.RELOAD_FINISH` to tear down caches, flush listeners, or re-initialize custom subsystems.
-- **Enhanced Bytecode Redefinition (JBR/DCEVM)**: When running under JetBrains Runtime with `-XX:+AllowEnhancedClassRedefinition`, Muto leverages live class retransformation for deeper class swaps.
-- **Built-in Configuration UI**: Native 5-tab configuration screen (Mods, Settings, Developer, History, Diagnostics) accessible via ModMenu with zero external library requirements (Cloth Config not needed).
+Muto provides a real-time hot-swap engine built directly into Minecraft and ModMenu:
+- **Toggle mods on or off** directly in your mod list.
+- **Load new mods** placed in your `mods/` directory without restarting.
+- **Stage your changes** and review what's being enabled or disabled before committing.
+- **Hot reload in seconds** using dynamic ClassLoader unmounting, registry thawing, and mixin retransformation.
 
 ---
 
-## Mod Classification Tiers
+## Key Features
 
-Muto classifies installed jars into three operational tiers to protect game stability:
+### Native ModMenu Integration
+- **Direct Action Buttons**: Enable, disable, or load mods right from ModMenu's mod description pane with crisp, vanilla-styled monochrome pixel-art controls.
+- **Mod State Badges**: Visual tags identifying mod state at a glance:
+  - `Disabled` (red) — Mod jar renamed to `.jar.disabled`.
+  - `Unloaded` (gold) — Mod jar detected in `mods/` but not yet loaded into runtime.
+  - `Pending: Disable`, `Pending: Enable`, `Pending: Load` (green/gold) — Staged changes awaiting confirmation.
+- **Smart Filter Cycle**: A dedicated filter button cycling through **All**, **Active**, **Disabled**, and **Unloaded** mods.
+- **Safe Staging Workflow**: Click **Save (N)** to open a change review screen listing exact operations before applying.
+- **Disabled Mod Protection**: Prevents broken config screens from opening when a mod is inactive.
 
-1. **Clean**: Lightweight client tweaks and UI mods without native hooks or intrusive mixins. Safest for rapid live swapping.
-2. **Standard**: Mods introducing registry entries and common logic. Managed through child classloader rotation and registry thawing.
-3. **Stubborn / Core**: Core infrastructure mods (`minecraft`, `fabricloader`, `fabric-api`, root bytecode mutators). These remain locked in the root loader to prevent JVM linkage corruption.
+### Industrial Reload Pipeline
+- **Knot ClassLoader Rotation**: Dynamically unmounts and remounts mod classpaths at runtime.
+- **Registry Thawing & Tombstoning**: Safely unfreezes Minecraft's `MappedRegistry` to register or prune mod entries.
+- **Packet & KeyMapping Sync**: Re-registers custom network payload types and rebuilds vanilla keybind arrays.
+- **Safe Boundary Manager**:
+  - **Title Screen**: Instant hot reload in seconds.
+  - **Singleplayer Worlds**: Safely saves world chunks, exits cleanly, applies the mod hot-swap, and reconnects the player automatically.
+  - **Multiplayer Servers**: Gracefully disconnects, hot-swaps client mods, and reconnects to the server.
+
+---
+
+## Requirements
+
+- **Platform:** Fabric Loader 0.16.0+
+- **Minecraft:** 26.3
+- **Java Runtime:** Java 25+
+- **Dependencies:** Fabric API (Zero external config libraries required; ModMenu optional)
 
 ---
 
 ## Developer API
 
-Mods can track reload passes and tear down static references or reload internal state by depending on Muto's event bus:
+Other mods and developer tools can integrate with Muto as an optional soft dependency.
+
+```groovy
+dependencies {
+    modCompileOnly "me.fy2ne:muto:0.2.0-beta"
+}
+```
 
 ```java
-// Register state cleanup before reload begins
+import me.fy2ne.muto.api.MutoApi;
+import me.fy2ne.muto.api.MutoEvents;
+
+// Check availability & trigger safe reload
+if (MutoApi.isAvailable() && !MutoApi.isReloading()) {
+    MutoApi.triggerBoundaryReload(currentScreen);
+}
+
+// Subscribe to reload lifecycle
 MutoEvents.RELOAD_START.register((startEpochMs, diff) -> {
-    if (diff.updated().contains("your_mod_id") || diff.removed().contains("your_mod_id")) {
-        YourSubsystem.shutdown();
-    }
+    // Teardown caches or listeners
 });
 
-// React after reload settles
 MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error) -> {
-    if (success && diff.added().contains("your_mod_id")) {
-        YourSubsystem.bootstrap();
-    }
+    // Re-initialize state
 });
 ```
 
-The `ModDiff` record gives you direct access to `added()`, `removed()`, `updated()`, and `unchanged()` mod identifier sets.
-
 ---
 
-## Usage
+## Links
 
-1. Place `muto-<version>.jar` into your `.minecraft/mods/` directory along with Fabric API.
-2. Launch Minecraft.
-3. To reload:
-   - Save and exit to the **Title Screen** (in-world reloads are disabled to prevent world state desync).
-   - Click the reload icon button (**↻**) in the utility row at the bottom of the title screen.
-   - Confirm the reload prompt to launch the staged reload screen.
-   - The reload pipeline executes, swaps loaders, re-executes entrypoints, and updates your active mod set.
-   - A native Mojang toast confirms the reload summary (+added, -removed, ~updated).
-
----
-
-## Requirements & Compatibility
-
-- **Platform:** Fabric Loader
-- **Minecraft:** Java Edition
-- **Java Runtime:** JVM (Java 21 / 25+, JetBrains Runtime optional for DCEVM)
-- **Dependencies:** Fabric API (Zero external config libraries required)
+- **Documentation & Wiki:** [https://muto.fy2ne.me](https://muto.fy2ne.me)
+- **Source Code & GitHub:** [https://github.com/fy2ne/muto](https://github.com/fy2ne/muto)
+- **Issue Tracker:** [https://github.com/fy2ne/muto/issues](https://github.com/fy2ne/muto/issues)
+- **CurseForge:** [https://www.curseforge.com/minecraft/mc-mods/muto](https://www.curseforge.com/minecraft/mc-mods/muto)

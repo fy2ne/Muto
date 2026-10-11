@@ -42,6 +42,26 @@ tasks.named('jar') {
 	}
 }
 
+loom {
+	runs {
+		client {
+			vmArg "-Djdk.attach.allowAttachSelf=true"
+			vmArg "-XX:+EnableDynamicAgentLoading"
+			property "muto.testAutoReload", System.getProperty("muto.testAutoReload", "false")
+			property "muto.testCopyMod", System.getProperty("muto.testCopyMod", "")
+			property "muto.testAutoExit", System.getProperty("muto.testAutoExit", "false")
+			property "muto.testDelay", System.getProperty("muto.testDelay", "5")
+		}
+	}
+}
+
+tasks.named('runClient').configure {
+	dependsOn tasks.named('jar')
+	doFirst {
+		jvmArgs "-javaagent:${tasks.jar.archiveFile.get().asFile.absolutePath}"
+	}
+}
+
 test {
 	useJUnitPlatform()
 }

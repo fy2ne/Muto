@@ -17,6 +17,9 @@
   "icon": "assets/muto/icon.png",
   "environment": "*",
   "entrypoints": {
+    "preLaunch": [
+      "me.fy2ne.muto.client.MutoPreLaunch"
+    ],
     "main": [
       "me.fy2ne.muto.MutoMod"
     ],
@@ -39,7 +42,8 @@
   "custom": {
     "modmenu": {
       "links": {
-        "modmenu.modrinth": "https://modrinth.com/project/muto"
+        "modmenu.modrinth": "https://modrinth.com/mod/muto",
+        "modmenu.curseforge": "https://www.curseforge.com/minecraft/mc-mods/muto"
       }
     }
   }

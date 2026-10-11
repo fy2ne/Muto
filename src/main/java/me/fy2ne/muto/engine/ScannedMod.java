@@ -7,13 +7,29 @@ import java.util.Map;
 
 public record ScannedMod(
         String id,
+        String name,
         String version,
         Path jarPath,
         String hash,
         boolean hasMixins,
         Map<String, List<String>> entrypoints,
+        Map<String, String> depends,
+        Map<String, String> breaks,
+        List<String> missingDependencies,
         long sizeBytes
 ) {
+    public ScannedMod(
+            String id,
+            String version,
+            Path jarPath,
+            String hash,
+            boolean hasMixins,
+            Map<String, List<String>> entrypoints,
+            long sizeBytes
+    ) {
+        this(id, id, version, jarPath, hash, hasMixins, entrypoints, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), sizeBytes);
+    }
+
     public boolean hasEntrypoint(String key) {
         return entrypoints != null && entrypoints.containsKey(key);
     }
@@ -21,5 +37,9 @@ public record ScannedMod(
     public List<String> getClassesFor(String key) {
         if (entrypoints == null) return Collections.emptyList();
         return entrypoints.getOrDefault(key, Collections.emptyList());
+    }
+
+    public boolean hasMissingDependencies() {
+        return missingDependencies != null && !missingDependencies.isEmpty();
     }
 }

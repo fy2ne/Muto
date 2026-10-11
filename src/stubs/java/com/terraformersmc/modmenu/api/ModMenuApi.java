@@ -8,6 +8,10 @@ public interface ModMenuApi {
         return screen -> null;
     }
 
+    default UpdateChecker getUpdateChecker() {
+        return null;
+    }
+
     default Map<String, ConfigScreenFactory<?>> getProvidedConfigScreenFactories() {
         return Collections.emptyMap();
     }

@@ -50,15 +50,19 @@ public final class ModScanner {
 
                 String hash = sha256(jarPath);
                 String modId;
+                String modName = null;
                 String version;
                 boolean hasMixins = false;
                 Map<String, List<String>> entrypoints = new LinkedHashMap<>();
+                Map<String, String> depends = new LinkedHashMap<>();
+                Map<String, String> breaks = new LinkedHashMap<>();
 
                 try (InputStream in = jf.getInputStream(fmj);
                      InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
                     JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
                     if (!root.has("id")) return null;
                     modId = root.get("id").getAsString();
+                    modName = root.has("name") ? root.get("name").getAsString() : modId;
                     version = root.has("version") ? root.get("version").getAsString() : "?";
 
                     if (root.has("mixins")) {
@@ -67,6 +71,18 @@ public final class ModScanner {
                             hasMixins = !m.getAsJsonArray().isEmpty();
                         } else if (m.isJsonPrimitive()) {
                             hasMixins = true;
+                        }
+                    }
+
+                    if (root.has("depends") && root.get("depends").isJsonObject()) {
+                        for (var e : root.getAsJsonObject("depends").entrySet()) {
+                            depends.put(e.getKey(), e.getValue().isJsonPrimitive() ? e.getValue().getAsString() : "*");
+                        }
+                    }
+
+                    if (root.has("breaks") && root.get("breaks").isJsonObject()) {
+                        for (var e : root.getAsJsonObject("breaks").entrySet()) {
+                            breaks.put(e.getKey(), e.getValue().isJsonPrimitive() ? e.getValue().getAsString() : "*");
                         }
                     }
 
@@ -94,14 +110,24 @@ public final class ModScanner {
                 }
 
                 if (modId == null || modId.isEmpty()) return null;
+                if (me.fy2ne.muto.mods.DisabledModsRegistry.isDisabled(modId)) {
+                    return null;
+                }
+
+                Set<String> internalJij = ModDependencyAnalyzer.scanInternalJijIds(jf);
+                List<String> missing = ModDependencyAnalyzer.evaluateDependencies(modId, depends, internalJij);
 
                 return new ScannedMod(
                         modId,
+                        modName,
                         version != null ? version : "?",
                         jarPath,
                         hash,
                         hasMixins,
                         entrypoints,
+                        depends,
+                        breaks,
+                        missing,
                         Files.size(jarPath)
                 );
             } catch (IOException ex) {

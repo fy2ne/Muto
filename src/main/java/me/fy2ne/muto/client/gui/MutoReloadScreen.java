@@ -147,15 +147,8 @@ public final class MutoReloadScreen extends Screen {
                         return;
                     }
 
-                    MutoLog.info("UI reload complete in {}ms, triggering resource reload", elapsed);
-                    try {
-                        this.minecraft.reloadResourcePacks().thenRun(() ->
-                                this.minecraft.execute(this::closeOrReturn)
-                        );
-                    } catch (Exception ex) {
-                        MutoLog.warn("resource reload error: {}", ex.getMessage());
-                        closeOrReturn();
-                    }
+                    MutoLog.info("reload finished cleanly in {}ms, returning", elapsed);
+                    closeOrReturn();
                 }
             } else {
                 done = true;

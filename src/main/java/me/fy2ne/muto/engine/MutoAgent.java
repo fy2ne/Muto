@@ -17,18 +17,32 @@ public final class MutoAgent {
 
     private static void init(Instrumentation inst, String source) {
         instrumentation = inst;
+        try {
+            System.getProperties().put("muto.internal.instrumentation", inst);
+        } catch (Throwable ignored) {}
         MutoLog.info("muto agent attached via {} (retransform={})", source, inst.isRetransformClassesSupported());
     }
 
     public static Instrumentation getInstrumentation() {
-        return instrumentation;
+        if (instrumentation != null) {
+            return instrumentation;
+        }
+        try {
+            Object obj = System.getProperties().get("muto.internal.instrumentation");
+            if (obj instanceof Instrumentation inst) {
+                instrumentation = inst;
+                return inst;
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     public static boolean isAvailable() {
-        return instrumentation != null;
+        return getInstrumentation() != null;
     }
 
     public static boolean canRetransform() {
-        return instrumentation != null && instrumentation.isRetransformClassesSupported();
+        Instrumentation inst = getInstrumentation();
+        return inst != null && inst.isRetransformClassesSupported();
     }
 }

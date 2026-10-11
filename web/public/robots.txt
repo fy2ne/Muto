@@ -1,0 +1,49 @@
+# Global allow
+User-agent: *
+Allow: /
+
+# Google & Gemini
+User-agent: Googlebot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+# OpenAI & ChatGPT
+User-agent: GPTBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# Anthropic & Claude
+User-agent: ClaudeBot
+Allow: /
+User-agent: anthropic-ai
+Allow: /
+
+# Apple Intelligence & Search
+User-agent: Applebot
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+
+# Meta AI
+User-agent: Meta-ExternalAgent
+Allow: /
+
+# Cohere & Mistral
+User-agent: cohere-ai
+Allow: /
+User-agent: MistralAI
+Allow: /
+
+# Microsoft Bing & Copilot
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://muto.fy2ne.me/sitemap.xml

@@ -3,6 +3,9 @@ package me.fy2ne.muto.engine;
 import me.fy2ne.muto.MutoLog;
 import me.fy2ne.muto.api.ModDiff;
 import me.fy2ne.muto.api.MutoEvents;
+import me.fy2ne.muto.engine.knot.KnotInjector;
+import me.fy2ne.muto.engine.mixin.DynamicMixinEngine;
+import me.fy2ne.muto.engine.resource.ResourceHotMount;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -20,7 +23,6 @@ public final class ReloadEngine {
 
     private final AtomicBoolean reloading = new AtomicBoolean(false);
     private volatile ModSnapshot currentSnapshot = ModSnapshot.empty();
-    private volatile MutoClassLoader currentLoader;
     private final Map<String, List<Object>> instancesByMod = new LinkedHashMap<>();
 
     private ReloadEngine() {}
@@ -42,8 +44,8 @@ public final class ReloadEngine {
                 currentSnapshot.stubbornMods().size());
     }
 
-    public MutoClassLoader currentLoader() {
-        return currentLoader;
+    public ClassLoader currentLoader() {
+        return Thread.currentThread().getContextClassLoader();
     }
 
     public ReloadPlan plan(Path modsDir) {
@@ -117,34 +119,34 @@ public final class ReloadEngine {
                         diff.updated().size(), diff.removed().size());
             }
 
-            MutoClassLoader candidateLoader = null;
+            ClassLoader knotCl = KnotInjector.getKnotClassLoader();
+            ClassLoader prevCl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(knotCl);
+
             try {
-                // Stage 1: Build candidate classloader and preflight check
+                List<Path> allInjectedPaths = new ArrayList<>();
+                // Stage 1: Knot runtime classpath injection
                 if (!initializable.isEmpty()) {
-                    notify(stageNotifier, stepLogs, "Constructing candidate classloader & staging checks...");
-                    List<Path> reloadableJars = new ArrayList<>();
-                    Set<String> reloadableIds = new HashSet<>();
+                    notify(stageNotifier, stepLogs, "Injecting mod jars into KnotClassLoader...");
                     for (ScannedMod m : initializable) {
-                        reloadableJars.add(m.jarPath());
-                        reloadableIds.add(m.id());
-                        notify(stageNotifier, stepLogs, String.format("Staging %s v%s (%s)", m.id(), m.version(), m.jarPath().getFileName()));
-                    }
-
-                    notify(stageNotifier, stepLogs, "Shadow copying jars to sandbox to prevent OS file locks...");
-                    candidateLoader = new MutoClassLoader(
-                            reloadableJars,
-                            reloadableIds,
-                            getClass().getClassLoader()
-                    );
-
-                    // Preflight: verify entrypoint classes load before dropping state
-                    for (ScannedMod mod : initializable) {
-                        preflightCheck(candidateLoader, mod);
-                        notify(stageNotifier, stepLogs, String.format("Preflight verification passed: %s", mod.id()));
+                        List<Path> injected = KnotInjector.injectWithNested(m.jarPath());
+                        allInjectedPaths.addAll(injected);
+                        notify(stageNotifier, stepLogs, String.format("Knot classpath registered: %s (%d jars)", m.id(), injected.size()));
                     }
                 }
 
-                // Stage 2: Tear down removed mod contexts
+                // Stage 2: Dynamic Mixin registration & live bytecode retransformation
+                if (!allInjectedPaths.isEmpty()) {
+                    notify(stageNotifier, stepLogs, "Weaving dynamic mixins into live game bytecode...");
+                    for (Path p : allInjectedPaths) {
+                        int retransformed = DynamicMixinEngine.injectAndRetransform(p);
+                        if (retransformed > 0) {
+                            notify(stageNotifier, stepLogs, String.format("Retransformed %d classes for %s", retransformed, p.getFileName()));
+                        }
+                    }
+                }
+
+                // Stage 3: Tear down removed mod contexts
                 if (!diff.removed().isEmpty()) {
                     notify(stageNotifier, stepLogs, "Tearing down removed mod contexts...");
                     for (String rem : diff.removed()) {
@@ -157,35 +159,35 @@ public final class ReloadEngine {
                     RegistryFreezer.pruneNamespace(upd);
                 }
 
-                if (currentLoader != null) {
-                    try {
-                        currentLoader.close();
-                        notify(stageNotifier, stepLogs, "Closed previous dynamic classloader.");
-                    } catch (Exception ex) {
-                        MutoLog.warn("error closing old classloader: {}", ex.getMessage());
-                    }
+                // Stage 4: Unfreeze registries & instantiate entrypoints inside Knot
+                for (ScannedMod mod : initializable) {
+                    preflightCheck(knotCl, mod);
                 }
-                System.gc();
 
-                // Stage 3: Unfreeze registries & activate new loader
-                notify(stageNotifier, stepLogs, "Unfreezing registries & activating classloader...");
+                notify(stageNotifier, stepLogs, "Unfreezing registries & invoking entrypoints in Knot...");
                 RegistryFreezer.unfreezeAll();
-                currentLoader = candidateLoader;
-                candidateLoader = null;
 
-                // Stage 4: Instantiate & execute entrypoints (added mods only)
                 for (ScannedMod mod : initializable) {
                     notify(stageNotifier, stepLogs, String.format("Invoking entrypoints for %s...", mod.id()));
-                    initializeMod(currentLoader, mod);
+                    initializeMod(mod);
                 }
 
                 // Stage 5: Refreeze registries
                 notify(stageNotifier, stepLogs, "Finalizing engine state & freezing registries...");
                 RegistryFreezer.freezeAll();
 
+                // Synchronize newly registered keymappings into Minecraft Options
+                syncKeyMappings();
+
                 // Stage 6: Sync loader metadata
                 notify(stageNotifier, stepLogs, "Synchronizing ModMenu active catalog...");
                 syncFabricLoader(plan.targetSnapshot(), diff);
+
+                // Stage 7: Mount and reload resource & OpenGL shader pipelines
+                if (me.fy2ne.muto.config.MutoConfig.get().autoReloadResources && (!initializable.isEmpty() || !diff.removed().isEmpty())) {
+                    notify(stageNotifier, stepLogs, "Mounting resources & reloading OpenGL shaders...");
+                    ResourceHotMount.remountAndReload();
+                }
 
                 currentSnapshot = plan.targetSnapshot();
                 long durationMs = System.currentTimeMillis() - startMs;
@@ -211,12 +213,6 @@ public final class ReloadEngine {
                 notify(stageNotifier, stepLogs, failMsg);
                 MutoLog.error("reload failed, rolling back: {}", err.getMessage(), err);
 
-                if (candidateLoader != null) {
-                    try {
-                        candidateLoader.close();
-                    } catch (Exception ignored) {}
-                }
-
                 RegistryFreezer.freezeAll();
 
                 MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
@@ -229,27 +225,38 @@ public final class ReloadEngine {
 
                 HISTORY.add(new ReloadHistoryEntry(startMs, durationMs, diff, false, stepLogs));
                 return ReloadResult.fail(diff, durationMs, err.getMessage());
+            } finally {
+                Thread.currentThread().setContextClassLoader(prevCl);
             }
         } finally {
             reloading.set(false);
         }
     }
 
-    private void preflightCheck(MutoClassLoader loader, ScannedMod mod) throws ClassNotFoundException {
+    private void preflightCheck(ClassLoader loader, ScannedMod mod) throws ClassNotFoundException {
         for (String epClass : mod.getClassesFor("main")) {
-            loader.loadClass(epClass);
+            Class.forName(epClass, false, loader);
         }
         for (String epClass : mod.getClassesFor("client")) {
-            loader.loadClass(epClass);
+            Class.forName(epClass, false, loader);
         }
     }
 
     private void teardownMod(String modId) {
         List<Object> instances = instancesByMod.remove(modId);
-        if (instances == null) return;
-        for (Object inst : instances) {
-            closeQuietly(inst);
+        if (instances != null) {
+            for (Object inst : instances) {
+                closeQuietly(inst);
+            }
         }
+        // Do not purge PayloadTypeRegistry codecs: lingering server mixins from disabled mods
+        // may still emit packets; keeping codecs registered prevents fatal ClassCastException / ClosedChannelException
+        teardownNetworking(modId);
+    }
+
+    private void teardownNetworking(String modId) {
+        // Codecs in PayloadTypeRegistry are retained intentionally for protocol safety.
+        // Receiver listeners in GlobalReceiverRegistry are made idempotent by GlobalReceiverRegistryMixin.
     }
 
     private void closeQuietly(Object inst) {
@@ -264,19 +271,20 @@ public final class ReloadEngine {
         }
     }
 
-    private void initializeMod(MutoClassLoader loader, ScannedMod mod) {
+    private void initializeMod(ScannedMod mod) {
         List<Object> created = new ArrayList<>();
+        ClassLoader knotCl = Thread.currentThread().getContextClassLoader();
 
         // Main entrypoints
         for (String clsName : mod.getClassesFor("main")) {
             try {
-                Class<?> cls = loader.loadClass(clsName);
+                Class<?> cls = Class.forName(clsName, true, knotCl);
                 Object obj = cls.getDeclaredConstructor().newInstance();
                 created.add(obj);
 
                 if (obj instanceof ModInitializer init) {
                     init.onInitialize();
-                    MutoLog.info("initialized main: {}", clsName);
+                    MutoLog.info("initialized main in knot: {}", clsName);
                 }
             } catch (Throwable ex) {
                 MutoLog.error("failed initializing main entrypoint {}: {}", clsName, ex.getMessage(), ex);
@@ -286,16 +294,34 @@ public final class ReloadEngine {
         // Client entrypoints
         for (String clsName : mod.getClassesFor("client")) {
             try {
-                Class<?> cls = loader.loadClass(clsName);
+                Class<?> cls = Class.forName(clsName, true, knotCl);
                 Object obj = cls.getDeclaredConstructor().newInstance();
                 created.add(obj);
 
                 if (obj instanceof ClientModInitializer clientInit) {
-                    clientInit.onInitializeClient();
-                    MutoLog.info("initialized client: {}", clsName);
+                    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                    if (mc != null && !mc.isSameThread()) {
+                        mc.submit(clientInit::onInitializeClient).get();
+                    } else {
+                        clientInit.onInitializeClient();
+                    }
+                    MutoLog.info("initialized client in knot: {}", clsName);
                 }
             } catch (Throwable ex) {
                 MutoLog.error("failed initializing client entrypoint {}: {}", clsName, ex.getMessage(), ex);
+            }
+        }
+
+        // ModMenu entrypoints
+        for (String clsName : mod.getClassesFor("modmenu")) {
+            try {
+                Class<?> cls = Class.forName(clsName, true, knotCl);
+                Object obj = cls.getDeclaredConstructor().newInstance();
+                created.add(obj);
+                registerModMenuApi(mod.id(), obj);
+                MutoLog.info("initialized modmenu api in knot: {}", clsName);
+            } catch (Throwable ex) {
+                MutoLog.error("failed initializing modmenu entrypoint {}: {}", clsName, ex.getMessage(), ex);
             }
         }
 
@@ -631,6 +657,13 @@ public final class ReloadEngine {
             if (rootMods != null) rootMods.remove(modId);
 
             try {
+                Field factField = modMenuCls.getDeclaredField("configScreenFactories");
+                factField.setAccessible(true);
+                Map<?, ?> factories = (Map<?, ?>) factField.get(null);
+                if (factories != null) factories.remove(modId);
+            } catch (Throwable ignored) {}
+
+            try {
                 java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
                 clear.setAccessible(true);
                 clear.invoke(null);
@@ -639,6 +672,90 @@ public final class ReloadEngine {
             MutoLog.info("removed {} from ModMenu active cache", modId);
         } catch (Throwable t) {
             MutoLog.warn("ModMenu remove sync skipped: {}", t.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerModMenuApi(String modId, Object apiInstance) {
+        try {
+            Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
+            Field factoriesField = modMenuCls.getDeclaredField("configScreenFactories");
+            factoriesField.setAccessible(true);
+            Map<String, Object> factories = (Map<String, Object>) factoriesField.get(null);
+
+            java.lang.reflect.Method getFactory = apiInstance.getClass().getMethod("getModConfigScreenFactory");
+            Object factory = getFactory.invoke(apiInstance);
+            if (factory != null && factories != null) {
+                factories.put(modId, factory);
+                MutoLog.info("injected config screen factory for {} into ModMenu", modId);
+            }
+
+            try {
+                java.lang.reflect.Method getProvided = apiInstance.getClass().getMethod("getProvidedConfigScreenFactories");
+                Map<String, Object> provided = (Map<String, Object>) getProvided.invoke(apiInstance);
+                if (provided != null && factories != null) {
+                    factories.putAll(provided);
+                }
+            } catch (NoSuchMethodException ignored) {}
+
+            try {
+                Field apisField = modMenuCls.getDeclaredField("apiImplementations");
+                apisField.setAccessible(true);
+                List<Object> apis = (List<Object>) apisField.get(null);
+                if (apis != null && !apis.contains(apiInstance)) {
+                    apis.add(apiInstance);
+                }
+            } catch (Throwable ignored) {}
+
+            try {
+                java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
+                clear.setAccessible(true);
+                clear.invoke(null);
+            } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            MutoLog.warn("failed registering ModMenu API for {}: {}", modId, t.getMessage());
+        }
+    }
+
+    public void syncKeyMappings() {
+        try {
+            net.minecraft.client.Minecraft mc = null;
+            try {
+                mc = net.minecraft.client.Minecraft.getInstance();
+            } catch (Throwable ignored) {}
+            if (mc == null || mc.options == null) return;
+
+            final net.minecraft.client.Minecraft client = mc;
+            Runnable sync = () -> {
+                try {
+                    Class<?> regClass = Class.forName("net.fabricmc.fabric.impl.client.keymapping.KeyMappingRegistryImpl");
+                    java.lang.reflect.Method processMethod = regClass.getMethod("process", net.minecraft.client.KeyMapping[].class);
+                    net.minecraft.client.KeyMapping[] updated = (net.minecraft.client.KeyMapping[]) processMethod.invoke(null, (Object) client.options.keyMappings);
+                    if (updated != null) {
+                        try {
+                            ((me.fy2ne.muto.mixin.OptionsAccessor) client.options).muto$setKeyMappings(updated);
+                        } catch (Throwable fallback) {
+                            java.lang.reflect.Field uField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                            uField.setAccessible(true);
+                            sun.misc.Unsafe unsafe = (sun.misc.Unsafe) uField.get(null);
+                            java.lang.reflect.Field kmField = net.minecraft.client.Options.class.getDeclaredField("keyMappings");
+                            long offset = unsafe.objectFieldOffset(kmField);
+                            unsafe.putObject(client.options, offset, updated);
+                        }
+                        net.minecraft.client.KeyMapping.resetMapping();
+                        MutoLog.info("synced {} total key mappings into active game options", updated.length);
+                    }
+                } catch (Throwable t) {
+                    MutoLog.warn("keymapping sync note: {}", t.getMessage());
+                }
+            };
+            if (!client.isSameThread()) {
+                client.submit(sync).get();
+            } else {
+                sync.run();
+            }
+        } catch (Throwable t) {
+            MutoLog.warn("failed dispatching keymapping sync: {}", t.getMessage());
         }
     }
 
