@@ -475,8 +475,44 @@ button {
 }
 
 .toc a.active {
-  color: var(--text);
+  color: var(--accent);
   font-weight: 500;
+}
+
+.toc-current-page {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0 0 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.toc-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toc a.toc-anchor {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 5px 0 5px 12px;
+  line-height: 1.4;
+  border-left: 1.5px solid var(--border);
+  transition: all 0.12s ease;
+  cursor: pointer;
+}
+
+.toc a.toc-anchor:hover {
+  color: var(--text);
+  border-left-color: var(--accent);
+  background: rgba(245, 158, 11, 0.04);
 }
 
 /* Breadcrumb */
@@ -607,19 +643,33 @@ button {
   color: var(--text-muted);
 }
 
+.codeblock-filename {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
 .codeblock-copy {
   all: unset;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  font-family: var(--font-ui);
   font-size: 11.5px;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.12s ease;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.12s ease;
 }
 
 .codeblock-copy:hover {
   color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .codeblock pre {

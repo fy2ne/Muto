@@ -104,11 +104,11 @@ function CodeSnippet({ code, filename = "Terminal" }) {
   };
 
   return (
-    <div className="code-block">
-      <div className="code-header">
-        <span className="code-filename">{filename}</span>
-        <button className="copy-btn" onClick={handleCopy} aria-label="Copy code">
-          {copied ? <Check size={13} color="#4ade80" /> : <Copy size={13} />}
+    <div className="codeblock">
+      <div className="codeblock-head">
+        <span className="codeblock-filename">{filename}</span>
+        <button className="codeblock-copy" onClick={handleCopy} aria-label="Copy code">
+          {copied ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
           <span>{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
@@ -611,17 +611,6 @@ MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error)
 
   const currentArticle = articles[selectedId] || articles.overview;
 
-  const tocItems = [
-    { id: 'overview', label: 'Architecture Overview' },
-    { id: 'start-reloading', label: 'Mod Management Guide' },
-    { id: 'safe-guard', label: 'Safe Execution Boundary' },
-    { id: 'mod-tiers', label: 'Mod Classification Tiers' },
-    { id: 'modmenu-sync', label: 'ModMenu Integration' },
-    { id: 'resourcify-guide', label: 'Downloader API Guide' },
-    { id: 'api-reference', label: 'Public MutoApi Reference' },
-    { id: 'arch-rotation', label: 'ClassLoader Rotation' }
-  ];
-
   return (
     <div className="docs-shell">
       
@@ -803,37 +792,40 @@ MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error)
             )}
 
             {/* Sections */}
-            {currentArticle.sections.map((sec, sIdx) => (
-              <div key={sIdx}>
-                <h2>{sec.heading}</h2>
+            {currentArticle.sections.map((sec, sIdx) => {
+              const secId = `sec-${sIdx}`;
+              return (
+                <div key={sIdx} id={secId} style={{ scrollMarginTop: '64px' }}>
+                  <h2>{sec.heading}</h2>
 
-                {sec.content && <p>{sec.content}</p>}
+                  {sec.content && <p>{sec.content}</p>}
 
-                {sec.alert && (
-                  <div className={`doc-alert doc-alert-${sec.alert.type}`}>
-                    <div className="doc-alert-label">{sec.alert.label}</div>
-                    <div className="doc-alert-body">
-                      <p>{sec.alert.text}</p>
+                  {sec.alert && (
+                    <div className={`doc-alert doc-alert-${sec.alert.type}`}>
+                      <div className="doc-alert-label">{sec.alert.label}</div>
+                      <div className="doc-alert-body">
+                        <p>{sec.alert.text}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {sec.steps && (
-                  <ol>
-                    {sec.steps.map((step, stIdx) => (
-                      <li key={stIdx}>{step}</li>
-                    ))}
-                  </ol>
-                )}
+                  {sec.steps && (
+                    <ol>
+                      {sec.steps.map((step, stIdx) => (
+                        <li key={stIdx}>{step}</li>
+                      ))}
+                    </ol>
+                  )}
 
-                {sec.snippet && (
-                  <CodeSnippet
-                    filename={sec.snippet.filename}
-                    code={sec.snippet.code}
-                  />
-                )}
-              </div>
-            ))}
+                  {sec.snippet && (
+                    <CodeSnippet
+                      filename={sec.snippet.filename}
+                      code={sec.snippet.code}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
             {/* Related Topics */}
             {currentArticle.related && (
@@ -877,16 +869,21 @@ MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error)
         {/* RIGHT TOC */}
         <aside className="toc">
           <h4>On this page</h4>
-          <div>
-            {tocItems.map((toc) => {
-              const active = selectedId === toc.id;
+          <div className="toc-current-page">{currentArticle.title}</div>
+          <div className="toc-sections">
+            {currentArticle.sections?.map((sec, sIdx) => {
+              const secId = `sec-${sIdx}`;
               return (
                 <a
-                  key={toc.id}
-                  className={active ? 'active' : ''}
-                  onClick={() => setSelectedId(toc.id)}
+                  key={sIdx}
+                  href={`#${secId}`}
+                  className="toc-anchor"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById(secId)?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
-                  {toc.label}
+                  {sec.heading}
                 </a>
               );
             })}

@@ -1,11 +1,11 @@
-# Global allow
-User-agent: *
+# Google-Extended (Gemini & Vertex AI)
+User-agent: Google-Extended
 Allow: /
 
-# Google & Gemini
+# Googlebot Search
 User-agent: Googlebot
 Allow: /
-User-agent: Google-Extended
+User-agent: GoogleOther
 Allow: /
 
 # OpenAI & ChatGPT
@@ -16,17 +16,19 @@ Allow: /
 User-agent: OAI-SearchBot
 Allow: /
 
-# Perplexity AI
-User-agent: PerplexityBot
-Allow: /
-
 # Anthropic & Claude
 User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
 Allow: /
 User-agent: anthropic-ai
 Allow: /
 
-# Apple Intelligence & Search
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# Apple Intelligence
 User-agent: Applebot
 Allow: /
 User-agent: Applebot-Extended
@@ -44,6 +46,10 @@ Allow: /
 
 # Microsoft Bing & Copilot
 User-agent: Bingbot
+Allow: /
+
+# Global Allow All
+User-agent: *
 Allow: /
 
 Sitemap: https://muto.fy2ne.me/sitemap.xml
