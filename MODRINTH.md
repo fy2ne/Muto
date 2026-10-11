@@ -30,6 +30,14 @@ Muto provides a real-time hot-swap engine built directly into Minecraft and ModM
 - **Stage your changes** and review what's being enabled or disabled before committing.
 - **Hot reload in seconds** using dynamic ClassLoader unmounting, registry thawing, and mixin retransformation.
 
+<br />
+
+<div align="center">
+
+![Muto in ModMenu](https://raw.githubusercontent.com/fy2ne/muto/main/docs/images/screenshot-modmenu.png)
+
+</div>
+
 ---
 
 ## Key Features

@@ -746,29 +746,11 @@ button {
   color: var(--text-subtle);
 }
 
-.screenshot-frame-body {
-  height: 240px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
-  color: var(--text-subtle);
-  border: 1px dashed rgba(255, 255, 255, 0.08);
-  margin: 12px;
-  border-radius: 6px;
-}
-
-.screenshot-frame-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.screenshot-frame-sub {
-  font-size: 11.5px;
-  color: var(--text-subtle);
+.screenshot-frame-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0 0 7px 7px;
 }
 
 /* KaTeX Seamless Math Display (Zero background, natural typography) */

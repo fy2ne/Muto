@@ -73,22 +73,20 @@ function WebsiteIcon({ size = 16 }) {
 }
 
 /* ============================================================
-   MODMENU UI PREVIEW PLACEHOLDER
+   MODMENU UI PREVIEW
    ============================================================ */
 function ModMenuPreviewFrame() {
   return (
     <div className="screenshot-frame">
       <div className="screenshot-frame-header">
-        <span>ModMenu + Muto Integration</span>
-        <span style={{ color: 'var(--accent)', fontSize: '11px' }}>Native Vanilla UI</span>
+        <span>ModMenu + Muto Live Integration</span>
+        <span style={{ color: '#4ade80', fontSize: '11px' }}>In-Game 26.3 Capture</span>
       </div>
-      <div className="screenshot-frame-body">
-        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <img src="/icon.png" alt="Muto" style={{ width: '18px', height: '18px', opacity: 0.9 }} />
-        </div>
-        <div className="screenshot-frame-label">Integrated ModMenu Action Controls & Badges</div>
-        <div className="screenshot-frame-sub">Enable, disable, load, and filter mods with zero restart</div>
-      </div>
+      <img
+        src="/screenshot-modmenu.png"
+        alt="Muto in ModMenu"
+        className="screenshot-frame-img"
+      />
     </div>
   );
 }
