@@ -771,36 +771,12 @@ button {
   line-height: 1.45;
 }
 
-/* ============================================================
-   SCREENSHOT FRAME PLACEHOLDER (Reserved for Title Screen capture)
-   ============================================================ */
-.screenshot-frame {
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #080808;
-  overflow: hidden;
-  margin: 28px 0;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-}
-
-.screenshot-frame-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-subtle);
-}
-
-.screenshot-frame-img {
+/* Screenshot */
+.screenshot-clean {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 0 0 7px 7px;
+  border-radius: 8px;
 }
 
 /* KaTeX Seamless Math Display (Zero background, natural typography) */

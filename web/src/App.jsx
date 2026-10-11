@@ -77,15 +77,16 @@ function WebsiteIcon({ size = 16 }) {
    ============================================================ */
 function ModMenuPreviewFrame() {
   return (
-    <div className="screenshot-frame">
-      <div className="screenshot-frame-header">
-        <span>ModMenu + Muto Live Integration</span>
-        <span style={{ color: '#4ade80', fontSize: '11px' }}>In-Game 26.3 Capture</span>
-      </div>
+    <div style={{ margin: '24px 0 32px' }}>
       <img
         src="/screenshot-modmenu.png"
         alt="Muto in ModMenu"
-        className="screenshot-frame-img"
+        style={{
+          width: '100%',
+          height: 'auto',
+          display: 'block',
+          borderRadius: '8px'
+        }}
       />
     </div>
   );
