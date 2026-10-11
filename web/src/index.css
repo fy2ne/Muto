@@ -738,39 +738,6 @@ button {
   --alert-accent: #38bdf8;
 }
 
-/* Sub-feature box cards */
-.sub-feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin: 24px 0 32px;
-}
-
-.sub-feature-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
-  transition: border-color 0.15s ease;
-}
-
-.sub-feature-card:hover {
-  border-color: var(--border-strong);
-}
-
-.sub-feature-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-
-.sub-feature-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-
 /* Screenshot */
 .screenshot-clean {
   width: 100%;

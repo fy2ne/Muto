@@ -152,6 +152,20 @@ export default function App() {
           ]
         },
         {
+          heading: 'Mod Classification & Safety Tiers',
+          content: (
+            <>
+              Before reloading, Muto inspects each mod jar to determine how it can be safely reloaded. Mods are categorized into three engine tiers (<code>ModTier</code>):
+              <br /><br />
+              <strong>Clean mods</strong>: Pure client-side tweaks (HUDs, menus, tooltips) that only implement client entrypoints without mixins or server hooks. These reload instantly with zero registry footprint.
+              <br /><br />
+              <strong>Standard mods</strong>: Content mods that register items, blocks, entities, or event listeners. These are safely swapped using dynamic child ClassLoader rotation combined with registry thawing.
+              <br /><br />
+              <strong>Stubborn mods</strong>: Core platform mods (Fabric Loader, Fabric API, and core mixin anchors). These remain pinned to the root ClassLoader to ensure JVM memory and linkage stability.
+            </>
+          )
+        },
+        {
           heading: 'Third-party & developer integration',
           content: (
             <>
@@ -756,41 +770,6 @@ MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error)
 
             {/* ModMenu Preview Frame */}
             {currentArticle.hasMcDemo && <ModMenuPreviewFrame />}
-
-            {/* Overview Tier Breakdown */}
-            {currentArticle.isOverview && (
-              <div className="sub-feature-grid">
-                <div className="sub-feature-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div className="sub-feature-label">Clean Mods</div>
-                    <span className="sb-badge" style={{ color: '#4ade80' }}>Tier A</span>
-                  </div>
-                  <div className="sub-feature-desc">
-                    HUDs, menus, and client tweaks. Hot-swap instantly with zero registry footprint.
-                  </div>
-                </div>
-
-                <div className="sub-feature-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div className="sub-feature-label">Standard Mods</div>
-                    <span className="sb-badge sb-badge-beta">Tier B</span>
-                  </div>
-                  <div className="sub-feature-desc">
-                    Content mods registering blocks & items. Swapped via child loader rotation with registry unfreezing.
-                  </div>
-                </div>
-
-                <div className="sub-feature-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div className="sub-feature-label">Stubborn Mods</div>
-                    <span className="sb-badge" style={{ color: '#ef4444' }}>Tier C</span>
-                  </div>
-                  <div className="sub-feature-desc">
-                    Fabric Loader & core mixins. Locked in root loader to preserve JVM memory safety.
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Sections */}
             {currentArticle.sections.map((sec, sIdx) => {
