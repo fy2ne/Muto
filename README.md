@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Logo" />
+<img src="https://github.com/fy2ne/Muto/blob/main/web/public/icon.png" width="96" height="96" alt="Muto Logo" />
 
 # Muto
 
