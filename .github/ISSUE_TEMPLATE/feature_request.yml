@@ -1,19 +1,19 @@
 name: Feature request
-description: Suggest an idea or improvement for Muto
+description: Suggest an idea or improvement for Muto Engine
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Muto!
+        Thanks for helping improve Muto Engine!
 
   - type: textarea
     id: problem
     attributes:
       label: Problem / motivation
-      description: What problem would this solve? What's frustrating about the current behavior?
-      placeholder: I have to restart the game every time I change a client mod...
+      description: What problem would this solve? What's missing from the current API?
+      placeholder: There's no way to reload a specific mod by ID — only a full /mods rescan...
     validations:
       required: true
 
@@ -21,7 +21,7 @@ body:
     id: solution
     attributes:
       label: Proposed solution
-      description: What would you like Muto to do?
+      description: What would you like Muto Engine to expose or do differently?
     validations:
       required: true
 
@@ -38,11 +38,13 @@ body:
     attributes:
       label: Area
       options:
-        - Reload engine
-        - UI / title screen
-        - Events / API
+        - Reload engine / ClassLoader
+        - Registry thawing
+        - Public API (MutoApi / MutoEvents)
+        - JVM Agent / bytecode retransformation
+        - File watcher
         - Documentation
-        - Performance
+        - Build / CI
         - Other
     validations:
       required: false
@@ -51,6 +53,6 @@ body:
     id: additional
     attributes:
       label: Additional context
-      description: Screenshots, examples from other mods, or links.
+      description: Code examples, links to similar tools, or screenshots.
     validations:
       required: false

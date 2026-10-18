@@ -6,8 +6,20 @@ import net.minecraft.network.codec.StreamCodec;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
 @Mixin(targets = "net.minecraft.network.protocol.common.custom.CustomPacketPayload$1")
 public abstract class CustomPacketPayloadMixin {
+
+    private int muto$packetStartIndex = -1;
+
+    @Inject(method = "writeCap", at = @At("HEAD"))
+    private void muto$markPacketStart(Object buf, Object type, Object payload, CallbackInfo ci) {
+        if (buf instanceof io.netty.buffer.ByteBuf bb) {
+            muto$packetStartIndex = bb.writerIndex();
+        }
+    }
 
     @WrapOperation(
             method = "writeCap",
@@ -17,7 +29,10 @@ public abstract class CustomPacketPayloadMixin {
         try {
             original.call(codec, buf, payload);
         } catch (ClassCastException cce) {
-            // Lingering mixin from disabled mod or unknown packet: discard safely instead of severing connection
+            if (buf instanceof io.netty.buffer.ByteBuf bb && muto$packetStartIndex >= 0) {
+                bb.writerIndex(muto$packetStartIndex);
+            }
+            me.fy2ne.muto.MutoLog.warn("discarded packet payload and rewound netty buffer header: {}", cce.getMessage());
         }
     }
 }

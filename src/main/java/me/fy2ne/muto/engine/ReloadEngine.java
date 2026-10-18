@@ -109,13 +109,13 @@ public final class ReloadEngine {
 
             List<ScannedMod> initializable = new ArrayList<>();
             for (ScannedMod mod : plan.reloadable()) {
-                if (diff.added().contains(mod.id())) {
+                if (diff.added().contains(mod.id()) || diff.updated().contains(mod.id())) {
                     initializable.add(mod);
                 }
             }
 
             if (!diff.updated().isEmpty() || !diff.removed().isEmpty()) {
-                MutoLog.warn("{} updated / {} removed mod(s) bound to running game",
+                MutoLog.info("{} updated / {} removed mod(s) queued for runtime reload",
                         diff.updated().size(), diff.removed().size());
             }
 
@@ -146,7 +146,7 @@ public final class ReloadEngine {
                     }
                 }
 
-                // Stage 3: Tear down removed mod contexts
+                // Stage 3: Tear down removed and updated mod contexts
                 if (!diff.removed().isEmpty()) {
                     notify(stageNotifier, stepLogs, "Tearing down removed mod contexts...");
                     for (String rem : diff.removed()) {
@@ -156,7 +156,9 @@ public final class ReloadEngine {
                     }
                 }
                 for (String upd : diff.updated()) {
+                    teardownMod(upd);
                     RegistryFreezer.pruneNamespace(upd);
+                    notify(stageNotifier, stepLogs, String.format("Refreshed mod context: %s", upd));
                 }
 
                 // Stage 4: Unfreeze registries & instantiate entrypoints inside Knot
@@ -183,10 +185,13 @@ public final class ReloadEngine {
                 notify(stageNotifier, stepLogs, "Synchronizing ModMenu active catalog...");
                 syncFabricLoader(plan.targetSnapshot(), diff);
 
-                // Stage 7: Mount and reload resource & OpenGL shader pipelines
                 if (me.fy2ne.muto.config.MutoConfig.get().autoReloadResources && (!initializable.isEmpty() || !diff.removed().isEmpty())) {
                     notify(stageNotifier, stepLogs, "Mounting resources & reloading OpenGL shaders...");
-                    ResourceHotMount.remountAndReload();
+                    try {
+                        ResourceHotMount.remountAndReload().get(15, java.util.concurrent.TimeUnit.SECONDS);
+                    } catch (Throwable t) {
+                        MutoLog.warn("resource hot mount wait skipped: {}", t.getMessage());
+                    }
                 }
 
                 currentSnapshot = plan.targetSnapshot();

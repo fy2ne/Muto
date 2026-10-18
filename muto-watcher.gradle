@@ -1,0 +1,89 @@
+// muto-watcher.gradle
+// Continuous compiler and hot-swap orchestrator for Fabric mod projects using Muto.
+//
+// Usage in your mod's build.gradle:
+//   apply from: 'https://raw.githubusercontent.com/fy2ne/muto/main/muto-watcher.gradle'
+// Then run:
+//   ./gradlew mutoWatch
+
+tasks.register('mutoWatch') {
+	group = 'muto'
+	description = 'Watches source changes, recompiles, and hot-swaps mod into running Minecraft via Muto.'
+	dependsOn tasks.named('jar')
+
+	doLast {
+		File runDir = project.file('run')
+		File modsDir = new File(runDir, 'mods')
+		File trigger = new File(runDir, 'muto.trigger')
+		File result = new File(runDir, 'muto.result')
+		File jarFile = tasks.named('jar').get().archiveFile.get().asFile
+
+		if (!modsDir.exists()) modsDir.mkdirs()
+		File target = new File(modsDir, jarFile.name)
+		java.nio.file.Files.copy(jarFile.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+
+		println "[muto:watch] initialized for ${jarFile.name} -> run/mods/"
+		println "[muto:watch] watching src/main/java and src/main/resources"
+
+		def watched = [project.file('src/main/java'), project.file('src/main/resources')]
+		long lastModified = System.currentTimeMillis()
+
+		while (true) {
+			Thread.sleep(250)
+			boolean changed = false
+			String changedPath = ""
+
+			for (dir in watched) {
+				if (dir.exists()) {
+					dir.eachFileRecurse { f ->
+						if (f.isFile() && f.lastModified() > lastModified) {
+							changed = true
+							changedPath = f.name
+						}
+					}
+				}
+			}
+
+			if (changed) {
+				lastModified = System.currentTimeMillis()
+				println "[muto:watch] change detected: ${changedPath}, recompiling"
+				long t0 = System.currentTimeMillis()
+
+				def cmd = System.getProperty('os.name').toLowerCase().contains('windows') ?
+					['cmd', '/c', 'gradlew.bat', 'jar', '-x', 'test', '--quiet'] :
+					['./gradlew', 'jar', '-x', 'test', '--quiet']
+
+				def proc = new ProcessBuilder(cmd)
+					.directory(project.projectDir)
+					.redirectErrorStream(true)
+					.start()
+
+				proc.waitFor()
+				if (proc.exitValue() == 0 && jarFile.exists()) {
+					long compileMs = System.currentTimeMillis() - t0
+					java.nio.file.Files.copy(jarFile.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+					if (result.exists()) result.delete()
+					trigger.text = "reload"
+					println "[muto:watch] jar packaged in ${compileMs}ms, signal dispatched"
+
+					long waitStart = System.currentTimeMillis()
+					boolean responded = false
+					while (System.currentTimeMillis() - waitStart < 5000) {
+						Thread.sleep(100)
+						if (result.exists()) {
+							println "[muto:watch] runtime response: ${result.text.trim()}"
+							responded = true
+							break
+						}
+					}
+					if (!responded) {
+						println "[muto:watch] staged to run/mods (awaiting game tick)"
+					}
+				} else {
+					println "[muto:watch] compile failed, check syntax"
+				}
+				lastModified = System.currentTimeMillis()
+			}
+		}
+	}
+}

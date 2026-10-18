@@ -333,6 +333,53 @@ export default function App() {
         { id: 'modmenu-sync', label: 'ModMenu Integration', desc: 'Accessing config from ModMenu.' }
       ]
     },
+    'fast-refresh': {
+      category: 'Developer Integration',
+      title: 'Fast Refresh Dev Loop (mutoWatch)',
+      subtitle: 'Continuous incremental recompiler and sub-300ms in-game hot swap pipeline',
+      sections: [
+        {
+          heading: 'Overview & Developer Workflow',
+          content: (
+            <>
+              Traditional Minecraft mod development requires restarting the game client after every code change, wasting 30 to 60 seconds per iteration. Muto provides a continuous background watcher that recompiles modified sources and hot-swaps bytecode into the running game in approximately 300ms.
+            </>
+          ),
+          steps: [
+            <>Add Muto as a runtime mod and apply <code>muto-watcher.gradle</code> in your mod buildscript.</>,
+            <>Launch the Minecraft client once using <code>./gradlew runClient</code>.</>,
+            <>In a separate terminal, run <code>./gradlew mutoWatch</code> to start continuous monitoring.</>,
+            <>Edit your Java classes or assets in IntelliJ or VS Code and press save.</>,
+            <>Muto compiles, repackages, updates the running Knot ClassLoader, and triggers live bytecode retransformation.</>
+          ],
+          snippet: {
+            filename: 'build.gradle',
+            code: `// Apply Muto Fast Refresh script in your Fabric mod
+dependencies {
+    modRuntimeOnly "me.fy2ne:muto:0.2.0-beta"
+}
+
+apply from: 'https://raw.githubusercontent.com/fy2ne/muto/main/muto-watcher.gradle'`
+          }
+        },
+        {
+          heading: 'Terminal Execution',
+          snippet: {
+            filename: 'Terminal',
+            code: `$ ./gradlew mutoWatch
+[muto:watch] initialized for mymod-1.0.jar -> run/mods/
+[muto:watch] watching src/main/java and src/main/resources
+[muto:watch] change detected: HudOverlay.java, recompiling
+[muto:watch] jar packaged in 78ms, signal dispatched
+[muto:watch] runtime response: SUCCESS=true, DURATION=215ms, ADDED=[], REMOVED=[], UPDATED=[mymod]`
+          }
+        }
+      ],
+      related: [
+        { id: 'api-reference', label: 'Public MutoApi Reference', desc: 'Static methods and lifecycle events.' },
+        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'Runtime execution lifecycle.' }
+      ]
+    },
     'resourcify-guide': {
       category: 'Developer Integration',
       title: 'Downloader & In-Game Installer API',
@@ -608,6 +655,7 @@ MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error)
     {
       title: 'Developer Integration',
       items: [
+        { id: 'fast-refresh', label: 'Fast Refresh (mutoWatch)', icon: Terminal },
         { id: 'resourcify-guide', label: 'Downloader API Guide', icon: Layers },
         { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
         { id: 'file-locks', label: 'Windows File Locking', icon: Wrench },

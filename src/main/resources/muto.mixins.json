@@ -11,13 +11,8 @@
     "CustomPacketPayloadMixin"
   ],
   "client": [
-    "ModMenuScreenMixin",
-    "ModBadgeRendererMixin",
-    "ModListWidgetMixin",
     "OptionsAccessor",
-    "KeyMappingRegistryImplMixin",
-    "FabricClientCompatibilityManagerMixin",
-    "ScreenMixin"
+    "KeyMappingRegistryImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1

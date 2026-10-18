@@ -192,7 +192,7 @@ public class ReloadShellTest {
     @Test
     void testProbeMixinTargets() throws Exception {
         Path jar = Path.of("Modsfortesting/skinlayers3d-fabric-1.11.3-mc26.3.jar");
-        Assertions.assertTrue(Files.exists(jar));
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.exists(jar), "Optional local test jar not present in CI");
 
         List<String> configs = DynamicMixinEngine.extractConfigs(jar);
         System.out.println("Configs extracted: " + configs);

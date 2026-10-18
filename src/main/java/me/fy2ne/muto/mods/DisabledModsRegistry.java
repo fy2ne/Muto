@@ -84,15 +84,28 @@ public final class DisabledModsRegistry {
             for (Path path : stream) {
                 if (!Files.isRegularFile(path)) continue;
                 String fn = path.getFileName().toString();
+
                 if (fn.endsWith(".jar")) {
-                    for (String disabledId : DISABLED_IDS) {
-                        if (fn.toLowerCase().contains(disabledId.toLowerCase())) {
-                            try {
-                                Path target = path.resolveSibling(fn + ".disabled");
-                                Files.move(path, target);
-                                MutoLog.info("reconciled pending disable rename: {} -> {}", fn, target.getFileName());
-                            } catch (Throwable ignored) {}
-                            break;
+                    String id = readModId(path);
+                    if (id != null && DISABLED_IDS.contains(id)) {
+                        try {
+                            Path target = path.resolveSibling(fn + ".disabled");
+                            Files.move(path, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            MutoLog.info("reconciled disable rename: {} -> {}", fn, target.getFileName());
+                        } catch (Throwable t) {
+                            MutoLog.warn("file {} locked on disk, rename deferred: {}", fn, t.getMessage());
+                        }
+                    }
+                } else if (fn.endsWith(".jar.disabled")) {
+                    String id = readModId(path);
+                    if (id != null && !DISABLED_IDS.contains(id)) {
+                        try {
+                            String targetName = fn.substring(0, fn.length() - ".disabled".length());
+                            Path target = path.resolveSibling(targetName);
+                            Files.move(path, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            MutoLog.info("reconciled enable rename: {} -> {}", fn, target.getFileName());
+                        } catch (Throwable t) {
+                            MutoLog.warn("file {} locked on disk, rename deferred: {}", fn, t.getMessage());
                         }
                     }
                 }
@@ -100,5 +113,20 @@ public final class DisabledModsRegistry {
         } catch (Throwable t) {
             MutoLog.warn("failed reconciling disabled file renames: {}", t.getMessage());
         }
+    }
+
+    private static String readModId(Path path) {
+        try (java.util.jar.JarFile jf = new java.util.jar.JarFile(path.toFile())) {
+            java.util.jar.JarEntry entry = jf.getJarEntry("fabric.mod.json");
+            if (entry == null) return null;
+            try (java.io.InputStream in = jf.getInputStream(entry);
+                 java.io.InputStreamReader reader = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)) {
+                com.google.gson.JsonObject root = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+                if (root.has("id")) {
+                    return root.get("id").getAsString();
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 }

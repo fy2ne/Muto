@@ -1,22 +1,24 @@
 package me.fy2ne.muto;
 
-import net.fabricmc.api.ModInitializer;
+import me.fy2ne.muto.engine.ReloadEngine;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
 import java.util.List;
 
-public final class MutoMod implements ModInitializer {
+public final class MutoMod implements ClientModInitializer {
     private static boolean dcevmDetected;
     private static boolean jbrDetected;
 
     @Override
-    public void onInitialize() {
-        MutoLog.info("muto core initializing (v0.1.0)");
+    public void onInitializeClient() {
+        MutoLog.info("Muto Engine initializing (client runtime)");
         detectRuntimeCapabilities();
         try {
-            java.nio.file.Path modsDir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("mods");
-            me.fy2ne.muto.engine.ReloadEngine.INSTANCE.recordInitialSnapshot(modsDir);
-            me.fy2ne.muto.automation.MutoTriggerWatcher.start();
+            Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+            ReloadEngine.INSTANCE.recordInitialSnapshot(modsDir);
         } catch (Throwable t) {
             MutoLog.warn("baseline snapshot deferred: {}", t.getMessage());
         }

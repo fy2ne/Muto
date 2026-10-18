@@ -11,7 +11,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class MutoTriggerWatcher {
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -20,13 +22,20 @@ public final class MutoTriggerWatcher {
         return t;
     });
 
-    public static void start() {
+    private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
+    private static ScheduledFuture<?> taskHandle;
+
+    public static synchronized boolean start() {
+        if (!RUNNING.compareAndSet(false, true)) {
+            return false;
+        }
+
         Path gameDir = FabricLoader.getInstance().getGameDir();
         Path modsDir = gameDir.resolve("mods");
         Path triggerFile = gameDir.resolve("muto.trigger");
         Path resultFile = gameDir.resolve("muto.result");
 
-        SCHEDULER.scheduleWithFixedDelay(() -> {
+        taskHandle = SCHEDULER.scheduleWithFixedDelay(() -> {
             try {
                 if (Files.exists(triggerFile)) {
                     MutoLog.info("external reload trigger detected at {}", triggerFile);
@@ -54,62 +63,25 @@ public final class MutoTriggerWatcher {
             } catch (Throwable t) {
                 MutoLog.warn("trigger watcher tick error: {}", t.getMessage());
             }
-        }, 1, 1, TimeUnit.SECONDS);
+        }, 200, 200, TimeUnit.MILLISECONDS);
 
         MutoLog.info("muto trigger watcher active (watch: {})", triggerFile);
+        return true;
     }
 
-    public static void onClientStarted() {
-        String autoTest = System.getProperty("muto.testAutoReload");
-        if (!"true".equalsIgnoreCase(autoTest)) return;
+    public static synchronized boolean stop() {
+        if (!RUNNING.compareAndSet(true, false)) {
+            return false;
+        }
+        if (taskHandle != null) {
+            taskHandle.cancel(false);
+            taskHandle = null;
+        }
+        MutoLog.info("muto trigger watcher stopped");
+        return true;
+    }
 
-        Path gameDir = FabricLoader.getInstance().getGameDir();
-        Path modsDir = gameDir.resolve("mods");
-        Path resultFile = gameDir.resolve("muto.result");
-
-        long delaySec = Long.getLong("muto.testDelay", 5L);
-        SCHEDULER.schedule(() -> {
-            try {
-                MutoLog.info("[AUTO-TEST] initiating automated reload test after startup (delay: {}s)...", delaySec);
-                String copyMod = System.getProperty("muto.testCopyMod");
-                if (copyMod != null && !copyMod.isBlank()) {
-                    Path sourceMod = gameDir.resolve("../Modsfortesting/" + copyMod).normalize();
-                    if (Files.exists(sourceMod)) {
-                        Path targetMod = modsDir.resolve(copyMod);
-                        Files.copy(sourceMod, targetMod, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        MutoLog.info("[AUTO-TEST] staged test mod: {}", copyMod);
-                    } else {
-                        MutoLog.warn("[AUTO-TEST] test mod not found at {}", sourceMod);
-                    }
-                }
-
-                ReloadResult res = ReloadEngine.INSTANCE.reloadAsync(modsDir, msg -> {
-                    MutoLog.info("[AUTO-TEST] {}", msg);
-                }).get(45, TimeUnit.SECONDS);
-
-                String outcome = String.format("AUTO_TEST_RESULT: SUCCESS=%b, DURATION=%dms, ADDED=%s, REMOVED=%s, UPDATED=%s",
-                        res.success(),
-                        res.durationMs(),
-                        res.diff().added(),
-                        res.diff().removed(),
-                        res.diff().updated());
-                MutoLog.info(outcome);
-
-                Files.writeString(resultFile, outcome + System.lineSeparator(),
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
-
-                if ("true".equalsIgnoreCase(System.getProperty("muto.testAutoExit"))) {
-                    MutoLog.info("[AUTO-TEST] test complete, exiting process...");
-                    Thread.sleep(1500);
-                    System.exit(res.success() ? 0 : 1);
-                }
-            } catch (Throwable t) {
-                MutoLog.error("[AUTO-TEST] auto reload failed: {}", t.getMessage(), t);
-                if ("true".equalsIgnoreCase(System.getProperty("muto.testAutoExit"))) {
-                    System.exit(2);
-                }
-            }
-        }, delaySec, TimeUnit.SECONDS);
+    public static boolean isRunning() {
+        return RUNNING.get();
     }
 }

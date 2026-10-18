@@ -17,6 +17,8 @@ public final class RegistryFreezer {
     private static Field byKeyField;
     private static Field byValueField;
     private static Field registrationInfosField;
+    private static Field byIdField;
+    private static Field toIdField;
 
     static {
         try {
@@ -35,6 +37,10 @@ public final class RegistryFreezer {
             byValueField.setAccessible(true);
             registrationInfosField = MappedRegistry.class.getDeclaredField("registrationInfos");
             registrationInfosField.setAccessible(true);
+            byIdField = MappedRegistry.class.getDeclaredField("byId");
+            byIdField.setAccessible(true);
+            toIdField = MappedRegistry.class.getDeclaredField("toId");
+            toIdField.setAccessible(true);
         } catch (Exception e) {
             MutoLog.warn("registry map field access failed: {}", e.getMessage());
         }
@@ -108,6 +114,8 @@ public final class RegistryFreezer {
                 Map<ResourceKey<?>, ?> keyMap = (Map<ResourceKey<?>, ?>) byKeyField.get(mapped);
                 Map<Object, ?> valMap = byValueField != null ? (Map<Object, ?>) byValueField.get(mapped) : null;
                 Map<ResourceKey<?>, ?> infoMap = registrationInfosField != null ? (Map<ResourceKey<?>, ?>) registrationInfosField.get(mapped) : null;
+                List<Object> byIdList = byIdField != null ? (List<Object>) byIdField.get(mapped) : null;
+                Map<Object, Integer> toIdMap = toIdField != null ? (Map<Object, Integer>) toIdField.get(mapped) : null;
 
                 if (locMap == null || keyMap == null) continue;
 
@@ -125,10 +133,39 @@ public final class RegistryFreezer {
                         if (infoMap != null) {
                             infoMap.entrySet().removeIf(e -> e.getKey().identifier().equals(id));
                         }
+
+                        Object value = null;
                         if (valMap != null) {
-                            valMap.entrySet().removeIf(e -> Objects.equals(e.getValue(), holder));
+                            var it = valMap.entrySet().iterator();
+                            while (it.hasNext()) {
+                                var entry = it.next();
+                                if (Objects.equals(entry.getValue(), holder)) {
+                                    value = entry.getKey();
+                                    it.remove();
+                                    break;
+                                }
+                            }
                         }
+                        if (value == null && holder instanceof net.minecraft.core.Holder.Reference<?> ref) {
+                            try {
+                                value = ref.value();
+                            } catch (Throwable ignored) {}
+                        }
+
+                        if (value != null && toIdMap != null) {
+                            Integer rawId = toIdMap.remove(value);
+                            if (rawId != null && byIdList != null && rawId >= 0 && rawId < byIdList.size()) {
+                                byIdList.set(rawId, null);
+                            }
+                        }
+
                         prunedTotal++;
+                    }
+                }
+
+                if (byIdList != null) {
+                    while (!byIdList.isEmpty() && byIdList.get(byIdList.size() - 1) == null) {
+                        byIdList.remove(byIdList.size() - 1);
                     }
                 }
             }

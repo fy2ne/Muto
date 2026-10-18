@@ -1,169 +1,144 @@
 <div align="center">
 
-<img src="src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Logo" />
+<img src="src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Runtime Logo" />
 
-# Muto
+# Muto Runtime
 
-**The industrial-grade hot mod reloader for Minecraft.**
-
-Enable, disable, load, and hot-swap Fabric mods live in-game without restarting Minecraft.
+**Hot-swap engine for Fabric mods. No restart. Ever.**
 
 [![Modrinth](https://img.shields.io/modrinth/dt/muto?label=Modrinth&color=00AF5C)](https://modrinth.com/mod/muto)
-[![CurseForge](https://img.shields.io/badge/CurseForge-muto-F16436)](https://www.curseforge.com/minecraft/mc-mods/muto)
-[![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://fabricmc.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.x-brightgreen)](https://fabricmc.net/)
 [![Platform](https://img.shields.io/badge/Platform-Fabric-DBB26A)](https://fabricmc.net/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-[Modrinth](https://modrinth.com/mod/muto) · [CurseForge](https://www.curseforge.com/minecraft/mc-mods/muto) · [Documentation](https://muto.fy2ne.me) · [Issues](https://github.com/fy2ne/muto/issues)
+[Modrinth](https://modrinth.com/mod/muto) · [Documentation](https://muto.fy2ne.me) · [Issues](https://github.com/fy2ne/muto/issues)
 
 </div>
 
 ---
 
-## What is Muto?
+## Overview
 
-In Minecraft's history, resource packs have `F3+T` and datapacks have `/reload`. **Mods never had an in-game reload.** Whenever you tweaked a mod, tested an update, or needed to turn off a conflicting mod, you had to close the game, wait minutes for Java and assets to restart, and repeat that dozens of times.
+Muto Runtime is a **developer library** that provides runtime mod hot-swap primitives for Fabric. It is not a player-facing mod — it is the engine layer that other mods build on top of.
 
-**Muto changes that.**
+For 17 years, hot-reloading Fabric mods in a running JVM was considered impossible. Muto makes it possible by combining three JVM-level techniques:
 
-Muto provides a real-time hot-swap engine built directly into Minecraft and ModMenu:
-- **Toggle mods on or off** directly in your mod list.
-- **Load new mods** placed in your `mods/` directory without restarting.
-- **Stage your changes** and review what's being enabled or disabled before committing.
-- **Hot reload in seconds** using dynamic ClassLoader unmounting, registry thawing, and mixin retransformation.
-
-<br />
-
-<div align="center">
-
-![Muto in ModMenu](docs/images/screenshot-modmenu.png)
-
-</div>
+1. **Child ClassLoader Rotation** — reloadable mods live in isolated `URLClassLoader` children. Old loaders are closed and GC'd. New jars get fresh loaders, no JVM restart needed.
+2. **Registry Thawing** — Minecraft freezes its `MappedRegistry` at boot. Muto flips that frozen bit at the JVM level, prunes old namespace entries, lets the new mod re-register, then refreezes. The game never sees it happen.
+3. **JVM Agent Bytecode Hooks** — ships as both a Fabric mod and a `Premain-Class` Java agent in the same jar. On JBR or DCEVM runtimes, this enables full class retransformation, not just classloader swaps.
 
 ---
 
-## Features
+## Integration (For Mod Developers)
 
-### Native ModMenu Integration
-- **Direct Action Buttons**: Enable, disable, or load mods right from ModMenu's mod description pane with crisp, vanilla-styled monochrome pixel-art controls.
-- **Mod State Badges**: Visual tags identifying mod state at a glance:
-  - `Disabled` (red) — Mod jar renamed to `.jar.disabled`.
-  - `Unloaded` (gold) — Mod jar detected in `mods/` but not yet loaded into runtime.
-  - `Pending: Disable`, `Pending: Enable`, `Pending: Load` (green/gold) — Staged changes awaiting confirmation.
-- **Smart Filter Cycle**: A dedicated filter button cycling through **All**, **Active**, **Disabled**, and **Unloaded** mods.
-- **Safe Staging Workflow**: Click **Save (N)** to open a change review screen listing exact operations before applying.
-- **Disabled Mod Protection**: Prevents broken config screens from opening when a mod is inactive.
+Declare Muto Runtime as an optional compile-only dependency. Your mod works fine without it — but if Muto is present, users get zero-restart hot-reloading.
 
-### Industrial Reload Pipeline
-- **Knot ClassLoader Rotation**: Dynamically unmounts and remounts mod classpaths at runtime.
-- **Registry Thawing & Tombstoning**: Safely unfreezes Minecraft's `MappedRegistry` to register or prune mod entries.
-- **Packet & KeyMapping Sync**: Re-registers custom network payload types and rebuilds vanilla keybind arrays.
-- **Safe Boundary Manager**:
-  - **Title Screen**: Instant hot reload in seconds.
-  - **Singleplayer Worlds**: Safely saves world chunks, exits cleanly, applies the mod hot-swap, and reconnects the player automatically.
-  - **Multiplayer Servers**: Gracefully disconnects, hot-swaps client mods, and reconnects to the server.
+### Gradle
+
+```groovy
+repositories {
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
+}
+
+dependencies {
+    modCompileOnly "maven.modrinth:muto:0.3.0-beta"
+}
+```
+
+### Trigger a Reload
+
+```java
+import net.fabricmc.loader.api.FabricLoader;
+import me.fy2ne.muto.api.MutoApi;
+
+public class YourDownloaderIntegration {
+    public static void onModDownloaded(java.nio.file.Path jar) {
+        if (!FabricLoader.getInstance().isModLoaded("muto")) return;
+
+        if (MutoApi.isSafeToReload()) {
+            MutoApi.reloadAsync(stage -> System.out.println(stage))
+                .thenAccept(result -> {
+                    if (result.success()) {
+                        System.out.println("hot-swapped in " + result.durationMs() + "ms");
+                    } else {
+                        System.err.println("swap failed: " + result.error());
+                    }
+                });
+        }
+    }
+}
+```
+
+### Hook Lifecycle Events
+
+```java
+import me.fy2ne.muto.api.MutoEvents;
+
+MutoEvents.RELOAD_START.register((startMs, diff) -> {
+    // close stale network connections, clear texture caches
+});
+
+MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
+    // refresh UI, re-bind resources, update lists
+});
+```
+
+---
+
+## API Surface
+
+| Method | Returns | Notes |
+|---|---|---|
+| `MutoApi.isAvailable()` | `boolean` | Is Muto present at runtime |
+| `MutoApi.isReloading()` | `boolean` | Reload in flight |
+| `MutoApi.isSafeToReload()` | `boolean` | Title screen, not in a world |
+| `MutoApi.plan()` | `ReloadPlan` | Diff /mods without executing |
+| `MutoApi.reloadAsync()` | `CompletableFuture<ReloadResult>` | Fire and forget reload |
+| `MutoApi.reloadAsync(notifier)` | `CompletableFuture<ReloadResult>` | Reload with stage callbacks |
+| `MutoApi.getReloadableModIds()` | `Set<String>` | Dynamic mods in current snapshot |
+| `MutoApi.getStubbornModIds()` | `Set<String>` | Core mods locked in root loader |
+| `MutoApi.startFileWatcher()` | `boolean` | Opt-in dev trigger watcher |
+| `MutoApi.stopFileWatcher()` | `boolean` | Stop the watcher |
+
+---
+
+## Mod Classification Tiers
+
+| Tier | Type | Reload Behavior |
+|---|---|---|
+| **Tier 1** | Clean (UI, HUD, tweaks) | Instant, no registry touching |
+| **Tier 2** | Standard (blocks, items, recipes) | Full pipeline with registry thaw |
+| **Tier 3** | Stubborn (Fabric Loader, Fabric API, core mixins) | Locked — cannot be reloaded |
+
+---
+
+## Gradle `mutoWatch` (Dev Hot-Reload Pipeline)
+
+For developers building mods on top of Muto Runtime, the project ships a `mutoWatch` Gradle task that watches `src/main/java` and `src/main/resources`, recompiles on change, and writes a `muto.trigger` file to `run/`. Muto Runtime picks this up via its opt-in file watcher and hot-swaps itself in the running game:
+
+```bash
+./gradlew mutoWatch
+```
+
+Activate the watcher in your mod's `onInitializeClient`:
+
+```java
+MutoApi.startFileWatcher();
+```
 
 ---
 
 ## Requirements
 
-| Component | Target |
-|---|---|
-| Platform | Fabric Loader 0.16.0+ |
-| Minecraft | 26.3 |
-| Java Runtime | Java 25+ |
-| Dependencies | Fabric API (Zero external config libraries required; ModMenu optional) |
+- Minecraft Java Edition 26.3
+- Fabric Loader ≥ 0.16.0
+- Fabric API ≥ 0.161.0+26.3
+- Java 25+
+- Client-side only
 
----
+### Optional — Better Hot-Swap
 
-## Installation
-
-1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.3.
-2. Download `muto-<version>.jar` from [Modrinth](https://modrinth.com/mod/muto) or [CurseForge](https://www.curseforge.com/minecraft/mc-mods/muto).
-3. Place `muto-<version>.jar` and [Fabric API](https://modrinth.com/mod/fabric-api) into your `.minecraft/mods` folder.
-4. *(Recommended)* Install [ModMenu](https://modrinth.com/mod/modmenu) to access the integrated mod management UI.
-
----
-
-## Developer API
-
-Other mods, in-game downloaders (like Resourcify), and dev tools can integrate with Muto as an optional soft dependency.
-
-### Adding Muto API
-
-In your `build.gradle`:
-
-```groovy
-repositories {
-    maven {
-        name = "GitHubPackages"
-        url = "https://maven.pkg.github.com/fy2ne/muto"
-    }
-}
-
-dependencies {
-    modCompileOnly "me.fy2ne:muto:0.2.0-beta"
-}
-```
-
-In your `fabric.mod.json`:
-
-```json
-"suggests": {
-  "muto": ">=0.2.0-beta"
-}
-```
-
-### Checking Availability & Triggering Reloads
-
-```java
-import me.fy2ne.muto.api.MutoApi;
-
-if (MutoApi.isAvailable()) {
-    // Check if reload engine is currently running
-    if (!MutoApi.isReloading()) {
-        // Trigger a safe boundary reload (handles world save & auto-reconnect)
-        MutoApi.triggerBoundaryReload(currentScreen);
-    }
-}
-```
-
-### Listening to Reload Events
-
-Subscribe to `MutoEvents` to tear down caches or re-initialize subsystems:
-
-```java
-import me.fy2ne.muto.api.MutoEvents;
-
-// Cleanup before reload starts
-MutoEvents.RELOAD_START.register((startEpochMs, expectedDiff) -> {
-    if (expectedDiff.removed().contains("my_mod_id")) {
-        MySubsystem.shutdown();
-    }
-});
-
-// Re-init after reload settles
-MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error) -> {
-    if (success && diff.added().contains("my_mod_id")) {
-        MySubsystem.bootstrap();
-    }
-});
-```
-
----
-
-## Building from Source
-
-```bash
-git clone https://github.com/fy2ne/muto.git
-cd muto
-./gradlew build          # Windows: gradlew.bat build
-```
-
-The compiled jar will be in `build/libs/`.
-
----
-
-## License
-
-Muto is open-source software licensed under the [Apache License 2.0](LICENSE).
+Running on [JetBrains Runtime (JBR)](https://www.jetbrains.com/help/idea/configuring-build-jdk.html) or a DCEVM-patched JVM enables Muto's Java agent bytecode retransformation path — method body swaps inside running classes, not just classloader rotation. Detected and reported automatically at startup.

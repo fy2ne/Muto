@@ -9,8 +9,29 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import org.spongepowered.asm.mixin.Pseudo;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+@Pseudo
 @Mixin(targets = "net.fabricmc.fabric.impl.client.keymapping.KeyMappingRegistryImpl", remap = false)
 public class KeyMappingRegistryImplMixin {
+
+    @Inject(method = "registerKeyMapping", at = @At("HEAD"), require = 0)
+    private static void muto$evictDuplicateKeyMapping(KeyMapping keyMapping, CallbackInfoReturnable<KeyMapping> cir) {
+        if (keyMapping == null) return;
+        try {
+            Class<?> cls = Class.forName("net.fabricmc.fabric.impl.client.keymapping.KeyMappingRegistryImpl");
+            Field f = cls.getDeclaredField("MODDED_KEY_BINDINGS");
+            f.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<KeyMapping> list = (List<KeyMapping>) f.get(null);
+            if (list != null) {
+                list.removeIf(k -> k != null && k.getName().equals(keyMapping.getName()));
+            }
+        } catch (Throwable ignored) {}
+    }
 
     @Redirect(
             method = "registerKeyMapping",
