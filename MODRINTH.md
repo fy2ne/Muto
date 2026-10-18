@@ -6,10 +6,10 @@
 
 **Runtime hot-swap engine for Fabric mods.**
 
-[![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-26.3-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
+[![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-26.x-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
 [![Fabric](https://img.shields.io/badge/Platform-Fabric-DBB26A?style=flat-square)](https://fabricmc.net/)
 [![Java](https://img.shields.io/badge/Java-25+-orange?style=flat-square)](https://openjdk.org/)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square)](https://github.com/fy2ne/muto/blob/main/LICENSE)
+[![License: ELv2](https://img.shields.io/badge/License-Elastic--2.0-purple?style=flat-square)](https://github.com/fy2ne/Muto/blob/26.x/LICENSE)
 
 </div>
 

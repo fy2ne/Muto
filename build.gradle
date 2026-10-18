@@ -183,8 +183,8 @@ publishing {
 				url = "https://muto.fy2ne.me"
 				licenses {
 					license {
-						name = "The Apache License, Version 2.0"
-						url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+						name = "Elastic License 2.0"
+						url = "https://www.elastic.co/licensing/elastic-license"
 					}
 				}
 				developers {
