@@ -2,7 +2,7 @@ name: Publish Package
 
 on:
   push:
-    branches: [main]
+    branches: [26.x]
     paths:
       - 'gradle.properties'
   release:

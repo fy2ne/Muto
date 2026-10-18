@@ -183,8 +183,8 @@ publishing {
 				url = "https://muto.fy2ne.me"
 				licenses {
 					license {
-						name = "Elastic License 2.0"
-						url = "https://www.elastic.co/licensing/elastic-license"
+						name = "All Rights Reserved"
+						url = "https://github.com/fy2ne/Muto/blob/26.x/LICENSE"
 					}
 				}
 				developers {

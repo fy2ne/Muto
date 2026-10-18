@@ -107,10 +107,11 @@ Muto classifies all mods at startup into three tiers:
 
 ## Platform
 
-- Minecraft: Java Edition 26.3
+- Minecraft: Java Edition 26.x (26.1, 26.1.1, 26.1.2, 26.2, 26.3)
 - Loader: Fabric Loader >= 0.16.0
-- Fabric API: >= 0.161.0+26.3
+- Fabric API: >= 0.144.1
 - Java: 25+
 - Environment: Client-side only
+- License: All Rights Reserved — © 2026 fy2ne. Contact https://fy2ne.me for usage permissions.
 
 Optional: JetBrains Runtime (JBR) or DCEVM unlocks enhanced class retransformation beyond classloader rotation. Detected and reported at startup.

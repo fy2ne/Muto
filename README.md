@@ -9,7 +9,7 @@
 [![Modrinth](https://img.shields.io/modrinth/dt/muto?label=Modrinth&color=00AF5C)](https://modrinth.com/mod/muto)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.x-brightgreen)](https://fabricmc.net/)
 [![Platform](https://img.shields.io/badge/Platform-Fabric-DBB26A)](https://fabricmc.net/)
-[![License](https://img.shields.io/badge/license-Elastic--2.0-purple.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](LICENSE)
 
 [Modrinth](https://modrinth.com/mod/muto) · [Documentation](https://muto.fy2ne.me) · [Issues](https://github.com/fy2ne/muto/issues)
 

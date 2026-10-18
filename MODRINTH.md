@@ -9,7 +9,7 @@
 [![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-26.x-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
 [![Fabric](https://img.shields.io/badge/Platform-Fabric-DBB26A?style=flat-square)](https://fabricmc.net/)
 [![Java](https://img.shields.io/badge/Java-25+-orange?style=flat-square)](https://openjdk.org/)
-[![License: ELv2](https://img.shields.io/badge/License-Elastic--2.0-purple?style=flat-square)](https://github.com/fy2ne/Muto/blob/26.x/LICENSE)
+[![License: ARR](https://img.shields.io/badge/License-All%20Rights%20Reserved-red?style=flat-square)](https://github.com/fy2ne/Muto/blob/26.x/LICENSE)
 
 </div>
 

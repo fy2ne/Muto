@@ -1,1 +1,9 @@
-IyBCcmFuY2ggQ29udmVudGlvbgoKfCBCcmFuY2ggfCBNaW5lY3JhZnQgVmVyc2lvbnMgfCBTdGF0dXMgfAp8LS0tLS0tfC0tLS0tLS0tLS0tLS0tLS0tLXwtLS0tLS0tfAp8IGA yNi54YCB8IDI2LjEsIDI2LjEuMSwgMjYuMS4yLCAyNi4yLCAyNi4zIHwgYWN0aXZlIHwKfCBgMS4yMS54YCAoZnV0dXJlKSB8IDEuMjEsIDEuMjEuMSwgMS4yMS40IHwgcGxhbm5lZCB8CnwgYDEuMjAueGAgKGZ1dHVyZSkgfCAxLjIwLjEgfCBwbGFubmVkIHwKCkVhY2ggYnJhbmNoIHByb2R1Y2VzIG9uZSBqYXIgdGhhdCBjb3ZlcnMgaXRzIGVudGlyZSBNQyBtaW5vciByYW5nZS4gVmVyc2lvbiBjb252ZW50aW9uOiBge21vZF92ZXJzaW9ufSt7bWNfcmFuZ2V9YCAoZS5nLiBgMC4zLjAtYmV0YSsyNi54YCku
+# Branch Convention
+
+| Branch | Minecraft Versions | Status |
+|--------|-------------------|--------|
+| `26.x` | 26.1, 26.1.1, 26.1.2, 26.2, 26.3 | active |
+| `1.21.x` (future) | 1.21, 1.21.1, 1.21.4 | planned |
+| `1.20.x` (future) | 1.20.1 | planned |
+
+Each branch produces one jar covering its entire MC minor range. Version convention: `{mod_version}+{mc_range}` (e.g. `0.3.0-beta+26.x`).
