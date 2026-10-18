@@ -112,6 +112,6 @@ Muto classifies all mods at startup into three tiers:
 - Fabric API: >= 0.144.1
 - Java: 25+
 - Environment: Client-side only
-- License: All Rights Reserved — © 2026 fy2ne. Contact https://fy2ne.me for usage permissions.
+- License: Elastic License 2.0 — © 2026 fy2ne. Commercial use requires permission. https://www.elastic.co/licensing/elastic-license
 
 Optional: JetBrains Runtime (JBR) or DCEVM unlocks enhanced class retransformation beyond classloader rotation. Detected and reported at startup.

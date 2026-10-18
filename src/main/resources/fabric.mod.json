@@ -12,7 +12,7 @@
     "sources": "https://github.com/fy2ne/muto",
     "issues": "https://github.com/fy2ne/muto/issues"
   },
-  "license": "ARR",
+  "license": "Elastic-2.0",
   "icon": "assets/muto/icon.png",
   "environment": "client",
   "entrypoints": {
