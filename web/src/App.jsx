@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import {
+  ArrowLeft,
   ArrowRight,
   BookOpen,
   Boxes,
@@ -10,6 +11,7 @@ import {
   Cpu,
   Layers,
   Lock,
+  Menu as MenuIcon,
   RotateCw,
   Search,
   Settings,
@@ -1334,6 +1336,7 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
 
 export default function App() {
   const [current, setCurrent] = useState("overview");
+  const [menu, setMenu] = useState(false);
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState(null);
   const scrollRef = useRef(null);
@@ -1359,10 +1362,15 @@ export default function App() {
     );
   }, [query, flat]);
 
+  const at = flat.findIndex((p) => p.id === current);
+  const prev = at > 0 ? flat[at - 1] : null;
+  const next = at < flat.length - 1 ? flat[at + 1] : null;
+
   const go = (id) => {
     setCurrent(id);
     setQuery("");
     setActiveSection(null);
+    setMenu(false);
     scrollRef.current?.scrollTo({ top: 0 });
   };
 
@@ -1386,11 +1394,20 @@ export default function App() {
     <div className="docs-shell">
       <header className="docs-header">
         <div className="docs-header-left">
+          <button
+            className="menu-btn"
+            onClick={() => setMenu((m) => !m)}
+            aria-label="Toggle navigation"
+            type="button"
+          >
+            {menu ? <X size={17} /> : <MenuIcon size={17} />}
+          </button>
           <span className="brand" onClick={() => go("overview")}>
             <Terminal size={18} color="#f59e0b" />
             <span className="brand-text">Muto Runtime</span>
             <span className="brand-badge">Beta</span>
           </span>
+          <span className="brand-version">{VERSION}</span>
         </div>
         <div className="docs-header-right">
           <a
@@ -1406,7 +1423,7 @@ export default function App() {
         </div>
       </header>
 
-      <aside className="sidebar">
+      <aside className={`sidebar ${menu ? "open" : ""}`}>
         <div className="sb-scroll">
           <div className="sb-search-card">
             <div className="sb-search-input">
@@ -1492,25 +1509,27 @@ export default function App() {
             <ArticleContent id={current} />
           </div>
 
-          {article.related?.length > 0 && (
-            <div className="md" style={{ marginTop: 48 }}>
-              <h2>Continue reading</h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {article.related.map((rid) => (
-                  <button
-                    key={rid}
-                    className="codeblock-copy"
-                    onClick={() => go(rid)}
-                    type="button"
-                    style={{ cursor: "pointer" }}
-                  >
-                    {articles[rid].title}
-                    <ArrowRight size={12} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <nav className="pager" aria-label="Page navigation">
+            {prev ? (
+              <button className="pager-card prev" onClick={() => go(prev.id)} type="button">
+                <span className="pager-dir"><ArrowLeft size={12} /> Previous</span>
+                <span className="pager-title">{prev.title}</span>
+              </button>
+            ) : <span />}
+            {next ? (
+              <button className="pager-card next" onClick={() => go(next.id)} type="button">
+                <span className="pager-dir">Next <ArrowRight size={12} /></span>
+                <span className="pager-title">{next.title}</span>
+              </button>
+            ) : <span />}
+          </nav>
+
+          <footer className="page-foot">
+            <a href={`${REPO}/edit/26.x/web/src/App.jsx`} target="_blank" rel="noreferrer">
+              Edit this page
+            </a>
+            <span>{VERSION} · 26.x</span>
+          </footer>
         </div>
 
         <aside className="toc">
