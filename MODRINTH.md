@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/fy2ne/muto/main/src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Runtime Logo" />
+<img src="https://raw.githubusercontent.com/fy2ne/muto/26.x/src/main/resources/assets/muto/icon.png" width="96" height="96" alt="Muto Runtime Logo" />
 
 # Muto Runtime
 
@@ -17,13 +17,13 @@
 
 ## What is Muto Runtime?
 
-Muto Runtime is a **developer library** — not a player-facing mod. It provides the runtime primitives that make it possible to load, unload, and hot-swap Fabric mods while Minecraft is running, without a restart.
+Muto Runtime is a **developer library** - not a player-facing mod. It provides the runtime primitives that make it possible to load, unload, and hot-swap Fabric mods while Minecraft is running, without a restart.
 
 Mod hot-reloading in Minecraft has long been considered impractical. Muto does it by chaining three runtime techniques for Fabric:
 
-1. **Knot Classpath Injection** — a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
-2. **Registry Thawing** — Minecraft's frozen `MappedRegistry` is surgically unfrozen via reflection and a Mixin accessor, allowing new entries to register before refreezing.
-3. **Dynamic Mixin Registration** — a new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload; classes that are already loaded cannot be re-woven.
+1. **Knot Classpath Injection** - a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
+2. **Registry Thawing** - Minecraft's frozen `MappedRegistry` is surgically unfrozen via reflection and a Mixin accessor, allowing new entries to register before refreezing.
+3. **Dynamic Mixin Registration** - a new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload; classes that are already loaded cannot be re-woven.
 
 ---
 
@@ -113,9 +113,9 @@ MutoApi.stopFileWatcher();  // stop when done
 
 Muto classifies all discovered jars into tiers at startup:
 
-- **Tier 1 — Clean**: Pure client tweaks, HUD mods, UI mods. Reloads in milliseconds, no registry involvement.
-- **Tier 2 — Standard**: Content mods that register blocks, items, or recipes. Re-executes `ModInitializer` alongside registry thaw.
-- **Tier 3 — Stubborn**: Fabric Loader, Fabric API, core mixin injectors. Already loaded and mixin-woven, so they require a restart.
+- **Tier 1 - Clean**: Pure client tweaks, HUD mods, UI mods. Reloads in milliseconds, no registry involvement.
+- **Tier 2 - Standard**: Content mods that register blocks, items, or recipes. Re-executes `ModInitializer` alongside registry thaw.
+- **Tier 3 - Stubborn**: Fabric Loader, Fabric API, core mixin injectors. Already loaded and mixin-woven, so they require a restart.
 
 ---
 
@@ -124,11 +124,11 @@ Muto classifies all discovered jars into tiers at startup:
 - **Minecraft**: Java Edition 26.3
 - **Loader**: Fabric Loader ≥ 0.16.0
 - **Java**: 25+
-- **JBR / DCEVM**: Optional — not required; Muto reloads by injecting jars into Knot and re-running initializers
+- **JBR / DCEVM**: Optional - not required; Muto reloads by injecting jars into Knot and re-running initializers
 - **Environment**: Client-side only
 
 ---
 
 ## For Players
 
-Muto Runtime runs silently in the background. You won't see any UI from it directly — it powers other mods that build on top of it. If a mod you're using requires Muto Runtime, just install it alongside that mod.
+Muto Runtime runs silently in the background. You won't see any UI from it directly - it powers other mods that build on top of it. If a mod you're using requires Muto Runtime, just install it alongside that mod.

@@ -39,8 +39,7 @@ html, body, #root {
 body {
   margin: 0;
   background-color: var(--bg);
-  /* Developer subtle grid pattern with larger cubes */
-  background-image: 
+    background-image: 
     linear-gradient(to right, rgba(255, 255, 255, 0.024) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.024) 1px, transparent 1px);
   background-size: 72px 72px;
@@ -61,7 +60,6 @@ button {
   font-family: inherit;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -81,7 +79,6 @@ button {
   border: 2px solid transparent;
 }
 
-/* Layout Shell */
 .docs-shell {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
@@ -111,7 +108,6 @@ button {
   }
 }
 
-/* Header */
 .docs-header {
   grid-column: 1 / -1;
   display: flex;
@@ -140,7 +136,6 @@ button {
   gap: 6px;
 }
 
-/* Brand */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -148,6 +143,14 @@ button {
   color: var(--text);
   cursor: pointer;
   user-select: none;
+}
+
+.brand-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .brand-text {
@@ -159,7 +162,6 @@ button {
   line-height: 1;
 }
 
-/* Beta tag - clean, no version numbers */
 .brand-badge {
   font-family: var(--font-ui);
   font-size: 10.5px;
@@ -174,7 +176,6 @@ button {
   text-transform: uppercase;
 }
 
-/* Navbar Icon Links with Weavetab Black Tooltips */
 .nav-icon-link {
   position: relative;
   display: inline-flex;
@@ -222,7 +223,6 @@ button {
   transform: translate(-50%, 0);
 }
 
-/* Sidebar */
 .sidebar {
   border-right: 1px solid var(--border);
   font-family: var(--font-ui);
@@ -242,7 +242,6 @@ button {
   min-height: 0;
 }
 
-/* Search input */
 .sb-search-card {
   margin-bottom: 18px;
 }
@@ -328,7 +327,6 @@ button {
   min-width: 0;
 }
 
-/* Pure text-only hover — no background fill */
 .sb-link {
   position: relative;
   display: flex;
@@ -407,7 +405,6 @@ button {
   background: rgba(251, 191, 36, 0.08);
 }
 
-/* Main & TOC */
 .docs-main {
   overflow-y: auto;
   display: grid;
@@ -439,7 +436,6 @@ button {
   }
 }
 
-/* Table of Contents */
 .toc {
   padding: 48px 24px;
   position: sticky;
@@ -525,7 +521,6 @@ button {
   background: rgba(245, 158, 11, 0.04);
 }
 
-/* Breadcrumb */
 .page-breadcrumb {
   display: flex;
   align-items: center;
@@ -544,7 +539,6 @@ button {
   color: var(--text);
 }
 
-/* Markdown Prose */
 .md {
   font-family: var(--font-body);
   color: var(--text);
@@ -621,7 +615,6 @@ button {
   font-weight: 600;
 }
 
-/* INLINE CODE ONLY (Fixes the box-per-line issue in image-1.png) */
 .md :not(pre) > code {
   font-family: var(--font-mono);
   font-size: 0.85em;
@@ -639,7 +632,6 @@ button {
   padding: 0;
 }
 
-/* CODEBLOCK ARCHITECTURE (Clean single block, zero per-line box artifact) */
 .codeblock {
   position: relative;
   border: 1px solid var(--code-border);
@@ -703,7 +695,6 @@ button {
   border: none !important;
 }
 
-/* Reset any code child inside pre so it never gets inline pill styling */
 .codeblock pre code {
   all: unset !important;
   display: block !important;
@@ -718,7 +709,6 @@ button {
   white-space: pre !important;
 }
 
-/* Minimalist Callouts / Alerts */
 .doc-alert {
   border: 1px solid color-mix(in srgb, var(--alert-accent) 28%, transparent);
   border-left: 3px solid var(--alert-accent);
@@ -759,7 +749,6 @@ button {
   --alert-accent: #38bdf8;
 }
 
-/* KaTeX Seamless Math Display (Zero background, natural typography) */
 .math-block {
   display: block;
   margin: 18px 0;
@@ -915,13 +904,21 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-top: 40px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
   font-family: var(--font-ui);
   font-size: 12px;
   color: var(--text-subtle);
+}
+
+.page-foot-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .page-foot a {
@@ -933,3 +930,200 @@ button {
   color: var(--text);
   border-bottom-color: var(--text-muted);
 }
+
+.page-foot-btn {
+  all: unset;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.page-foot-btn:hover {
+  color: var(--accent);
+  border-bottom-color: rgba(245, 158, 11, 0.45);
+}
+
+.fb-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fb-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.fb-trigger-btn:hover,
+.fb-trigger-btn.active {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.fb-box {
+  background: #0b0b0c;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-ui);
+}
+
+.fb-box-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.9);
+  z-index: 60;
+}
+
+.fb-foot-wrap {
+  margin-top: 24px;
+}
+
+.fb-box-inline {
+  width: 100%;
+  max-width: 480px;
+}
+
+.fb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fb-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fb-mailto {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-subtle);
+}
+
+.fb-mailto:hover {
+  color: var(--accent);
+}
+
+.fb-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 68px;
+  max-height: 180px;
+  background: #060607;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 9px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.fb-textarea:focus {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.fb-textarea::placeholder {
+  color: var(--text-subtle);
+}
+
+.fb-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fb-email {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  background: #060607;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 8px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  outline: none;
+}
+
+.fb-email:focus {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.fb-email::placeholder {
+  color: var(--text-subtle);
+}
+
+.fb-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.fb-send:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.24);
+  border-color: rgba(245, 158, 11, 0.65);
+}
+
+.fb-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fb-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 2px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.fb-err {
+  font-size: 11px;
+  color: #f87171;
+}
+
+.fb-err a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+

@@ -19,19 +19,19 @@
 
 ## Overview
 
-Muto Runtime is a **developer library** that provides runtime mod hot-swap primitives for Fabric. It is not a player-facing mod — it is the engine layer that other mods build on top of.
+Muto Runtime is a **developer library** that provides runtime mod hot-swap primitives for Fabric. It is not a player-facing mod - it is the engine layer that other mods build on top of.
 
 Hot-reloading Fabric mods inside a running JVM has long been considered impractical. Muto does it by combining three runtime techniques:
 
-1. **Knot Classpath Injection** — a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
-2. **Registry Thawing** — Minecraft freezes its `MappedRegistry` at boot. Muto clears that frozen flag at the JVM level, prunes old namespace entries, lets the new mod re-register, then refreezes. The game never sees it happen.
-3. **Dynamic Mixin Registration** — a new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload; classes that are already loaded cannot be re-woven.
+1. **Knot Classpath Injection** - a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
+2. **Registry Thawing** - Minecraft freezes its `MappedRegistry` at boot. Muto clears that frozen flag at the JVM level, prunes old namespace entries, lets the new mod re-register, then refreezes. The game never sees it happen.
+3. **Dynamic Mixin Registration** - a new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload; classes that are already loaded cannot be re-woven.
 
 ---
 
 ## Integration (For Mod Developers)
 
-Declare Muto Runtime as an optional compile-only dependency. Your mod works fine without it — but if Muto is present, users get zero-restart hot-reloading.
+Declare Muto Runtime as an optional compile-only dependency. Your mod works fine without it - but if Muto is present, users get zero-restart hot-reloading.
 
 ### Gradle
 
@@ -111,7 +111,7 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
 |---|---|---|
 | **Tier 1** | Clean (UI, HUD, tweaks) | Instant, no registry touching |
 | **Tier 2** | Standard (blocks, items, recipes) | Full pipeline with registry thaw |
-| **Tier 3** | Stubborn (Fabric Loader, Fabric API, core mixins) | Locked — cannot be reloaded |
+| **Tier 3** | Stubborn (Fabric Loader, Fabric API, core mixins) | Locked - cannot be reloaded |
 
 ---
 
@@ -139,6 +139,6 @@ MutoApi.startFileWatcher();
 - Java 25+
 - Client-side only
 
-### Optional — Class Redefinition
+### Optional - Class Redefinition
 
 A class-redefinition-capable JVM ([JetBrains Runtime (JBR)](https://www.jetbrains.com/help/idea/configuring-build-jdk.html) or DCEVM) is **not required**. Muto reloads by injecting jars into Knot and re-running initializers, which works on any JDK.
