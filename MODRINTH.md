@@ -9,7 +9,7 @@
 [![Minecraft Java Edition](https://img.shields.io/badge/Minecraft-26.x-00AF5C?style=flat-square&logo=minecraft&logoColor=white)](https://fabricmc.net/)
 [![Fabric](https://img.shields.io/badge/Platform-Fabric-DBB26A?style=flat-square)](https://fabricmc.net/)
 [![Java](https://img.shields.io/badge/Java-25+-orange?style=flat-square)](https://openjdk.org/)
-[![License: ELv2](https://img.shields.io/badge/License-Elastic--2.0-purple?style=flat-square)](https://github.com/fy2ne/Muto/blob/26.x/LICENSE)
+[![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL--3.0-blue?style=flat-square)](https://github.com/fy2ne/Muto/blob/26.x/LICENSE)
 
 </div>
 
@@ -19,11 +19,11 @@
 
 Muto Runtime is a **developer library** — not a player-facing mod. It provides the runtime primitives that make it possible to load, unload, and hot-swap Fabric mods while Minecraft is running, without a restart.
 
-For over 17 years, mod hot-reloading in Minecraft was considered impossible. Muto breaks that by chaining three JVM-level techniques that nobody had combined before for Fabric:
+Mod hot-reloading in Minecraft has long been considered impractical. Muto does it by chaining three runtime techniques for Fabric:
 
-1. **Child ClassLoader Rotation** — reloadable mods run in isolated `URLClassLoader` instances that can be garbage-collected and replaced mid-session.
+1. **Knot Classpath Injection** — a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
 2. **Registry Thawing** — Minecraft's frozen `MappedRegistry` is surgically unfrozen via reflection and a Mixin accessor, allowing new entries to register before refreezing.
-3. **JVM Agent Bytecode Hooks** — ships as both a Fabric mod and a Java agent (`Premain-Class`), enabling class retransformation on supported runtimes (JBR, DCEVM).
+3. **Dynamic Mixin Registration** — a new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload; classes that are already loaded cannot be re-woven.
 
 ---
 
@@ -103,7 +103,7 @@ MutoApi.stopFileWatcher();  // stop when done
 | `MutoApi.reloadAsync()` | `CompletableFuture<ReloadResult>` | Execute reload pipeline asynchronously |
 | `MutoApi.reloadAsync(notifier)` | `CompletableFuture<ReloadResult>` | Reload with per-stage progress callback |
 | `MutoApi.getReloadableModIds()` | `Set<String>` | IDs of all dynamically reloadable mods |
-| `MutoApi.getStubbornModIds()` | `Set<String>` | IDs of core mods locked in root classloader |
+| `MutoApi.getStubbornModIds()` | `Set<String>` | IDs of core mods that require a restart |
 | `MutoApi.startFileWatcher()` | `boolean` | Start opt-in dev trigger watcher |
 | `MutoApi.stopFileWatcher()` | `boolean` | Stop the trigger watcher |
 
@@ -115,7 +115,7 @@ Muto classifies all discovered jars into tiers at startup:
 
 - **Tier 1 — Clean**: Pure client tweaks, HUD mods, UI mods. Reloads in milliseconds, no registry involvement.
 - **Tier 2 — Standard**: Content mods that register blocks, items, or recipes. Re-executes `ModInitializer` alongside registry thaw.
-- **Tier 3 — Stubborn**: Fabric Loader, Fabric API, core mixin injectors. Locked permanently in the root classloader. Cannot be reloaded.
+- **Tier 3 — Stubborn**: Fabric Loader, Fabric API, core mixin injectors. Already loaded and mixin-woven, so they require a restart.
 
 ---
 
@@ -124,7 +124,7 @@ Muto classifies all discovered jars into tiers at startup:
 - **Minecraft**: Java Edition 26.3
 - **Loader**: Fabric Loader ≥ 0.16.0
 - **Java**: 25+
-- **JBR / DCEVM**: Optional — enables enhanced class redefinition beyond ClassLoader rotation
+- **JBR / DCEVM**: Optional — not required; Muto reloads by injecting jars into Knot and re-running initializers
 - **Environment**: Client-side only
 
 ---

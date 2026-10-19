@@ -9,7 +9,7 @@
 [![Modrinth](https://img.shields.io/modrinth/dt/muto?label=Modrinth&color=00AF5C)](https://modrinth.com/mod/muto)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.x-brightgreen)](https://fabricmc.net/)
 [![Platform](https://img.shields.io/badge/Platform-Fabric-DBB26A)](https://fabricmc.net/)
-[![License](https://img.shields.io/badge/license-Elastic--2.0-purple.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
 [Modrinth](https://modrinth.com/mod/muto) · [Documentation](https://muto.fy2ne.me) · [Issues](https://github.com/fy2ne/muto/issues)
 
@@ -21,11 +21,11 @@
 
 Muto Runtime is a **developer library** that provides runtime mod hot-swap primitives for Fabric. It is not a player-facing mod — it is the engine layer that other mods build on top of.
 
-For 17 years, hot-reloading Fabric mods in a running JVM was considered impossible. Muto makes it possible by combining three JVM-level techniques:
+Hot-reloading Fabric mods inside a running JVM has long been considered impractical. Muto does it by combining three runtime techniques:
 
-1. **Child ClassLoader Rotation** — reloadable mods live in isolated `URLClassLoader` children. Old loaders are closed and GC'd. New jars get fresh loaders, no JVM restart needed.
-2. **Registry Thawing** — Minecraft freezes its `MappedRegistry` at boot. Muto flips that frozen bit at the JVM level, prunes old namespace entries, lets the new mod re-register, then refreezes. The game never sees it happen.
-3. **JVM Agent Bytecode Hooks** — ships as both a Fabric mod and a `Premain-Class` Java agent in the same jar. On JBR or DCEVM runtimes, this enables full class retransformation, not just classloader swaps.
+1. **Knot Classpath Injection** — a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
+2. **Registry Thawing** — Minecraft freezes its `MappedRegistry` at boot. Muto clears that frozen flag at the JVM level, prunes old namespace entries, lets the new mod re-register, then refreezes. The game never sees it happen.
+3. **Dynamic Mixin Registration** — a new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload; classes that are already loaded cannot be re-woven.
 
 ---
 
@@ -99,7 +99,7 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
 | `MutoApi.reloadAsync()` | `CompletableFuture<ReloadResult>` | Fire and forget reload |
 | `MutoApi.reloadAsync(notifier)` | `CompletableFuture<ReloadResult>` | Reload with stage callbacks |
 | `MutoApi.getReloadableModIds()` | `Set<String>` | Dynamic mods in current snapshot |
-| `MutoApi.getStubbornModIds()` | `Set<String>` | Core mods locked in root loader |
+| `MutoApi.getStubbornModIds()` | `Set<String>` | Core mods that require a restart |
 | `MutoApi.startFileWatcher()` | `boolean` | Opt-in dev trigger watcher |
 | `MutoApi.stopFileWatcher()` | `boolean` | Stop the watcher |
 
@@ -139,6 +139,6 @@ MutoApi.startFileWatcher();
 - Java 25+
 - Client-side only
 
-### Optional — Better Hot-Swap
+### Optional — Class Redefinition
 
-Running on [JetBrains Runtime (JBR)](https://www.jetbrains.com/help/idea/configuring-build-jdk.html) or a DCEVM-patched JVM enables Muto's Java agent bytecode retransformation path — method body swaps inside running classes, not just classloader rotation. Detected and reported automatically at startup.
+A class-redefinition-capable JVM ([JetBrains Runtime (JBR)](https://www.jetbrains.com/help/idea/configuring-build-jdk.html) or DCEVM) is **not required**. Muto reloads by injecting jars into Knot and re-running initializers, which works on any JDK.

@@ -38,10 +38,10 @@ body:
     attributes:
       label: Area
       options:
-        - Reload engine / ClassLoader
+        - Reload engine / Knot injection
         - Registry thawing
         - Public API (MutoApi / MutoEvents)
-        - JVM Agent / bytecode retransformation
+        - Dynamic mixin registration
         - File watcher
         - Documentation
         - Build / CI

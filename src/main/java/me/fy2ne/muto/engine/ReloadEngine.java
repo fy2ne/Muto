@@ -135,13 +135,13 @@ public final class ReloadEngine {
                     }
                 }
 
-                // Stage 2: Dynamic Mixin registration & live bytecode retransformation
+                // Stage 2: Dynamic Mixin configuration registration
                 if (!allInjectedPaths.isEmpty()) {
-                    notify(stageNotifier, stepLogs, "Weaving dynamic mixins into live game bytecode...");
+                    notify(stageNotifier, stepLogs, "Registering dynamic mixin configurations...");
                     for (Path p : allInjectedPaths) {
-                        int retransformed = DynamicMixinEngine.injectAndRetransform(p);
-                        if (retransformed > 0) {
-                            notify(stageNotifier, stepLogs, String.format("Retransformed %d classes for %s", retransformed, p.getFileName()));
+                        int registered = DynamicMixinEngine.registerDynamicMixins(p);
+                        if (registered > 0) {
+                            notify(stageNotifier, stepLogs, String.format("Registered %d mixin config(s) for %s", registered, p.getFileName()));
                         }
                     }
                 }
@@ -182,7 +182,7 @@ public final class ReloadEngine {
                 syncKeyMappings();
 
                 // Stage 6: Sync loader metadata
-                notify(stageNotifier, stepLogs, "Synchronizing ModMenu active catalog...");
+                notify(stageNotifier, stepLogs, "Synchronizing Fabric Loader mod metadata...");
                 syncFabricLoader(plan.targetSnapshot(), diff);
 
                 if (me.fy2ne.muto.config.MutoConfig.get().autoReloadResources && (!initializable.isEmpty() || !diff.removed().isEmpty())) {
@@ -317,19 +317,6 @@ public final class ReloadEngine {
             }
         }
 
-        // ModMenu entrypoints
-        for (String clsName : mod.getClassesFor("modmenu")) {
-            try {
-                Class<?> cls = Class.forName(clsName, true, knotCl);
-                Object obj = cls.getDeclaredConstructor().newInstance();
-                created.add(obj);
-                registerModMenuApi(mod.id(), obj);
-                MutoLog.info("initialized modmenu api in knot: {}", clsName);
-            } catch (Throwable ex) {
-                MutoLog.error("failed initializing modmenu entrypoint {}: {}", clsName, ex.getMessage(), ex);
-            }
-        }
-
         if (!created.isEmpty()) {
             instancesByMod.computeIfAbsent(mod.id(), k -> new ArrayList<>()).addAll(created);
         }
@@ -372,7 +359,6 @@ public final class ReloadEngine {
                                 return false;
                             });
                         }
-                        syncModMenuRemove(removedId);
                     }
 
                     for (String addedId : diff.added()) {
@@ -383,8 +369,7 @@ public final class ReloadEngine {
                             if (container != null) {
                                 if (map != null) map.put(mod.id(), container);
                                 if (list != null && !list.contains(container)) list.add(container);
-                                syncModMenuAdd(mod.id(), container);
-                                MutoLog.info("synced {} into FabricLoader and ModMenu", mod.id());
+                                MutoLog.info("synced {} into FabricLoader", mod.id());
                             }
                         } catch (Throwable ex) {
                             MutoLog.warn("failed registering container for {}: {}", mod.id(), ex.getMessage());
@@ -586,139 +571,6 @@ public final class ReloadEngine {
         } catch (Throwable t) {
             MutoLog.warn("failed creating fallback proxy container: {}", t.getMessage());
             return null;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void syncModMenuAdd(String modId, Object container) {
-        try {
-            Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
-            Field modsField = modMenuCls.getDeclaredField("MODS");
-            modsField.setAccessible(true);
-            Map<String, Object> menuMods = (Map<String, Object>) modsField.get(null);
-
-            Field rootModsField = modMenuCls.getDeclaredField("ROOT_MODS");
-            rootModsField.setAccessible(true);
-            Map<String, Object> rootMods = (Map<String, Object>) rootModsField.get(null);
-
-            Class<?> fabricModCls = null;
-            for (String name : List.of(
-                    "com.terraformersmc.modmenu.util.mod.fabric.FabricMod",
-                    "com.terraformersmc.modmenu.util.mod.FabricMod"
-            )) {
-                try {
-                    fabricModCls = Class.forName(name);
-                    break;
-                } catch (ClassNotFoundException ignored) {}
-            }
-
-            if (fabricModCls != null && container instanceof net.fabricmc.loader.api.ModContainer mc) {
-                java.lang.reflect.Constructor<?> ctor = null;
-                for (java.lang.reflect.Constructor<?> c : fabricModCls.getDeclaredConstructors()) {
-                    c.setAccessible(true);
-                    if (c.getParameterCount() == 2) {
-                        ctor = c;
-                        break;
-                    } else if (c.getParameterCount() == 1 && ctor == null) {
-                        ctor = c;
-                    }
-                }
-
-                if (ctor != null) {
-                    Object modItem = (ctor.getParameterCount() == 2)
-                            ? ctor.newInstance(mc, Collections.emptySet())
-                            : ctor.newInstance(mc);
-
-                    menuMods.put(modId, modItem);
-                    rootMods.put(modId, modItem);
-                    MutoLog.info("synced {} into ModMenu active cache", modId);
-
-                    try {
-                        java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
-                        clear.setAccessible(true);
-                        clear.invoke(null);
-                    } catch (Throwable ignored) {}
-                }
-            }
-        } catch (Throwable t) {
-            Throwable root = t.getCause() != null ? t.getCause() : t;
-            MutoLog.warn("ModMenu add sync skipped: {}", root.toString());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void syncModMenuRemove(String modId) {
-        try {
-            Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
-            Field modsField = modMenuCls.getDeclaredField("MODS");
-            modsField.setAccessible(true);
-            Map<String, Object> menuMods = (Map<String, Object>) modsField.get(null);
-
-            Field rootModsField = modMenuCls.getDeclaredField("ROOT_MODS");
-            rootModsField.setAccessible(true);
-            Map<String, Object> rootMods = (Map<String, Object>) rootModsField.get(null);
-
-            if (menuMods != null) menuMods.remove(modId);
-            if (rootMods != null) rootMods.remove(modId);
-
-            try {
-                Field factField = modMenuCls.getDeclaredField("configScreenFactories");
-                factField.setAccessible(true);
-                Map<?, ?> factories = (Map<?, ?>) factField.get(null);
-                if (factories != null) factories.remove(modId);
-            } catch (Throwable ignored) {}
-
-            try {
-                java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
-                clear.setAccessible(true);
-                clear.invoke(null);
-            } catch (Throwable ignored) {}
-
-            MutoLog.info("removed {} from ModMenu active cache", modId);
-        } catch (Throwable t) {
-            MutoLog.warn("ModMenu remove sync skipped: {}", t.getMessage());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void registerModMenuApi(String modId, Object apiInstance) {
-        try {
-            Class<?> modMenuCls = Class.forName("com.terraformersmc.modmenu.ModMenu");
-            Field factoriesField = modMenuCls.getDeclaredField("configScreenFactories");
-            factoriesField.setAccessible(true);
-            Map<String, Object> factories = (Map<String, Object>) factoriesField.get(null);
-
-            java.lang.reflect.Method getFactory = apiInstance.getClass().getMethod("getModConfigScreenFactory");
-            Object factory = getFactory.invoke(apiInstance);
-            if (factory != null && factories != null) {
-                factories.put(modId, factory);
-                MutoLog.info("injected config screen factory for {} into ModMenu", modId);
-            }
-
-            try {
-                java.lang.reflect.Method getProvided = apiInstance.getClass().getMethod("getProvidedConfigScreenFactories");
-                Map<String, Object> provided = (Map<String, Object>) getProvided.invoke(apiInstance);
-                if (provided != null && factories != null) {
-                    factories.putAll(provided);
-                }
-            } catch (NoSuchMethodException ignored) {}
-
-            try {
-                Field apisField = modMenuCls.getDeclaredField("apiImplementations");
-                apisField.setAccessible(true);
-                List<Object> apis = (List<Object>) apisField.get(null);
-                if (apis != null && !apis.contains(apiInstance)) {
-                    apis.add(apiInstance);
-                }
-            } catch (Throwable ignored) {}
-
-            try {
-                java.lang.reflect.Method clear = modMenuCls.getDeclaredMethod("clearModCountCache");
-                clear.setAccessible(true);
-                clear.invoke(null);
-            } catch (Throwable ignored) {}
-        } catch (Throwable t) {
-            MutoLog.warn("failed registering ModMenu API for {}: {}", modId, t.getMessage());
         }
     }
 

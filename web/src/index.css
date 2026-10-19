@@ -738,14 +738,6 @@ button {
   --alert-accent: #38bdf8;
 }
 
-/* Screenshot */
-.screenshot-clean {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 8px;
-}
-
 /* KaTeX Seamless Math Display (Zero background, natural typography) */
 .math-block {
   display: block;

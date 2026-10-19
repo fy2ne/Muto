@@ -1,9 +1,10 @@
 # Muto Runtime: Runtime Hot-Swap Library for Fabric Mods
 
 > Author: fy2ne (@fy2ne)
-> Architecture: Dynamic Child ClassLoader Rotation & MappedRegistry Thawing
+> Architecture: Runtime Knot Classpath Injection & MappedRegistry Thawing
 > Type: Developer Library (client-side engine)
 > Target: Minecraft Java Edition | Fabric Loader | Java 25+
+> Package: me.fy2ne.muto (Maven group me.fy2ne, artifact muto)
 > Website: https://muto.fy2ne.me
 > Modrinth: https://modrinth.com/project/muto
 > Repository: https://github.com/fy2ne/muto
@@ -16,13 +17,13 @@ Players do not interact with Muto Runtime directly. They install mods that depen
 
 ## How It Works
 
-Muto chains three JVM-level techniques:
+Muto chains three runtime techniques:
 
-1. **Child ClassLoader Rotation** — reloadable mods run in isolated URLClassLoader children detached from Fabric's root Knot loader. On unload: the child is closed, old classes become GC-eligible, metaspace reclaims them. A fresh child loads the new jar.
+1. **Knot Classpath Injection** — a newly added or updated mod jar is appended to Fabric Loader's running Knot classpath (with nested jars), so its classes resolve without a restart.
 
-2. **Registry Thawing** — Minecraft freezes MappedRegistry at boot. Muto flips the frozen boolean field via reflection + a Mixin accessor, prunes entries for the unloaded mod's namespace, lets the new version re-register, then refreezes. The registry never knew it moved.
+2. **Registry Thawing** — Minecraft freezes MappedRegistry at boot. Muto clears the frozen flag via a Mixin accessor (reflective fallback), prunes entries for the removed/updated mod's namespace, lets the new version re-register, then refreezes.
 
-3. **JVM Agent Retransformation** — Muto ships as both a Fabric mod and a Premain-Class Java agent in the same jar. On JBR or DCEVM runtimes, this enables actual bytecode retransformation of running classes, not just classloader rotation.
+3. **Dynamic Mixin Registration** — the new jar's mixin configurations are registered with the global Mixin service and apply to every class the JVM defines after the reload. Mixin only weaves at class-definition time, so classes that are already loaded cannot be re-woven and cannot be reloaded without a restart.
 
 ## Integration
 
@@ -75,7 +76,7 @@ MutoEvents.RELOAD_START.register((startMs, diff) -> {
 });
 
 MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
-    // refresh UI, update mod lists, re-bind resources
+    // refresh caches, re-bind resources
 });
 ```
 
@@ -88,7 +89,7 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
 - `MutoApi.reloadAsync()`: CompletableFuture<ReloadResult> — trigger async hot-swap
 - `MutoApi.reloadAsync(Consumer<String>)`: with per-stage progress callback
 - `MutoApi.getReloadableModIds()`: Set<String> — all dynamically reloadable mods
-- `MutoApi.getStubbornModIds()`: Set<String> — core mods locked in root classloader
+- `MutoApi.getStubbornModIds()`: Set<String> — core mods that require a restart
 - `MutoApi.startFileWatcher()`: boolean — start opt-in muto.trigger file watcher
 - `MutoApi.stopFileWatcher()`: boolean — stop the watcher
 
@@ -97,13 +98,26 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
 Muto classifies all mods at startup into three tiers:
 
 - **Tier 1 (Clean)**: Pure client mods — HUDs, UI tweaks, visual mods. Reloads instantly with no registry involvement.
-- **Tier 2 (Standard)**: Content mods — blocks, items, recipes, dimensions. Full pipeline: registry thaw, classloader rotation, re-run ModInitializer, refreeze.
+- **Tier 2 (Standard)**: Content mods — blocks, items, recipes, dimensions. Full pipeline: Knot injection, registry thaw, re-run ModInitializer, refreeze.
 - **Tier 3 (Stubborn)**: Fabric Loader, Fabric API, core mixin injectors. Permanently locked in the root classloader. Cannot be reloaded without a JVM restart.
 
-## Planned Ecosystem
+## Building and Testing
 
-- **muto-modmenu** (future): A separate mod that adds ModMenu UI for manual mod toggling — built on top of Muto Runtime.
-- **muto-sync** (future): A separate mod that detects the modlist of a joined server, downloads required mods from Modrinth/CurseForge, and hot-loads them via Muto Runtime without a restart.
+- Build: `./gradlew build` (compile, test, assemble). Jar: `./gradlew jar`. Dev client: `./gradlew runClient`.
+- Fast-refresh loop: `./gradlew mutoWatch` (see `muto-watcher.gradle`).
+- Tests: JUnit 5 — `junit-jupiter-api` 5.11.4, `junit-jupiter-engine` 5.11.4 and `junit-platform-launcher` 1.11.4, wired into the Loom `test` source set. Run `./gradlew test`; HTML report at `build/reports/tests/test/index.html`.
+- Test classes: `ModStateManagerTest`, `ModTierClassificationTest`, `ReloadShellTest`, `api.MutoApiTest`.
+- CI: `.github/workflows/build.yml` (Temurin JDK 25, `./gradlew build`) and `.github/workflows/publish.yml` (GitHub Packages).
+
+## Source Layout
+
+- `src/main/java/me/fy2ne/muto/api` — public surface (`MutoApi`, `MutoEvents`, `ModDiff`)
+- `src/main/java/me/fy2ne/muto/engine` — `ReloadEngine`, `ModScanner`, `ModSnapshot`, `RegistryFreezer`, `MutoClassLoader`
+- `src/main/java/me/fy2ne/muto/engine/knot` — Knot classpath injection and reflection access
+- `src/main/java/me/fy2ne/muto/engine/mixin` — dynamic mixin registration
+- `src/main/java/me/fy2ne/muto/mixin` — accessors and injections against Minecraft internals
+- `src/main/java/me/fy2ne/muto/mods` — disk mod state and disabled-mods registry
+- `src/main/java/me/fy2ne/muto/config` — `MutoConfig` (config/muto.json)
 
 ## Platform
 
@@ -112,6 +126,6 @@ Muto classifies all mods at startup into three tiers:
 - Fabric API: >= 0.144.1
 - Java: 25+
 - Environment: Client-side only
-- License: Elastic License 2.0 — © 2026 fy2ne. Commercial use requires permission. https://www.elastic.co/licensing/elastic-license
+- License: GNU Lesser General Public License v3.0 (LGPL-3.0-only) — Copyright 2026 fy2ne. Free to use and link from any mod, including closed-source ones; modifications to Muto itself must remain open under the LGPL. https://www.gnu.org/licenses/lgpl-3.0.html
 
-Optional: JetBrains Runtime (JBR) or DCEVM unlocks enhanced class retransformation beyond classloader rotation. Detected and reported at startup.
+A JDK with class-redefinition support (JBR/DCEVM) is not required; Muto reloads by injecting jars into Knot and re-running initializers.

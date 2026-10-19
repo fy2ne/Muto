@@ -87,8 +87,8 @@ public final class MutoApi {
      * or updated — before committing to a reload. The returned {@link ReloadPlan}
      * exposes the diff and the classified mod lists.
      *
-     * <p>This method is cheap and non-destructive. It does not touch the
-     * classloader or registry.
+     * <p>This method is cheap and non-destructive. It does not inject jars or
+     * mutate registries.
      *
      * @return the computed reload plan for the current /mods state
      */
@@ -101,9 +101,11 @@ public final class MutoApi {
      * Asynchronously executes a full hot-swap pipeline against the current
      * {@code /mods} directory.
      *
-     * <p>The pipeline: scan → diff → unfreeze registries → close old classloader →
-     * prune old namespace entries → spawn new classloader → re-run ModInitializer →
-     * refreeze registries → sync ModMenu (if present) → sync keybindings.
+     * <p>The pipeline: scan → diff → inject jars into Knot's classpath →
+     * register dynamic mixin configs → tear down removed/updated contexts and
+     * prune their registry namespaces → unfreeze registries → re-run
+     * ModInitializer → refreeze registries → sync Fabric Loader metadata →
+     * sync keybindings.
      *
      * <p>If no mod changes are detected, returns immediately with a successful
      * no-op result.
@@ -184,9 +186,9 @@ public final class MutoApi {
     /**
      * Returns the IDs of all mods classified as Tier 3 (stubborn / core).
      *
-     * <p>Tier 3 mods are locked in the root Knot classloader and cannot be
-     * reloaded without a full JVM restart. This includes Fabric Loader, Fabric API,
-     * and mods with deeply-woven mixins.
+     * <p>Tier 3 mods are already loaded and mixin-woven, so their classes cannot
+     * be re-woven in place and they cannot be reloaded without a full JVM restart.
+     * This includes Fabric Loader, Fabric API, and mods with deeply-woven mixins.
      *
      * @return unmodifiable set of stubborn mod IDs
      */

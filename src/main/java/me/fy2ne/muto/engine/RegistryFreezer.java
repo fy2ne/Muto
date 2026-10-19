@@ -19,6 +19,7 @@ public final class RegistryFreezer {
     private static Field registrationInfosField;
     private static Field byIdField;
     private static Field toIdField;
+    private static boolean pruneUnavailableLogged = false;
 
     static {
         try {
@@ -103,7 +104,15 @@ public final class RegistryFreezer {
 
     @SuppressWarnings("unchecked")
     public static int pruneNamespace(String namespace) {
-        if (byLocationField == null || byKeyField == null) return 0;
+        if (byLocationField == null || byKeyField == null) {
+            if (!pruneUnavailableLogged) {
+                pruneUnavailableLogged = true;
+                MutoLog.warn("registry prune unavailable: MappedRegistry internal fields were not resolved "
+                        + "on this Minecraft version, so stale namespace entries will not be removed "
+                        + "(reloading a mod that registers blocks/items may duplicate entries)");
+            }
+            return 0;
+        }
         int prunedTotal = 0;
 
         try {

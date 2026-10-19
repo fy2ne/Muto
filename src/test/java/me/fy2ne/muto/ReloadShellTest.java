@@ -181,7 +181,7 @@ public class ReloadShellTest {
 
     @Test
     void testProbeTestingMods() {
-        Path testingDir = Path.of("modsfortesting");
+        Path testingDir = Path.of("Modsfortesting");
         if (!Files.exists(testingDir)) return;
         List<ScannedMod> mods = ModScanner.scan(testingDir);
         for (ScannedMod m : mods) {

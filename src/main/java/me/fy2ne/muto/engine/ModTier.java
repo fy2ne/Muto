@@ -4,7 +4,7 @@ import java.util.Set;
 
 public enum ModTier {
     CLEAN(1, "Clean", "hotswappable client mod"),
-    STANDARD(2, "Standard", "reloadable via child classloader"),
+    STANDARD(2, "Standard", "reloadable via runtime injection into Knot"),
     STUBBORN(3, "Stubborn", "loader-bound, excluded from live reload");
 
     private static final Set<String> CORE_IDS = Set.of(

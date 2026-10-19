@@ -25,16 +25,7 @@ public final class MutoConfig {
 
     private static MutoConfig INSTANCE;
 
-    public boolean autoReloadOnDiskChange = false;
-    public boolean showToasts = true;
-    public boolean playReloadSound = true;
-    public boolean fastShaderReload = true;
-    public boolean autoReconnect = true;
-    public boolean showTitleScreenButton = true;
     public boolean autoReloadResources = true;
-    public boolean confirmBeforeReload = true;
-    public boolean checkModrinthUpdates = false;
-    public boolean simulateUpdateAvailable = false;
 
     public static MutoConfig get() {
         if (INSTANCE == null) {

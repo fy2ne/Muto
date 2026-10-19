@@ -23,15 +23,6 @@ dependencies {
 
 
 tasks.named('jar') {
-	manifest {
-		attributes(
-			'Premain-Class': 'me.fy2ne.muto.engine.MutoAgent',
-			'Agent-Class': 'me.fy2ne.muto.engine.MutoAgent',
-			'Can-Retransform-Classes': 'true',
-			'Can-Redefine-Classes': 'true'
-		)
-	}
-
 	doLast {
 		if (project.hasProperty('mutoSync') || System.getProperty('muto.sync') == 'true') {
 			File runDir = project.file('run')
@@ -132,20 +123,11 @@ tasks.register('mutoWatch') {
 loom {
 	runs {
 		client {
-			vmArg "-Djdk.attach.allowAttachSelf=true"
-			vmArg "-XX:+EnableDynamicAgentLoading"
 			property "muto.testAutoReload", System.getProperty("muto.testAutoReload", "false")
 			property "muto.testCopyMod", System.getProperty("muto.testCopyMod", "")
 			property "muto.testAutoExit", System.getProperty("muto.testAutoExit", "false")
 			property "muto.testDelay", System.getProperty("muto.testDelay", "5")
 		}
-	}
-}
-
-tasks.named('runClient').configure {
-	dependsOn tasks.named('jar')
-	doFirst {
-		jvmArgs "-javaagent:${tasks.jar.archiveFile.get().asFile.absolutePath}"
 	}
 }
 
@@ -183,8 +165,8 @@ publishing {
 				url = "https://muto.fy2ne.me"
 				licenses {
 					license {
-						name = "Elastic License 2.0"
-						url = "https://www.elastic.co/licensing/elastic-license"
+						name = "GNU Lesser General Public License v3.0"
+						url = "https://www.gnu.org/licenses/lgpl-3.0.txt"
 					}
 				}
 				developers {

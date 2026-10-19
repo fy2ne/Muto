@@ -1,116 +1,50 @@
-import React, { useState } from 'react';
-import katex from 'katex';
+import { useEffect, useMemo, useRef, useState } from "react";
+import katex from "katex";
 import {
-  RotateCw,
+  ArrowRight,
+  BookOpen,
+  Boxes,
+  Check,
+  Code2,
+  Copy,
   Cpu,
   Layers,
+  Lock,
+  RotateCw,
+  Search,
+  Settings,
   ShieldCheck,
   Sliders,
-  Code2,
-  Check,
-  Copy,
-  Lock,
-  Zap,
   Terminal,
   Wrench,
-  BookOpen,
-  ArrowRight,
-  Search,
   X,
-  Sparkles
-} from 'lucide-react';
+  Zap,
+} from "lucide-react";
 
-/* ============================================================
-   SEAMLESS MATH DISPLAY (Zero background, natural typography)
-   ============================================================ */
-function Math({ tex, block = false }) {
-  try {
-    const html = katex.renderToString(tex, {
-      displayMode: block,
-      throwOnError: false
-    });
-    return <span className={block ? "math-block" : "math-inline"} dangerouslySetInnerHTML={{ __html: html }} />;
-  } catch {
-    return <code>{tex}</code>;
-  }
-}
+const REPO = "https://github.com/fy2ne/muto";
+const VERSION = "0.3.0-beta";
 
-/* ============================================================
-   OFFICIAL SVGS
-   ============================================================ */
-function GithubIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-    </svg>
-  );
-}
+/* ------------------------------------------------------------------ */
+/* Shared components                                                   */
+/* ------------------------------------------------------------------ */
 
-function ModrinthIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.252 0C5.503 0 .024 5.466.024 12.203c0 4.545 2.502 8.514 6.223 10.605l2.258-3.902a7.712 7.712 0 0 1-3.97-6.703c0-4.269 3.473-7.734 7.747-7.734 4.275 0 7.748 3.465 7.748 7.734 0 2.766-1.464 5.2-3.666 6.556l2.235 3.914c3.606-2.128 6.012-6.046 6.012-10.47C24.611 5.466 19.08 0 12.252 0zm.019 7.426a4.777 4.777 0 0 0-4.777 4.777 4.777 4.777 0 0 0 4.777 4.777 4.777 4.777 0 0 0 4.777-4.777 4.777 4.777 0 0 0-4.777-4.777z"/>
-    </svg>
-  );
-}
-
-function CurseForgeIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.8 6.5C18.1 4.4 16.3 2.7 14.1 2.2c-.6-.1-1.2.3-1.3.9-.1.6.3 1.2.9 1.3 1.5.3 2.8 1.5 3.3 3 .1.4.5.7.9.7h.2c.5-.1.8-.5.7-.9zM12 2C6.5 2 2 6.5 2 12c0 3.6 1.9 6.7 4.8 8.4.3.2.7.2 1 0 .3-.2.4-.5.4-.8v-3.1c0-.4.2-.8.5-1.1l2.1-2.1c.3-.3.8-.5 1.2-.5s.9.2 1.2.5l2.1 2.1c.3.3.5.7.5 1.1v3.1c0 .3.2.7.5.8.3.2.7.2 1 0 2.9-1.7 4.7-4.8 4.7-8.4 0-5.5-4.5-10-10-10zm2.2 12.8l-1.4-1.4c-.4-.4-1.1-.4-1.6 0l-1.4 1.4V11c0-.6.4-1 1-1h2.8c.6 0 1 .4 1 1v3.8z"/>
-    </svg>
-  );
-}
-
-function WebsiteIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  );
-}
-
-/* ============================================================
-   MODMENU UI PREVIEW
-   ============================================================ */
-function ModMenuPreviewFrame() {
-  return (
-    <div style={{ margin: '24px 0 32px' }}>
-      <img
-        src="/screenshot-modmenu.png"
-        alt="Muto in ModMenu"
-        style={{
-          width: '100%',
-          height: 'auto',
-          display: 'block',
-          borderRadius: '8px'
-        }}
-      />
-    </div>
-  );
-}
-
-/* ============================================================
-   CLEAN CODE BLOCK
-   ============================================================ */
-function CodeSnippet({ code, filename = "Terminal" }) {
+function CodeSnippet({ filename, code }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copy = () => {
+    navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    });
   };
 
   return (
     <div className="codeblock">
       <div className="codeblock-head">
         <span className="codeblock-filename">{filename}</span>
-        <button className="codeblock-copy" onClick={handleCopy} aria-label="Copy code">
-          {copied ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
-          <span>{copied ? "Copied" : "Copy"}</span>
+        <button className="codeblock-copy" onClick={copy} type="button">
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
       <pre>
@@ -120,806 +54,1484 @@ function CodeSnippet({ code, filename = "Terminal" }) {
   );
 }
 
-/* ============================================================
-   MAIN DOCS COMPONENT
-   ============================================================ */
-export default function App() {
-  const [selectedId, setSelectedId] = useState('overview');
-  const [query, setQuery] = useState('');
-
-  const articles = {
-    overview: {
-      category: 'Getting Started',
-      title: 'Architecture Overview',
-      subtitle: 'Industrial-grade hot mod reloader and management pipeline for Fabric 26.3',
-      isOverview: true,
-      hasMcDemo: true,
-      sections: [
-        {
-          heading: 'Live mod management without restarts',
-          content: (
-            <>
-              For over 15 years, Java Minecraft treated installed mods as immutable boot-time artifacts. Disabling a mod, testing a build update, or resolving a conflict always meant closing Minecraft, waiting minutes for the JVM and assets to reload, and repeating that dozens of times.
-              <br /><br />
-              Muto eliminates that bottleneck. Built directly into Minecraft and ModMenu, Muto allows you to toggle mods off, load newly added jars, review staged changes, and execute safe in-game hot swaps in under 5 seconds.
-            </>
-          ),
-          steps: [
-            <>Toggle any mod on or off directly inside ModMenu with native pixel-art buttons.</>,
-            <>Filter your mod list instantly between <strong>All</strong>, <strong>Active</strong>, <strong>Disabled</strong>, and <strong>Unloaded</strong>.</>,
-            <>Click <strong>Save (N)</strong> to review your staged changes before applying.</>,
-            <>Muto rotates classloaders, unfreezes registries, syncs network payloads, and reconnects seamlessly.</>
-          ]
-        },
-        {
-          heading: 'Mod Classification & Safety Tiers',
-          content: (
-            <>
-              Before reloading, Muto inspects each mod jar to determine how it can be safely reloaded. Mods are categorized into three engine tiers (<code>ModTier</code>):
-              <br /><br />
-              <strong>Clean mods</strong>: Pure client-side tweaks (HUDs, menus, tooltips) that only implement client entrypoints without mixins or server hooks. These reload instantly with zero registry footprint.
-              <br /><br />
-              <strong>Standard mods</strong>: Content mods that register items, blocks, entities, or event listeners. These are safely swapped using dynamic child ClassLoader rotation combined with registry thawing.
-              <br /><br />
-              <strong>Stubborn mods</strong>: Core platform mods (Fabric Loader, Fabric API, and core mixin anchors). These remain pinned to the root ClassLoader to ensure JVM memory and linkage stability.
-            </>
-          )
-        },
-        {
-          heading: 'Third-party & developer integration',
-          content: (
-            <>
-              External mods, in-game mod browsers, and downloaders (like Resourcify) can integrate with Muto as an optional soft dependency. If Muto is loaded, downloaders can trigger safe boundary reloads automatically when downloads complete.
-            </>
-          ),
-          snippet: {
-            filename: 'DownloaderIntegration.java',
-            code: `if (me.fy2ne.muto.api.MutoApi.isAvailable()) {
-    if (!me.fy2ne.muto.api.MutoApi.isReloading()) {
-        // Safely saves world & reconnects automatically if inside a game
-        me.fy2ne.muto.api.MutoApi.triggerBoundaryReload(currentScreen);
-    }
-}`
-          }
-        }
-      ],
-      related: [
-        { id: 'start-reloading', label: 'Mod Management Guide', desc: 'Step-by-step workflow for enabling, disabling, and loading mods.' },
-        { id: 'modmenu-sync', label: 'ModMenu Integration', desc: 'Action buttons, state badges, and filter cycle.' },
-        { id: 'safe-guard', label: 'Safe Execution Boundary', desc: 'World saving and automatic singleplayer reconnection.' }
-      ]
-    },
-    'start-reloading': {
-      category: 'Getting Started',
-      title: 'Mod Management & Reloading Guide',
-      subtitle: 'Enabling, disabling, and loading mods directly through ModMenu',
-      sections: [
-        {
-          heading: 'Managing mods in-game',
-          steps: [
-            <>Open <strong>Mods</strong> (ModMenu) from the Title Screen or Game Menu.</>,
-            <>Select any mod. Action buttons appear dynamically in the top-right of the description pane.</>,
-            <>Click the <strong>Power</strong> icon to disable a mod, or the <strong>Plus</strong> icon to stage an unloaded mod.</>,
-            <>The mod badge immediately displays <code>Pending: Disable</code>, <code>Pending: Enable</code>, or <code>Pending: Load</code>.</>,
-            <>Use the <strong>Filter</strong> button to view only active, disabled, or unloaded mods.</>,
-            <>Click <strong>Save (N)</strong> at the bottom of the screen to open the change review dialog.</>,
-            <>Click <strong>Apply & Reload</strong>. Muto renames disk files, rotates classloaders, and resynchronizes the game.</>
-          ]
-        },
-        {
-          heading: 'Adding new mods during runtime',
-          steps: [
-            <>Drop a new <code>.jar</code> into your <code>.minecraft/mods</code> folder while Minecraft is running.</>,
-            <>Open ModMenu — Muto's background scanner detects the new jar as <strong>Unloaded</strong> (gold tag).</>,
-            <>Click the <strong>Load Mod</strong> (+) button next to it.</>,
-            <>Click <strong>Save (1)</strong> &rarr; <strong>Apply & Reload</strong> to inject it into the active client.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'safe-guard', label: 'Safe Execution Boundary', desc: 'How Muto protects world state during hot reloads.' },
-        { id: 'modmenu-sync', label: 'ModMenu Integration', desc: 'Details on badges, filters, and button positioning.' }
-      ]
-    },
-    'safe-guard': {
-      category: 'Getting Started',
-      title: 'Safe Execution Boundary & World Reconnect',
-      subtitle: 'Zero world corruption with automated save, disconnect, reload, and reconnect',
-      sections: [
-        {
-          heading: 'The Boundary Manager Architecture',
-          content: (
-            <>
-              Hot-swapping bytecode or unfreezing block registries while an active world is ticking chunks could cause client-server desync. Muto solves this through the <code>ReloadBoundaryManager</code>:
-            </>
-          ),
-          alert: {
-            type: 'warning',
-            label: 'Boundary Protection',
-            text: 'Muto automatically handles state transitions: on the Title Screen it reloads in under 2 seconds; in Singleplayer worlds it saves chunks, exits cleanly, applies the hot swap, and reconnects back into your world automatically.'
-          },
-          steps: [
-            <><strong>Title Screen:</strong> Directly swaps classloaders and thaws registries without leaving the menu.</>,
-            <><strong>Singleplayer Worlds:</strong> Flushes chunk saving, disconnects with <code>MutoReconnectingScreen</code>, completes the reload, and re-enters your world seamlessly.</>,
-            <><strong>Multiplayer Servers:</strong> Gracefully disconnects, hot-swaps client-side mods, and reconnects to the target server address.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'overview', label: 'Architecture Overview', desc: 'Core hot-swap fundamentals.' },
-        { id: 'start-reloading', label: 'Mod Management Guide', desc: 'Step-by-step hot-swapping guide.' }
-      ]
-    },
-    'mod-tiers': {
-      category: 'Core Concepts',
-      title: 'Mod Classification Tiers',
-      subtitle: 'Understanding Clean, Standard, and Stubborn operational boundaries',
-      sections: [
-        {
-          heading: 'Three operational tiers for rock-solid stability',
-          content: (
-            <>
-              To guarantee stability across diverse mod ecosystems, Muto categorizes installed mods into three operational tiers based on their entrypoints and registry interactions.
-            </>
-          ),
-          steps: [
-            <><strong>Tier A (Clean Mods):</strong> Client-side tweaks, HUDs, shaders, and UI helpers (e.g. AppleSkin, FullBright). They reload instantly in milliseconds without mutating registry topologies.</>,
-            <><strong>Tier B (Standard Mods):</strong> Content mods registering blocks, items, sounds, and network payloads. Reloaded via Knot classloader rotation with temporary registry unfreezing and packet re-registration.</>,
-            <><strong>Tier C (Stubborn / Core Mods):</strong> Foundational runtime modules (Fabric Loader, Fabric API, root mixin mutators). Kept locked in the root loader to preserve JVM memory safety.</>
-          ]
-        },
-        {
-          heading: 'Topological dependency resolution',
-          content: (
-            <>
-              Mod dependencies form a finite Directed Acyclic Graph <Math tex="\mathcal{G} = (V, E)" />, where vertices represent mod containers and directed edges represent required dependencies. Unloading executes in strict reverse topological order:
-              <Math block tex="\tau^{-1}(\mathcal{G}) = (m_n, m_{n-1}, \dots, m_1) \quad \text{where} \quad (u, v) \in E \implies \text{index}(u) < \text{index}(v)" />
-              This ensures downstream dependents unmount cleanly before their prerequisite library providers are torn down.
-            </>
-          )
-        }
-      ],
-      related: [
-        { id: 'modmenu-sync', label: 'ModMenu Integration', desc: 'How mod tiers and states display in ModMenu.' },
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'Knot classloader teardown mechanics.' }
-      ]
-    },
-    'modmenu-sync': {
-      category: 'Core Concepts',
-      title: 'ModMenu Live Sync & Action Controls',
-      subtitle: 'Native Minecraft SpriteIconButton controls, adaptive alignment, and state tags',
-      sections: [
-        {
-          heading: 'Native Minecraft GUI Controls',
-          content: (
-            <>
-              Muto injects natively into ModMenu using non-invasive <code>@Pseudo</code> mixins. If ModMenu is installed, the controls integrate seamlessly; if ModMenu is not present, Muto functions independently via keybinds and commands with zero crash risk.
-            </>
-          ),
-          steps: [
-            <><strong>Native Sprite Buttons:</strong> Uses Minecraft's <code>SpriteIconButton</code> so all buttons inherit custom resource pack textures and GUI themes.</>,
-            <><strong>Adaptive Alignment:</strong> If a mod has a config button, the action button sits adjacent at <code>right - 22px</code>; if no config button exists, it aligns flush against the right edge.</>,
-            <><strong>Disabled Mod Safety:</strong> Config buttons for disabled mods remain visible but inactive (grayed out) with a tooltip: <em>"Cannot configure disabled mod. Enable the mod first."</em></>,
-            <><strong>Status Badges:</strong> Color-coded badges indicate <code>Disabled</code> (red), <code>Unloaded</code> (gold), and staged changes (green).</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'config-screen', label: 'Muto Configuration Screen', desc: 'Native settings UI for Muto preferences.' },
-        { id: 'start-reloading', label: 'Mod Management Guide', desc: 'How to use the staged review screen.' }
-      ]
-    },
-    'config-screen': {
-      category: 'Core Concepts',
-      title: 'Muto Configuration Screen',
-      subtitle: 'Native Minecraft preference screen accessible via ModMenu, /muto, or F7',
-      sections: [
-        {
-          heading: 'Lightweight configuration with zero external dependencies',
-          content: (
-            <>
-              Unlike mods that require third-party libraries (like Cloth Config), Muto features a standalone native Minecraft GUI (<code>MutoConfigScreen</code>) built directly on Vanilla <code>Screen</code> APIs.
-            </>
-          ),
-          steps: [
-            <>Toggle automatic boundary reload behavior (singleplayer reconnect vs title screen).</>,
-            <>Configure toast notification verbosity and sound effects.</>,
-            <>Manage developer inspection options and diagnostic logs.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'safe-guard', label: 'Safe Execution Boundary', desc: 'World saving and auto-reconnect.' },
-        { id: 'modmenu-sync', label: 'ModMenu Integration', desc: 'Accessing config from ModMenu.' }
-      ]
-    },
-    'fast-refresh': {
-      category: 'Developer Integration',
-      title: 'Fast Refresh Dev Loop (mutoWatch)',
-      subtitle: 'Continuous incremental recompiler and sub-300ms in-game hot swap pipeline',
-      sections: [
-        {
-          heading: 'Overview & Developer Workflow',
-          content: (
-            <>
-              Traditional Minecraft mod development requires restarting the game client after every code change, wasting 30 to 60 seconds per iteration. Muto provides a continuous background watcher that recompiles modified sources and hot-swaps bytecode into the running game in approximately 300ms.
-            </>
-          ),
-          steps: [
-            <>Add Muto as a runtime mod and apply <code>muto-watcher.gradle</code> in your mod buildscript.</>,
-            <>Launch the Minecraft client once using <code>./gradlew runClient</code>.</>,
-            <>In a separate terminal, run <code>./gradlew mutoWatch</code> to start continuous monitoring.</>,
-            <>Edit your Java classes or assets in IntelliJ or VS Code and press save.</>,
-            <>Muto compiles, repackages, updates the running Knot ClassLoader, and triggers live bytecode retransformation.</>
-          ],
-          snippet: {
-            filename: 'build.gradle',
-            code: `// Apply Muto Fast Refresh script in your Fabric mod
-dependencies {
-    modRuntimeOnly "me.fy2ne:muto:0.2.0-beta"
+function DocAlert({ kind = "note", label, children }) {
+  return (
+    <div className={`doc-alert doc-alert-${kind}`}>
+      <div className="doc-alert-label">{label}</div>
+      <div className="doc-alert-body">{children}</div>
+    </div>
+  );
 }
 
-apply from: 'https://raw.githubusercontent.com/fy2ne/muto/main/muto-watcher.gradle'`
-          }
-        },
-        {
-          heading: 'Terminal Execution',
-          snippet: {
-            filename: 'Terminal',
-            code: `$ ./gradlew mutoWatch
-[muto:watch] initialized for mymod-1.0.jar -> run/mods/
-[muto:watch] watching src/main/java and src/main/resources
-[muto:watch] change detected: HudOverlay.java, recompiling
-[muto:watch] jar packaged in 78ms, signal dispatched
-[muto:watch] runtime response: SUCCESS=true, DURATION=215ms, ADDED=[], REMOVED=[], UPDATED=[mymod]`
-          }
-        }
-      ],
-      related: [
-        { id: 'api-reference', label: 'Public MutoApi Reference', desc: 'Static methods and lifecycle events.' },
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'Runtime execution lifecycle.' }
-      ]
-    },
-    'resourcify-guide': {
-      category: 'Developer Integration',
-      title: 'Downloader & In-Game Installer API',
-      subtitle: 'Enabling in-game mod downloading and live hot-swapping for external mods',
-      sections: [
-        {
-          heading: 'Soft-dependency architecture',
-          content: (
-            <>
-              External mods (like in-game mod browsers or downloaders) can allow players to search and download mods in-game, automatically hot-reloading them with Muto without restarting the client.
-            </>
-          ),
-          steps: [
-            <>Add Muto API as a <code>modCompileOnly</code> dependency in your <code>build.gradle</code>.</>,
-            <>Add <code>"muto": "&gt;=0.2.0-beta"</code> under <code>suggests</code> in your <code>fabric.mod.json</code>.</>,
-            <>When your downloader finishes saving a jar to <code>mods/</code>, check <code>MutoApi.isAvailable()</code>.</>,
-            <>If Muto is present, trigger <code>MutoApi.triggerBoundaryReload(currentScreen)</code>.</>,
-            <>If Muto is absent, display a fallback message: <code>Restart Minecraft to apply changes</code>.</>
-          ],
-          snippet: {
-            filename: 'DownloaderIntegration.java',
-            code: `// Soft-dependency check
-if (me.fy2ne.muto.api.MutoApi.isAvailable()) {
-    if (!me.fy2ne.muto.api.MutoApi.isReloading()) {
-        // Automatically handles singleplayer world save & reconnect
-        me.fy2ne.muto.api.MutoApi.triggerBoundaryReload(currentScreen);
-    }
-} else {
-    notifyPlayer("Mod downloaded. Restart Minecraft to apply changes.");
-}`
-          }
-        },
-        {
-          heading: 'Gradle dependency configuration (GitHub Packages)',
-          snippet: {
-            filename: 'build.gradle',
-            code: `repositories {
+function Math({ tex, block = false }) {
+  const html = useMemo(
+    () => katex.renderToString(tex, { throwOnError: false, displayMode: block }),
+    [tex, block]
+  );
+  return (
+    <span
+      className={block ? "math-block" : "math-inline"}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Navigation                                                          */
+/* ------------------------------------------------------------------ */
+
+const nav = [
+  {
+    title: "Getting Started",
+    items: [
+      { id: "overview", title: "Architecture Overview", icon: BookOpen, short: "What Muto Runtime is and how the two halves fit together." },
+      { id: "install", title: "Dependency & Installation", icon: Layers, short: "Maven coordinates, version matrix, optional-guard pattern." },
+      { id: "pipeline", title: "Reload Pipeline Guide", icon: RotateCw, short: "Trigger, inspect and trace a hot-swap transaction." },
+      { id: "safe-guard", title: "Safe Execution Boundary", icon: ShieldCheck, short: "When it is safe to reload and on which thread." },
+    ],
+  },
+  {
+    title: "Core Concepts",
+    items: [
+      { id: "mod-tiers", title: "Mod Classification Tiers", icon: Cpu, short: "Tier 1/2/3 classification and reloadability." },
+      { id: "api-reference", title: "Public API Reference", icon: Code2, short: "Every public entry point in me.fy2ne.muto.api." },
+      { id: "events", title: "Lifecycle Events", icon: Zap, short: "RELOAD_START and RELOAD_FINISH hooks." },
+      { id: "testing", title: "Testing & CI", icon: Sliders, short: "JUnit 5 test stack and the GitHub Actions pipelines." },
+      { id: "source", title: "Repository & Packages", icon: Terminal, short: "Source layout, Gradle tasks, license." },
+    ],
+  },
+  {
+    title: "Developer Integration",
+    items: [
+      { id: "fast-refresh", title: "Fast Refresh Dev Loop", icon: Zap, short: "mutoWatch and the muto.trigger file." },
+      { id: "mod-state", title: "Mod State Management", icon: Boxes, short: "Stage enable/disable changes before a reload." },
+      { id: "config", title: "Configuration (muto.json)", icon: Settings, short: "Runtime flags written by MutoConfig." },
+      { id: "file-locks", title: "Windows File Locking", icon: Wrench, short: "Why jars cannot be replaced in place." },
+      { id: "jvm-tuning", title: "JVM & JetBrains Runtime", icon: Terminal, short: "Heap sizing and GC flags for repeated swaps." },
+    ],
+  },
+  {
+    title: "Internals",
+    items: [
+      { id: "arch-rotation", title: "Knot Integration & Reload", icon: RotateCw, short: "Appending jars to Knot and registering mixins." },
+      { id: "registry-thawing", title: "Registry Thawing Mechanics", icon: Lock, short: "unfreeze, pruneNamespace, refreeze." },
+      { id: "atomic-rollback", title: "Atomic Rollback Guarantee", icon: ShieldCheck, short: "What survives a failed reload." },
+    ],
+  },
+];
+
+const articles = {
+  overview: {
+    title: "Architecture Overview",
+    category: "Getting Started",
+    sections: [
+      { id: "what", label: "What it is" },
+      { id: "halves", label: "Two halves" },
+      { id: "stages", label: "Pipeline at a glance" },
+      { id: "constraints", label: "Constraints" },
+    ],
+    related: ["install", "pipeline"],
+  },
+  install: {
+    title: "Dependency & Installation",
+    category: "Getting Started",
+    sections: [
+      { id: "coordinates", label: "Coordinates" },
+      { id: "adding", label: "Adding the dependency" },
+      { id: "matrix", label: "Version matrix" },
+      { id: "guard", label: "Optional-guard pattern" },
+    ],
+    related: ["api-reference", "pipeline"],
+  },
+  pipeline: {
+    title: "Reload Pipeline Guide",
+    category: "Getting Started",
+    sections: [
+      { id: "trigger", label: "Triggering a reload" },
+      { id: "plan", label: "Inspecting the plan" },
+      { id: "stages", label: "Pipeline stages" },
+      { id: "progress", label: "Progress callbacks" },
+    ],
+    related: ["safe-guard", "mod-tiers"],
+  },
+  "safe-guard": {
+    title: "Safe Execution Boundary",
+    category: "Getting Started",
+    sections: [
+      { id: "boundary", label: "The boundary check" },
+      { id: "why", label: "Why the boundary exists" },
+      { id: "threading", label: "Threading model" },
+    ],
+    related: ["pipeline", "registry-thawing"],
+  },
+  "mod-tiers": {
+    title: "Mod Classification Tiers",
+    category: "Core Concepts",
+    sections: [
+      { id: "tier1", label: "Tier 1 - clean client mods" },
+      { id: "tier2", label: "Tier 2 - content mods" },
+      { id: "tier3", label: "Tier 3 - stubborn / core" },
+      { id: "querying", label: "Querying tiers" },
+    ],
+    related: ["pipeline", "registry-thawing"],
+  },
+  "api-reference": {
+    title: "Public API Reference",
+    category: "Core Concepts",
+    sections: [
+      { id: "mutoapi", label: "MutoApi" },
+      { id: "records", label: "Result & plan records" },
+      { id: "moddiff", label: "ModDiff" },
+      { id: "example", label: "Full example" },
+    ],
+    related: ["events", "install"],
+  },
+  events: {
+    title: "Lifecycle Events",
+    category: "Core Concepts",
+    sections: [
+      { id: "start", label: "RELOAD_START" },
+      { id: "finish", label: "RELOAD_FINISH" },
+      { id: "example", label: "Example" },
+      { id: "threading", label: "Threading" },
+    ],
+    related: ["api-reference", "pipeline"],
+  },
+  testing: {
+    title: "Testing & CI",
+    category: "Core Concepts",
+    sections: [
+      { id: "stack", label: "Test stack" },
+      { id: "run", label: "Running the tests" },
+      { id: "classes", label: "Test classes" },
+      { id: "ci", label: "Continuous integration" },
+    ],
+    related: ["source", "install"],
+  },
+  source: {
+    title: "Repository & Packages",
+    category: "Core Concepts",
+    sections: [
+      { id: "repo", label: "Repository" },
+      { id: "layout", label: "Source layout" },
+      { id: "tasks", label: "Gradle tasks" },
+      { id: "license", label: "License" },
+    ],
+    related: ["install", "testing"],
+  },
+  "fast-refresh": {
+    title: "Fast Refresh Dev Loop",
+    category: "Developer Integration",
+    sections: [
+      { id: "how", label: "How it works" },
+      { id: "setup", label: "Setup" },
+      { id: "files", label: "Trigger & result files" },
+    ],
+    related: ["pipeline", "config"],
+  },
+  "mod-state": {
+    title: "Mod State Management",
+    category: "Developer Integration",
+    sections: [
+      { id: "staging", label: "Staging changes" },
+      { id: "protected", label: "Protected mods" },
+      { id: "applying", label: "Applying changes" },
+    ],
+    related: ["pipeline", "file-locks"],
+  },
+  config: {
+    title: "Configuration (muto.json)",
+    category: "Developer Integration",
+    sections: [
+      { id: "file", label: "The config file" },
+      { id: "flags", label: "Flags" },
+      { id: "notes", label: "Notes" },
+    ],
+    related: ["fast-refresh", "source"],
+  },
+  "file-locks": {
+    title: "Windows File Locking",
+    category: "Developer Integration",
+    sections: [
+      { id: "problem", label: "The problem" },
+      { id: "handling", label: "How Muto handles it" },
+    ],
+    related: ["mod-state", "pipeline"],
+  },
+  "jvm-tuning": {
+    title: "JVM & JetBrains Runtime",
+    category: "Developer Integration",
+    sections: [
+      { id: "metaspace", label: "Metaspace churn" },
+      { id: "heap", label: "Heap sizing" },
+      { id: "flags", label: "Recommended flags" },
+    ],
+    related: ["arch-rotation", "config"],
+  },
+  "arch-rotation": {
+    title: "Knot Integration & Reload",
+    category: "Internals",
+    sections: [
+      { id: "knot", label: "Knot injection" },
+      { id: "transformer", label: "Dynamic mixin registration" },
+      { id: "consequence", label: "The hard limit" },
+    ],
+    related: ["registry-thawing", "jvm-tuning"],
+  },
+  "registry-thawing": {
+    title: "Registry Thawing Mechanics",
+    category: "Internals",
+    sections: [
+      { id: "freeze", label: "Unfreeze & refreeze" },
+      { id: "prune", label: "Namespace pruning" },
+      { id: "caveat", label: "Version sensitivity" },
+    ],
+    related: ["mod-tiers", "arch-rotation"],
+  },
+  "atomic-rollback": {
+    title: "Atomic Rollback Guarantee",
+    category: "Internals",
+    sections: [
+      { id: "guarantee", label: "The guarantee" },
+      { id: "results", label: "Reading results" },
+    ],
+    related: ["pipeline", "events"],
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Article bodies                                                      */
+/* ------------------------------------------------------------------ */
+
+function ArticleContent({ id }) {
+  switch (id) {
+    case "overview":
+      return (
+        <>
+          <h1>Architecture Overview</h1>
+          <p>
+            Muto Runtime (<code>me.fy2ne.muto</code>) is a <strong>developer library</strong> for
+            Fabric that hot-swaps mods into an already-running Minecraft client. It is not a
+            player-facing mod: there is no in-game screen, no menu and no gameplay feature. You
+            depend on it from your own mod and call its API to inject mod jars into Fabric Loader at
+            runtime and re-run their initializers without restarting the JVM.
+          </p>
+          <p>
+            The artifact and mod id are <code>muto</code>; the code you call lives in{" "}
+            <code>me.fy2ne.muto.api</code>.
+          </p>
+
+          <h2 id="what">What it is - and isn't</h2>
+          <ul>
+            <li>
+              <strong>Is</strong>: a runtime hot-swap pipeline, Knot classpath injection, registry
+              freeze/thaw helpers, and a small public API.
+            </li>
+            <li>
+              <strong>Is</strong>: client-only, scoped to the title screen, licensed under the GNU
+              Lesser General Public License v3.0.
+            </li>
+            <li>
+              <strong>Isn't</strong>: a mod manager, a downloader, a launcher, or an in-game
+              configuration UI.
+            </li>
+          </ul>
+
+          <h2 id="halves">Two halves</h2>
+          <p>
+            The runtime is split into Fabric Loader integration and the reload engine that
+            orchestrates the swap.
+          </p>
+          <ul>
+            <li>
+              <strong>Loader integration</strong> -{" "}
+              <code>me.fy2ne.muto.engine.knot.KnotInjector</code> reaches into Fabric Loader's{" "}
+              <code>Knot</code> to append a newly added jar to its classpath, and{" "}
+              <code>me.fy2ne.muto.engine.mixin.DynamicMixinEngine</code> registers the jar's mixin
+              configurations with the global Mixin service.
+            </li>
+            <li>
+              <strong>Engine</strong> - <code>me.fy2ne.muto.engine.ReloadEngine</code> owns the
+              scan, diff, registry thaw and mod-init sequence. The public API in{" "}
+              <code>me.fy2ne.muto.api</code> is a thin facade over it.
+            </li>
+          </ul>
+
+          <h2 id="stages">Pipeline at a glance</h2>
+          <ol>
+            <li>Scan the <code>mods</code> directory and hash each jar.</li>
+            <li>Diff against the last snapshot (added / removed / updated / unchanged).</li>
+            <li>Inject new and updated jars into Knot's classpath.</li>
+            <li>Register the new jars' dynamic mixin configurations.</li>
+            <li>Tear down removed / updated contexts and prune their registry namespaces.</li>
+            <li>Unfreeze the built-in registries.</li>
+            <li>
+              Re-run each reloadable mod's <code>ModInitializer</code> /{" "}
+              <code>ClientModInitializer</code>.
+            </li>
+            <li>Refreeze the registries.</li>
+            <li>Sync key bindings and Fabric Loader mod metadata.</li>
+            <li>Optionally remount resources and reload shaders.</li>
+          </ol>
+
+          <h2 id="constraints">Constraints</h2>
+          <ul>
+            <li>Minecraft <code>&gt;=26.1 &lt;27.0</code> (built and tested against <code>26.3</code>).</li>
+            <li>Fabric Loader <code>&gt;=0.16.0</code> (developed against <code>0.19.5</code>).</li>
+            <li>Fabric API (minimum declared <code>0.144.1</code>, build target <code>0.161.0+26.3</code>).</li>
+            <li>Java <code>25</code>.</li>
+            <li>Client environment only.</li>
+          </ul>
+
+          <DocAlert kind="note" label="Design intent">
+            <p>
+              The runtime assumes it is the only party injecting jars into Knot's classpath and
+              mutating the game registries. It is not designed to coexist with other hot-reload
+              tooling in the same process.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "install":
+      return (
+        <>
+          <h1>Dependency &amp; Installation</h1>
+          <p>
+            Muto Runtime consumes as a normal Fabric mod artifact. Add it as a{" "}
+            <code>modCompileOnly</code> dependency so your code compiles against the API, and make
+            sure the runtime jar is present in the game's <code>mods</code> folder at run time.
+          </p>
+
+          <h2 id="coordinates">Coordinates</h2>
+          <ul>
+            <li>Maven group: <code>me.fy2ne</code></li>
+            <li>Artifact: <code>muto</code></li>
+            <li>Java package: <code>me.fy2ne.muto</code></li>
+            <li>Fabric mod id: <code>muto</code></li>
+            <li>Current version: <code>{VERSION}</code> (jar build tag <code>+26.x</code>)</li>
+          </ul>
+
+          <h2 id="adding">Adding the dependency</h2>
+          <p>
+            The cheapest path is the Modrinth Maven repository, which serves the same jar that is
+            published to the mod listing.
+          </p>
+          <CodeSnippet
+            filename="build.gradle"
+            code={`repositories {
     maven {
-        name = "GitHubPackages"
-        url = "https://maven.pkg.github.com/fy2ne/muto"
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
     }
 }
 
 dependencies {
-    modCompileOnly "me.fy2ne:muto:0.2.0-beta"
-}`
-          }
+    modCompileOnly "maven.modrinth:muto:${VERSION}"
+}`}
+          />
+          <p>
+            The library build is also published to GitHub Packages as{" "}
+            <code>me.fy2ne:muto</code> by <code>.github/workflows/publish.yml</code>, which you can
+            resolve with the standard GitHub Maven repository and a <code>GITHUB_TOKEN</code>.
+          </p>
+
+          <h2 id="matrix">Version matrix</h2>
+          <ul>
+            <li>
+              <strong>Minecraft</strong> - <code>&gt;=26.1 &lt;27.0</code>, developed against{" "}
+              <code>26.3</code>
+            </li>
+            <li>
+              <strong>Fabric Loader</strong> - declared <code>&gt;=0.16.0</code>, developed against{" "}
+              <code>0.19.5</code>
+            </li>
+            <li>
+              <strong>Fabric API</strong> - declared <code>&gt;=0.144.1</code>, build target{" "}
+              <code>0.161.0+26.3</code>
+            </li>
+            <li>
+              <strong>Java</strong> - <code>&gt;=25</code>
+            </li>
+            <li>
+              <strong>Environment</strong> - <code>client</code>
+            </li>
+          </ul>
+
+          <h2 id="guard">Optional-guard pattern</h2>
+          <p>
+            Because Muto is an optional dependency, declare it as a soft dependency and guard every
+            call behind <code>MutoApi.isAvailable()</code> so your mod keeps working on installs
+            that do not ship the runtime.
+          </p>
+          <CodeSnippet
+            filename="MyMod.java"
+            code={`import me.fy2ne.muto.api.MutoApi;
+import net.fabricmc.loader.api.FabricLoader;
+
+if (FabricLoader.getInstance().isModLoaded("muto") && MutoApi.isAvailable()) {
+    MutoApi.reloadAsync().thenAccept(result -> {
+        if (result.success()) {
+            System.out.println("hot-swapped in " + result.durationMs() + "ms");
         }
-      ],
-      related: [
-        { id: 'api-reference', label: 'Public MutoApi Reference', desc: 'Static methods and lifecycle events.' },
-        { id: 'overview', label: 'Architecture Overview', desc: 'Core hot-swap fundamentals.' }
-      ]
-    },
-    'api-reference': {
-      category: 'Developer Integration',
-      title: 'Public MutoApi Reference',
-      subtitle: 'Static methods and lifecycle event hooks in me.fy2ne.muto.api',
-      sections: [
-        {
-          heading: 'MutoApi class methods (me.fy2ne.muto.api.MutoApi)',
-          steps: [
-            <><code>MutoApi.isAvailable()</code> &mdash; Returns true if Muto is active in FabricLoader.</>,
-            <><code>MutoApi.isReloading()</code> &mdash; Returns true if ReloadEngine is currently processing a swap.</>,
-            <><code>MutoApi.isSafeToReload()</code> &mdash; Returns true if the client is not currently executing a reload.</>,
-            <><code>MutoApi.triggerBoundaryReload(Screen)</code> &mdash; Triggers a safe boundary reload (handles world save & auto-reconnect).</>,
-            <><code>MutoApi.reloadAsync()</code> &mdash; Scans <code>mods/</code> and executes the hot reload asynchronously.</>,
-            <><code>MutoApi.getReloadableModIds()</code> &mdash; Returns mod IDs tracked in the active reload snapshot.</>,
-            <><code>MutoApi.getStubbornModIds()</code> &mdash; Returns core mod IDs locked in the root classloader.</>
-          ],
-          snippet: {
-            filename: 'me.fy2ne.muto.api.MutoApi.java',
-            code: `package me.fy2ne.muto.api;
+    });
+}`}
+          />
 
-public final class MutoApi {
-    public static boolean isAvailable();
-    public static boolean isReloading();
-    public static boolean isSafeToReload();
-    public static void triggerBoundaryReload(net.minecraft.client.gui.screens.Screen returnScreen);
-    public static CompletableFuture<ReloadResult> reloadAsync();
-    public static Set<String> getReloadableModIds();
-    public static Set<String> getStubbornModIds();
-}`
-          }
-        },
-        {
-          heading: 'Lifecycle Events (me.fy2ne.muto.api.MutoEvents)',
-          snippet: {
-            filename: 'LifecycleHooks.java',
-            code: `import me.fy2ne.muto.api.MutoEvents;
+          <DocAlert kind="warning" label="Runtime jar required">
+            <p>
+              <code>modCompileOnly</code> gives you the API at compile time only. The{" "}
+              <code>muto</code> jar must still be present in <code>mods/</code> at run time or{" "}
+              <code>isAvailable()</code> returns <code>false</code> and nothing will happen.
+            </p>
+          </DocAlert>
+        </>
+      );
 
-// Teardown state before reload starts
-MutoEvents.RELOAD_START.register((startEpochMs, expectedDiff) -> {
-    if (expectedDiff.removed().contains("my_mod")) {
-        MySubsystem.shutdown();
-    }
+    case "pipeline":
+      return (
+        <>
+          <h1>Reload Pipeline Guide</h1>
+          <p>
+            A reload is the core operation. From your mod you build a jar, place it into the run
+            directory's <code>mods</code> folder, then ask the engine to hot-swap it in. The pipeline
+            never restarts the JVM.
+          </p>
+
+          <h2 id="trigger">Triggering a reload</h2>
+          <p>
+            <code>reloadAsync()</code> returns a <code>CompletableFuture&lt;ReloadResult&gt;</code>{" "}
+            that resolves on a background thread. Use the overload that takes a{" "}
+            <code>Consumer&lt;String&gt;</code> to receive a human-readable line for every stage.
+          </p>
+          <CodeSnippet
+            filename="ReloadTrigger.java"
+            code={`MutoApi.reloadAsync(stage -> LOG.info("[muto] {}", stage))
+    .thenAccept(result -> {
+        if (result.success()) {
+            LOG.info("reload ok in {}ms, updated={}",
+                    result.durationMs(), result.diff().updated());
+        } else {
+            LOG.warn("reload failed: {}", result.error());
+        }
+    });`}
+          />
+
+          <h2 id="plan">Inspecting the plan</h2>
+          <p>
+            <code>MutoApi.plan()</code> computes the diff without executing anything. It is cheap and
+            does not inject jars or mutate registries, so it is safe to call for previews and
+            logging.
+          </p>
+          <CodeSnippet
+            filename="PlanPreview.java"
+            code={`ReloadPlan plan = MutoApi.plan();
+
+if (plan.hasWork()) {
+    ModDiff diff = plan.diff();
+    LOG.info("added={} removed={} updated={}",
+            diff.added(), diff.removed(), diff.updated());
+    LOG.info("reloadable={} stubborn={}",
+            plan.reloadable().size(), plan.stubborn().size());
+}`}
+          />
+
+          <h2 id="stages">Pipeline stages</h2>
+          <ol>
+            <li>Scan <code>mods</code> and hash each jar.</li>
+            <li>Compute the diff against the recorded snapshot.</li>
+            <li>Inject new and updated jars into Knot's classpath.</li>
+            <li>Register the new jars' dynamic mixin configurations.</li>
+            <li>Tear down removed / updated contexts and prune their registry namespaces.</li>
+            <li>Unfreeze built-in registries.</li>
+            <li>
+              Re-run <code>ModInitializer</code> / <code>ClientModInitializer</code> for each
+              reloadable mod.
+            </li>
+            <li>Refreeze the registries.</li>
+            <li>Sync key bindings and Fabric Loader mod metadata.</li>
+          </ol>
+
+          <h2 id="progress">Progress callbacks</h2>
+          <p>
+            The stage notifier is invoked synchronously on the reload background thread - not the
+            Minecraft main thread. Logging is fine; if you need to touch game state, submit the work
+            with <code>Minecraft.getInstance().submit(...)</code>.
+          </p>
+
+          <DocAlert kind="note" label="No-op reloads">
+            <p>
+              If no mod changes are detected the pipeline returns immediately with a successful
+              no-op <code>ReloadResult</code> and an empty diff.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "safe-guard":
+      return (
+        <>
+          <h1>Safe Execution Boundary</h1>
+          <p>
+            A hot swap mutates global registry and Fabric Loader state, so it is only safe at a
+            quiescent point in the client lifecycle.{" "}
+            <code>MutoApi.isSafeToReload()</code> encodes that boundary.
+          </p>
+
+          <h2 id="boundary">The boundary check</h2>
+          <p>The method returns <code>true</code> only when all of the following hold:</p>
+          <ul>
+            <li>A <code>Minecraft</code> instance exists.</li>
+            <li>No reload is currently in progress (<code>isReloading()</code> is false).</li>
+            <li>The client is not inside a level (<code>mc.level == null</code>).</li>
+            <li>No singleplayer server is running (<code>!mc.hasSingleplayerServer()</code>).</li>
+          </ul>
+          <p>
+            If the check throws for any reason it fails closed and returns <code>false</code>.
+          </p>
+
+          <h2 id="why">Why the boundary exists</h2>
+          <p>
+            Registering blocks, items or entities into a live registry while the world is ticking
+            can leave holder references and numeric ids inconsistent. Restricting reloads to the
+            title screen keeps the registry in a state that can be thawed and rebuilt without racing
+            the game loop.
+          </p>
+
+          <h2 id="threading">Threading model</h2>
+          <ul>
+            <li>
+              <code>reloadAsync()</code> is non-blocking and resolves on a background thread.
+            </li>
+            <li>
+              Stage notifiers and <code>MutoEvents</code> listeners fire on that same background
+              thread.
+            </li>
+            <li>
+              To run code on the game thread from a listener, use{" "}
+              <code>Minecraft.getInstance().submit(...)</code>.
+            </li>
+          </ul>
+
+          <DocAlert kind="warning" label="Respect the check">
+            <p>
+              Calling <code>reloadAsync()</code> while inside a world is technically possible but
+              unsupported; it can corrupt mid-tick registry state. Always gate on{" "}
+              <code>isSafeToReload()</code>.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "mod-tiers":
+      return (
+        <>
+          <h1>Mod Classification Tiers</h1>
+          <p>
+            Every scanned mod is classified before the diff is executed. The tier decides how much
+            work the pipeline has to do and whether the mod can be swapped at all.
+          </p>
+
+          <h2 id="tier1">Tier 1 - clean client mods</h2>
+          <p>
+            HUDs, tweaks and UI-only mods that register nothing into game registries. They are the
+            cheapest to swap: the jar is injected into Knot's classpath and the initializer is
+            re-run.
+          </p>
+
+          <h2 id="tier2">Tier 2 - content mods</h2>
+          <p>
+            Mods that register blocks, items, entities or other registry entries. A swap requires
+            the full registry thaw: unfreeze, prune the old namespace, re-run the initializer, and
+            refreeze.
+          </p>
+
+          <h2 id="tier3">Tier 3 - stubborn / core</h2>
+          <p>
+            Fabric Loader, Fabric API and <code>muto</code> itself, plus mods with deeply-woven
+            mixins. Their classes are already loaded and mixin-woven, so they cannot be re-woven in
+            place and cannot be reloaded without a full JVM restart.
+          </p>
+
+          <h2 id="querying">Querying tiers</h2>
+          <p>
+            The API exposes the classification of the last recorded snapshot:
+          </p>
+          <CodeSnippet
+            filename="Tiers.java"
+            code={`Set<String> reloadable = MutoApi.getReloadableModIds(); // Tier 1 + Tier 2
+Set<String> stubborn  = MutoApi.getStubbornModIds();   // Tier 3`}
+          />
+          <p>
+            The core set is defined by{" "}
+            <code>me.fy2ne.muto.mods.ModStateManager</code>: <code>minecraft</code>,{" "}
+            <code>fabricloader</code>, <code>fabric</code>, <code>fabric-api</code>,{" "}
+            <code>java</code>, <code>muto</code>, <code>fabric-api-base</code>,{" "}
+            <code>fabric-lifecycle-events-v1</code> and <code>fabric-resource-loader-v0</code>.
+            Any id starting with <code>fabric-api</code> is treated as core.
+          </p>
+        </>
+      );
+
+    case "api-reference":
+      return (
+        <>
+          <h1>Public API Reference</h1>
+          <p>
+            All public entry points live in <code>me.fy2ne.muto.api</code>. Everything is
+            thread-safe.
+          </p>
+
+          <h2 id="mutoapi">MutoApi</h2>
+          <ul>
+            <li>
+              <code>boolean isAvailable()</code> - whether the <code>muto</code> mod is loaded.
+              Outermost guard for every other call.
+            </li>
+            <li>
+              <code>boolean isReloading()</code> - whether a reload transaction is in progress.
+            </li>
+            <li>
+              <code>boolean isSafeToReload()</code> - whether the client is at a reloadable boundary
+              (title screen).
+            </li>
+            <li>
+              <code>ReloadPlan plan()</code> - computes the reload plan without executing it.
+            </li>
+            <li>
+              <code>CompletableFuture&lt;ReloadResult&gt; reloadAsync()</code> - executes the full
+              pipeline against the current <code>mods</code> directory.
+            </li>
+            <li>
+              <code>
+                CompletableFuture&lt;ReloadResult&gt; reloadAsync(Consumer&lt;String&gt; stageNotifier)
+              </code>{" "}
+              - same, with per-stage progress callbacks.
+            </li>
+            <li>
+              <code>boolean startFileWatcher()</code> / <code>boolean stopFileWatcher()</code> /{" "}
+              <code>boolean isFileWatcherRunning()</code> - control the dev trigger watcher.
+            </li>
+            <li>
+              <code>Set&lt;String&gt; getReloadableModIds()</code> - Tier 1 + Tier 2 ids.
+            </li>
+            <li>
+              <code>Set&lt;String&gt; getStubbornModIds()</code> - Tier 3 ids.
+            </li>
+          </ul>
+
+          <h2 id="records">Result &amp; plan records</h2>
+          <ul>
+            <li>
+              <code>ReloadResult(boolean success, ModDiff diff, long durationMs, String error)</code>{" "}
+              - outcome of one pipeline run. Helpers <code>ReloadResult.ok(...)</code> and{" "}
+              <code>ReloadResult.fail(...)</code>.
+            </li>
+            <li>
+              <code>ReloadPlan(ModSnapshot currentSnapshot, ModSnapshot targetSnapshot, ModDiff diff, List&lt;ScannedMod&gt; reloadable, List&lt;ScannedMod&gt; stubborn)</code>{" "}
+              - preview. <code>hasWork()</code> is true when the diff has changes.
+            </li>
+          </ul>
+
+          <h2 id="moddiff">ModDiff</h2>
+          <p>
+            An immutable snapshot of the change set: <code>added</code>, <code>removed</code>,{" "}
+            <code>updated</code> (same id, different jar hash) and <code>unchanged</code>. All sets
+            are unmodifiable and never null. <code>hasChanges()</code> reports whether anything was
+            added, removed or updated.
+          </p>
+
+          <h2 id="example">Full example</h2>
+          <CodeSnippet
+            filename="Integration.java"
+            code={`import me.fy2ne.muto.api.ModDiff;
+import me.fy2ne.muto.api.MutoApi;
+import me.fy2ne.muto.engine.ReloadPlan;
+import me.fy2ne.muto.engine.ReloadResult;
+
+if (!MutoApi.isAvailable()) return;
+
+ReloadPlan plan = MutoApi.plan();
+if (!plan.hasWork()) {
+    LOG.info("nothing to reload");
+    return;
+}
+
+MutoApi.reloadAsync(stage -> LOG.info("[muto] {}", stage))
+    .thenAccept(result -> {
+        if (!result.success()) {
+            LOG.warn("reload failed: {}", result.error());
+            return;
+        }
+        ModDiff diff = result.diff();
+        LOG.info("swapped in {}ms ({} updated)",
+                result.durationMs(), diff.updated().size());
+    });`}
+          />
+        </>
+      );
+
+    case "events":
+      return (
+        <>
+          <h1>Lifecycle Events</h1>
+          <p>
+            <code>MutoEvents</code> exposes Fabric <code>Event</code> hooks so other mods can react
+            to a hot-swap without polling. Register listeners during your mod's initialization.
+          </p>
+
+          <h2 id="start">RELOAD_START</h2>
+          <p>
+            Fired immediately before the pipeline begins. Receives the epoch timestamp of the
+            trigger and the expected <code>ModDiff</code>. Use it to tear down state that depends on
+            the mods about to be swapped.
+          </p>
+          <CodeSnippet
+            filename="ReloadStartListener.java"
+            code={`void onReloadStart(long startEpochMs, ModDiff expectedDiff);`}
+          />
+
+          <h2 id="finish">RELOAD_FINISH</h2>
+          <p>
+            Fired after the pipeline finishes - success, failure or no-op. Use it to refresh caches
+            and re-bind resources.
+          </p>
+          <CodeSnippet
+            filename="ReloadFinishListener.java"
+            code={`void onReloadFinish(long endEpochMs, ModDiff diff, boolean success,
+                    long durationMs, Throwable error);`}
+          />
+
+          <h2 id="example">Example</h2>
+          <CodeSnippet
+            filename="ListenerRegistration.java"
+            code={`MutoEvents.RELOAD_START.register((startMs, diff) -> {
+    MyTextureCache.clear();
+    MyNetworkLayer.closeStaleChannels();
 });
 
-// Re-init state after reload settles
-MutoEvents.RELOAD_FINISH.register((endEpochMs, diff, success, durationMs, error) -> {
-    if (success && diff.added().contains("my_mod")) {
-        MySubsystem.bootstrap();
+MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
+    if (success) {
+        MyModList.refresh();
+    } else {
+        LOG.warn("reload failed: {}", error);
     }
-});`
-          }
-        }
-      ],
-      related: [
-        { id: 'resourcify-guide', label: 'Downloader API Guide', desc: 'Code examples for in-game mod installers.' },
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'Runtime execution lifecycle.' }
-      ]
-    },
-    'file-locks': {
-      category: 'Developer Integration',
-      title: 'Windows File Locking Solution',
-      subtitle: 'Eliminating the "File in use by another process" Windows operating system lock',
-      sections: [
-        {
-          heading: 'Why Windows locks jar files and how Muto solves it',
-          content: (
-            <>
-              On Windows, the operating system prevents open jar files from being renamed or overwritten (<code>ERROR_SHARING_VIOLATION</code>). If a user attempts to disable or delete an active mod jar while Minecraft is open, Windows rejects the file action.
-              <br /><br />
-              Muto solves this by using non-locking jar inspection and staging file renames (<code>.jar &harr; .jar.disabled</code>) with robust exponential retry backoff.
-            </>
-          ),
-          steps: [
-            <>Jars dropped into <code>mods/</code> are indexed with minimal handle retention.</>,
-            <>Muto uses an exponential retry loop with 120ms backoff when performing file renames.</>,
-            <>Operating system file descriptors are released immediately after metadata inspection.</>,
-            <>If an external process locks the file, Muto reports the error gracefully rather than crashing the client.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'start-reloading', label: 'Mod Management Guide', desc: 'How to manage jars in the mods folder.' },
-        { id: 'jvm-tuning', label: 'JVM & JetBrains Runtime', desc: 'JVM flags for optimal runtime performance.' }
-      ]
-    },
-    'jvm-tuning': {
-      category: 'Developer Integration',
-      title: 'JVM & JetBrains Runtime (JBR)',
-      subtitle: 'Enabling advanced DCEVM bytecode redefinition and fast swapping',
-      sections: [
-        {
-          heading: 'Enhanced class redefinition with DCEVM',
-          content: (
-            <>
-              Standard JVMs allow hot-reloading method bodies only. To hot-reload added methods, modified fields, or newly introduced classes without full classloader disposal, Muto integrates with the <code>JetBrains Runtime (JBR)</code>.
-            </>
-          ),
-          steps: [
-            <>Install JetBrains Runtime (JBR) for Minecraft.</>,
-            <>Add the JVM argument: <code>-XX:+AllowEnhancedClassRedefinition</code> in your launcher.</>,
-            <>At game boot, Muto auto-detects DCEVM capabilities and logs: <code>DCEVM active: true</code>.</>,
-            <>Reload transactions execute up to 4x faster with near-instant method swaps.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'Fallback mechanism on standard JVMs.' },
-        { id: 'api-reference', label: 'Public MutoApi Reference', desc: 'API hooks for external tools.' }
-      ]
-    },
-    'arch-rotation': {
-      category: 'Architecture',
-      title: 'Knot & ClassLoader Rotation',
-      subtitle: 'Deep technical internals of the Muto hot-swap engine',
-      sections: [
-        {
-          heading: 'Dynamic ClassLoader isolation',
-          content: (
-            <>
-              Standard Fabric mods are loaded by Knot ClassLoader at game start. Because Java does not allow unloading classes from a running ClassLoader without garbage-collecting the loader itself, Muto separates mods into manageable classloader trees.
-              <br /><br />
-              During a reload transaction:
-            </>
-          ),
-          steps: [
-            <>The existing child ClassLoader is detached from active references.</>,
-            <>Minecraft's <code>MappedRegistry</code> is unfrozen, allowing new entries to be registered.</>,
-            <>A fresh child ClassLoader is initialized with the updated jar files.</>,
-            <>The new mod entrypoints execute, ModMenu receives refreshed metadata, and registries are refrozen.</>
-          ]
-        },
-        {
-          heading: 'Formal GC Unreachability Condition',
-          content: (
-            <>
-              Under JVM Specification &sect;5.3, a ClassLoader instance <code>L</code> and its loaded classes can only be reclaimed by the Garbage Collector if no active reference path exists from the root set:
-              <Math block tex="\operatorname{RetainedBytes}(L) \to 0 \iff \forall r \in \mathcal{R}_{\text{JVM}}, \quad r \not\rightsquigarrow L" />
-              Because Knot and FabricLoader permanently retain root references in static registries, standard mod classes remain pinned in memory indefinitely. Muto isolates dynamic mods so cutting the active snapshot reference guarantees full JVM garbage collection.
-            </>
-          )
-        }
-      ],
-      related: [
-        { id: 'registry-thawing', label: 'Registry Thawing Mechanics', desc: 'How Muto unfreezes Vanilla MappedRegistry.' },
-        { id: 'atomic-rollback', label: 'Atomic Rollback Guarantee', desc: 'Crash isolation and snapshot recovery.' }
-      ]
-    },
-    'registry-thawing': {
-      category: 'Architecture',
-      title: 'Registry Thawing Mechanics',
-      subtitle: 'Safely mutating Minecraft frozen registries during hot-swap transactions',
-      sections: [
-        {
-          heading: 'Bypassing Vanilla Registry Freeze Locks',
-          content: (
-            <>
-              Vanilla Minecraft calls <code>registry.freeze()</code> after the main menu loads. Registering a block or item after freeze throws an <code>IllegalStateException: Registry is already frozen</code>.
-              <br /><br />
-              Muto safely unfreezes the registry topology during the reload window:
-            </>
-          ),
-          steps: [
-            <>Muto accesses the private <code>frozen</code> boolean on <code>MappedRegistry</code> via JVM accessor handle.</>,
-            <>The registry is temporarily marked un-frozen for the duration of the entrypoint execution.</>,
-            <>New identifiers and objects are registered into their respective namespaces.</>,
-            <>The registry is refrozen immediately before client input resumes, preserving data integrity.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'How classes are isolated.' },
-        { id: 'atomic-rollback', label: 'Atomic Rollback Guarantee', desc: 'Crash recovery guarantees.' }
-      ]
-    },
-    'atomic-rollback': {
-      category: 'Architecture',
-      title: 'Atomic Rollback Guarantee',
-      subtitle: 'Zero crash tolerance with snapshot-backed transactional rollbacks',
-      sections: [
-        {
-          heading: 'Fault-tolerant mod initialization',
-          content: (
-            <>
-              If a newly added or updated mod has a fatal bug or throws an unhandled exception during its reload initialization, Muto ensures your Minecraft client never crashes.
-            </>
-          ),
-          steps: [
-            <>Before executing entrypoints, Muto snapshots the active classloader state and registry index.</>,
-            <>If an entrypoint throws an exception, the reload transaction catches the fault.</>,
-            <>The broken mod is tagged as <code>Faulty</code>, and the prior stable snapshot is immediately restored.</>,
-            <>A toast alert is displayed with the error details, allowing the player to remove the broken jar safely.</>
-          ]
-        }
-      ],
-      related: [
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', desc: 'ClassLoader rotation details.' },
-        { id: 'safe-guard', label: 'Safe Execution Boundary', desc: 'Boundary manager and reconnect flow.' }
-      ]
+});`}
+          />
+
+          <h2 id="threading">Threading</h2>
+          <p>
+            Listeners run synchronously on the reload background thread, not the main Minecraft
+            thread. To touch game state, submit work via{" "}
+            <code>Minecraft.getInstance().submit(...)</code>.
+          </p>
+        </>
+      );
+
+    case "testing":
+      return (
+        <>
+          <h1>Testing &amp; CI</h1>
+          <p>
+            The runtime ships with a JUnit 5 unit-test suite that runs headless, without launching
+            Minecraft, plus two GitHub Actions workflows.
+          </p>
+
+          <h2 id="stack">Test stack</h2>
+          <ul>
+            <li>
+              <code>org.junit.jupiter:junit-jupiter-api:5.11.4</code>
+            </li>
+            <li>
+              <code>org.junit.jupiter:junit-jupiter-engine:5.11.4</code>
+            </li>
+            <li>
+              <code>org.junit.platform:junit-platform-launcher:1.11.4</code>
+            </li>
+          </ul>
+          <p>
+            These are declared in <code>build.gradle</code> and wired into the standard Loom{" "}
+            <code>test</code> source set.
+          </p>
+
+          <h2 id="run">Running the tests</h2>
+          <CodeSnippet filename="terminal" code={`./gradlew test`} />
+          <p>
+            HTML results are written to <code>build/reports/tests/test/index.html</code>; raw XML
+            results are under <code>build/test-results/test/</code>.
+          </p>
+
+          <h2 id="classes">Test classes</h2>
+          <ul>
+            <li>
+              <code>ModStateManagerTest</code> - core-mod protection and staged enable/disable
+              toggling.
+            </li>
+            <li>
+              <code>ModTierClassificationTest</code> - Tier 1/2/3 classification rules.
+            </li>
+            <li>
+              <code>ReloadShellTest</code> - the reload shell: plan construction and diff handling
+              without a live game.
+            </li>
+            <li>
+              <code>api.MutoApiTest</code> - the public API surface and availability guard.
+            </li>
+          </ul>
+
+          <h2 id="ci">Continuous integration</h2>
+          <ul>
+            <li>
+              <strong>Build</strong> (<code>.github/workflows/build.yml</code>) - runs on pushes and
+              pull requests to <code>main</code>. Uses <code>ubuntu-latest</code> with Temurin JDK
+              25, runs <code>./gradlew build</code>, uploads the built jar, and uploads the test
+              report on failure.
+            </li>
+            <li>
+              <strong>Publish</strong> (<code>.github/workflows/publish.yml</code>) - publishes to
+              GitHub Packages on a push to <code>26.x</code> that changes{" "}
+              <code>gradle.properties</code>, on a published release, or via manual dispatch.
+            </li>
+          </ul>
+        </>
+      );
+
+    case "source":
+      return (
+        <>
+          <h1>Repository &amp; Packages</h1>
+
+          <h2 id="repo">Repository</h2>
+          <p>
+            Source lives at <a href={REPO}>{REPO}</a>. Active development happens on the{" "}
+            <code>26.x</code> branch; the build workflows target <code>main</code>.
+          </p>
+
+          <h2 id="layout">Source layout</h2>
+          <ul>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/api</code> - public surface:{" "}
+              <code>MutoApi</code>, <code>MutoEvents</code>, <code>ModDiff</code>.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/engine</code> - <code>ReloadEngine</code>,{" "}
+              <code>ModScanner</code>, <code>ModSnapshot</code>, <code>RegistryFreezer</code>,{" "}
+              <code>MutoClassLoader</code>, <code>ReloadPlan</code>, <code>ReloadResult</code>.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/engine/knot</code> - Knot reflection access.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/engine/mixin</code> - dynamic mixin registration.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/engine/resource</code> - resource hot-mounting.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/mixin</code> - accessors and injections against
+              Minecraft internals.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/mods</code> - disk mod state and the disabled-mods
+              registry.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/config</code> - <code>MutoConfig</code>.
+            </li>
+            <li>
+              <code>src/main/java/me/fy2ne/muto/automation</code> - the trigger-file watcher.
+            </li>
+            <li>
+              <code>src/main/resources</code> - <code>fabric.mod.json</code>,{" "}
+              <code>muto.mixins.json</code> and assets.
+            </li>
+            <li>
+              <code>src/test/java</code> - the JUnit suite.
+            </li>
+            <li>
+              <code>web</code> - this documentation site (Vite + React).
+            </li>
+          </ul>
+
+          <h2 id="tasks">Gradle tasks</h2>
+          <ul>
+            <li>
+              <code>./gradlew build</code> - compile, test and assemble.
+            </li>
+            <li>
+              <code>./gradlew jar</code> - package the runtime jar.
+            </li>
+            <li>
+              <code>./gradlew runClient</code> - launch a dev client.
+            </li>
+            <li>
+              <code>./gradlew mutoWatch</code> - the fast-refresh dev loop (see{" "}
+              <a href="#fast-refresh">Fast Refresh Dev Loop</a>).
+            </li>
+            <li>
+              <code>./gradlew publish</code> - publish to GitHub Packages.
+            </li>
+          </ul>
+
+          <h2 id="license">License</h2>
+          <p>
+            Muto Runtime is licensed under the{" "}
+            <strong>GNU Lesser General Public License v3.0</strong> (
+            <code>LGPL-3.0-only</code>). Any mod may depend on and link against Muto, including
+            closed-source mods; modifications to Muto's own source must remain open under the LGPL.
+            See <a href={REPO + "/blob/26.x/LICENSE"}>LICENSE</a>.
+          </p>
+        </>
+      );
+
+    case "fast-refresh":
+      return (
+        <>
+          <h1>Fast Refresh Dev Loop</h1>
+          <p>
+            For iterating on a mod you are actively developing, Muto provides a file-triggered
+            rebuild-and-swap loop so you never restart the client.
+          </p>
+
+          <h2 id="how">How it works</h2>
+          <p>
+            A watcher polls for a <code>muto.trigger</code> file in the game directory every 200ms.
+            When it appears, the file is consumed, a reload is executed, and the outcome is written
+            to <code>muto.result</code>. The Gradle task <code>mutoWatch</code> wires this together:
+            it watches <code>src/main/java</code> and <code>src/main/resources</code>, recompiles on
+            change, copies the jar into <code>run/mods</code>, and writes the trigger file.
+          </p>
+
+          <h2 id="setup">Setup</h2>
+          <p>In your mod's build script:</p>
+          <CodeSnippet
+            filename="build.gradle"
+            code={`apply from: 'https://raw.githubusercontent.com/fy2ne/muto/main/muto-watcher.gradle'`}
+          />
+          <p>Then, with the client already running:</p>
+          <CodeSnippet filename="terminal" code={`./gradlew mutoWatch`} />
+          <p>
+            Alternatively, start the watcher from code with{" "}
+            <code>MutoApi.startFileWatcher()</code> and stop it with{" "}
+            <code>MutoApi.stopFileWatcher()</code>; query state with{" "}
+            <code>MutoApi.isFileWatcherRunning()</code>.
+          </p>
+
+          <h2 id="files">Trigger &amp; result files</h2>
+          <ul>
+            <li>
+              <code>muto.trigger</code> - written by the Gradle task to request a reload; deleted by
+              the watcher once consumed.
+            </li>
+            <li>
+              <code>muto.result</code> - written by the runtime with{" "}
+              <code>SUCCESS</code>, <code>DURATION</code> and the added/removed/updated sets.
+            </li>
+          </ul>
+
+          <DocAlert kind="note" label="Dev-only">
+            <p>
+              The watcher is a development tool. Do not auto-start it in a production mod.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "mod-state":
+      return (
+        <>
+          <h1>Mod State Management</h1>
+          <p>
+            <code>me.fy2ne.muto.mods.ModStateManager</code> tracks enable/disable changes that are
+            staged and only applied at the next reload, so a change is always all-or-nothing.
+          </p>
+
+          <h2 id="staging">Staging changes</h2>
+          <ul>
+            <li>
+              <code>stageToggle(String modId)</code> / <code>toggleMod(DiskMod mod)</code> - flip
+              the staged state of a mod.
+            </li>
+            <li>
+              <code>isStaged(String modId)</code>, <code>isStagedForDisable(...)</code>,{" "}
+              <code>isStagedForEnable(...)</code> - inspect the pending state.
+            </li>
+            <li>
+              <code>getStagedDisables()</code> / <code>getStagedEnables()</code> - the pending sets.
+            </li>
+            <li>
+              <code>hasStagedChanges()</code> / <code>getStagedCount()</code> /{" "}
+              <code>clearStaged()</code>.
+            </li>
+          </ul>
+          <p>
+            <code>scanDiskMods()</code> returns the on-disk mods (including{" "}
+            <code>.jar.disabled</code> / <code>.disabled</code> / <code>.deactivation</code> files)
+            as <code>DiskMod</code> records.
+          </p>
+
+          <h2 id="protected">Protected mods</h2>
+          <p>
+            Core mods reported by <code>isCore(...)</code> cannot be staged or disabled. The set
+            covers Minecraft, Fabric Loader, Fabric API, Java and <code>muto</code> itself.
+          </p>
+
+          <h2 id="applying">Applying changes</h2>
+          <p>
+            <code>applyFileRenames()</code> drains the staged sets and renames the corresponding jar
+            files to/from a <code>.disabled</code> suffix. If a file is locked on disk (see{" "}
+            <a href="#file-locks">Windows File Locking</a>), the state is still recorded in{" "}
+            <code>DisabledModsRegistry</code> so the rename happens on the next boot.
+          </p>
+        </>
+      );
+
+    case "config":
+      return (
+        <>
+          <h1>Configuration (muto.json)</h1>
+          <p>
+            <code>me.fy2ne.muto.config.MutoConfig</code> reads and writes{" "}
+            <code>config/muto.json</code> using Gson. It falls back to the working directory's{" "}
+            <code>config</code> folder when the Fabric config directory is unavailable. If the file
+            does not exist, defaults are written on first access.
+          </p>
+
+          <h2 id="file">The config file</h2>
+          <CodeSnippet
+            filename="config/muto.json"
+            code={`{
+  "autoReloadResources": true
+}`}
+          />
+
+          <h2 id="flags">Flags</h2>
+          <p>
+            The runtime currently reads a single flag from this file:
+          </p>
+          <ul>
+            <li>
+              <code>autoReloadResources</code> - re-mount resources as part of a reload
+              (<code>ReloadEngine</code>).
+            </li>
+          </ul>
+
+          <h2 id="notes">Notes</h2>
+          <DocAlert kind="warning" label="Inert keys">
+            <p>
+              <code>MutoConfig</code> still declares nine additional boolean keys ({" "}
+              <code>autoReloadOnDiskChange</code>, <code>showToasts</code>,{" "}
+              <code>playReloadSound</code>, <code>fastShaderReload</code>,{" "}
+              <code>autoReconnect</code>, <code>showTitleScreenButton</code>,{" "}
+              <code>confirmBeforeReload</code>, <code>checkModrinthUpdates</code>,{" "}
+              <code>simulateUpdateAvailable</code>). None of them are read anywhere in the codebase.
+              They are leftovers from an earlier player-facing iteration and can be ignored.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "file-locks":
+      return (
+        <>
+          <h1>Windows File Locking</h1>
+
+          <h2 id="problem">The problem</h2>
+          <p>
+            On Windows the JVM holds an open handle to a mod jar for as long as classes are loaded
+            from it. Replacing or renaming that file in place fails with a sharing violation, which
+            is why naive hot-reload tooling breaks on Windows.
+          </p>
+
+          <h2 id="handling">How Muto handles it</h2>
+          <ul>
+            <li>
+              Muto never overwrites a jar in place. An update arrives as a new file, and the old jar
+              is left on disk (or renamed aside) so any handle the loader still holds stays valid.
+            </li>
+            <li>
+              If a rename still fails because the file is locked,{" "}
+              <code>ModStateManager.applyFileRenames()</code> logs the lock and records the intended
+              state in <code>DisabledModsRegistry</code> instead of failing the transaction.
+            </li>
+            <li>
+              The rename is retried on the next boot, when the handle has been released.
+            </li>
+          </ul>
+          <p>
+            Because state is persisted rather than inferred from the filename alone, a mod can be{" "}
+            <em>logically</em> disabled even while its jar still carries its original name.
+          </p>
+        </>
+      );
+
+    case "jvm-tuning":
+      return (
+        <>
+          <h1>JVM &amp; JetBrains Runtime</h1>
+
+          <h2 id="metaspace">Metaspace churn</h2>
+          <p>
+            A reload appends newly added jars to Knot's classpath and re-runs their initializers.
+            Every distinct class the JVM defines adds metadata to metaspace, and that metadata is only
+            reclaimed by a GC that unloads classes. A dev session that reloads dozens of times per
+            hour therefore benefits from a little extra headroom.
+          </p>
+
+          <h2 id="heap">Heap sizing</h2>
+          <p>
+            A reasonable starting point for a mod-dev client is to give the client roughly double
+            the heap of a normal run, so the metadata churn from repeated reloads fits comfortably.
+            Let <Math tex="H_{base}" /> be the heap the client needs without reloading and{" "}
+            <Math tex="N" /> the number of reloads between full collections; a safe reservation is:
+          </p>
+          <Math block tex="H_{jvm} \;\ge\; H_{base} + k \cdot N \cdot S_{class}" />
+          <p>
+            where <Math tex="S_{class}" /> is the average metaspace footprint added per reload and{" "}
+            <Math tex="k" /> is a small safety factor (2 is a good default).
+          </p>
+
+          <h2 id="flags">Recommended flags</h2>
+          <CodeSnippet
+            filename="jvm-args"
+            code={`-Xmx4G
+-XX:+UseG1GC
+-XX:+ClassUnloadingWithConcurrentMark
+-XX:MetaspaceSize=256M
+-XX:MaxMetaspaceSize=1G`}
+          />
+          <DocAlert kind="note" label="Metaspace unloading">
+            <p>
+              Class unloading is the mechanism that lets reloading scale. Ensure your collector has
+              class unloading enabled, and prefer a build of the JVM (such as JetBrains Runtime)
+              that is tuned for long-lived interactive sessions.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "arch-rotation":
+      return (
+        <>
+          <h1>Knot Integration &amp; Reload</h1>
+
+          <h2 id="knot">Knot injection</h2>
+          <p>
+            Fabric Loader's <code>Knot</code> classloader is built once at boot and owns the
+            installed mod set. <code>me.fy2ne.muto.engine.knot.KnotInjector</code> uses reflection to
+            append a newly added jar to that classpath, so the jar's classes resolve without a
+            restart. There is no disposable child loader in the production path: the new jar joins
+            the loader that is already running.
+          </p>
+
+          <h2 id="transformer">Dynamic mixin registration</h2>
+          <p>
+            <code>me.fy2ne.muto.engine.mixin.DynamicMixinEngine</code> registers a newly added mod's
+            mixin configurations with the global Mixin service{" "}
+            (<code>Mixins.addConfiguration</code>). Mixin weaves only when a class is first defined,
+            so those configurations apply to every class the JVM defines after the reload.
+          </p>
+
+          <h2 id="consequence">The hard limit</h2>
+          <DocAlert kind="warning" label="Already-loaded classes">
+            <p>
+              A class the JVM has already defined and transformed cannot be re-woven by a later
+              reload. New mixins therefore only affect classes loaded after the swap, and a mod whose
+              mixins target classes that are already live is classified as Tier 3 and needs a
+              restart.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "registry-thawing":
+      return (
+        <>
+          <h1>Registry Thawing Mechanics</h1>
+          <p>
+            Minecraft's <code>MappedRegistry</code> is <code>frozen</code> once the game has
+            started. Registering new content requires clearing that flag for the duration of the
+            swap.
+          </p>
+
+          <h2 id="freeze">Unfreeze &amp; refreeze</h2>
+          <p>
+            <code>me.fy2ne.muto.engine.RegistryFreezer</code> walks{" "}
+            <code>BuiltInRegistries.REGISTRY</code>. For each entry it prefers the{" "}
+            <code>MappedRegistryAccessor</code> mixin and falls back to setting the{" "}
+            <code>frozen</code> field reflectively. <code>unfreezeAll()</code> runs before mod init;{" "}
+            <code>freezeAll()</code> runs after.
+          </p>
+
+          <h2 id="prune">Namespace pruning</h2>
+          <p>
+            Before re-registration, entries left behind by the previous load must be removed.{" "}
+            <code>pruneNamespace(String namespace)</code> strips matching keys from the registry's{" "}
+            <code>byLocation</code>, <code>byKey</code>, <code>byValue</code>,{" "}
+            <code>registrationInfos</code>, <code>byId</code> and <code>toId</code> structures, then
+            trims trailing nulls from the id list. This avoids duplicate ids when a mod registers the
+            same block or item twice across a reload.
+          </p>
+
+          <h2 id="caveat">Version sensitivity</h2>
+          <DocAlert kind="warning" label="Field names are not API">
+            <p>
+              Pruning relies on the internal field names of <code>MappedRegistry</code>. They are
+              mapped per Minecraft version and are not a stable contract. If a field lookup fails,
+              the freezer logs a warning and skips the reflective path rather than crashing.
+            </p>
+          </DocAlert>
+        </>
+      );
+
+    case "atomic-rollback":
+      return (
+        <>
+          <h1>Atomic Rollback Guarantee</h1>
+
+          <h2 id="guarantee">The guarantee</h2>
+          <p>
+            A failed reload must not leave the client in a half-registered state. The pipeline is
+            structured so that either the new mod set is fully installed, or the client is left
+            running with the previous set:
+          </p>
+          <ul>
+            <li>Registries are always refrozen as the pipeline unwinds.</li>
+            <li>A partially applied diff is never committed.</li>
+            <li>Every run produces a <code>ReloadResult</code> - including no-ops and failures.</li>
+            <li>
+              Each run is recorded as a <code>ReloadHistoryEntry</code> for post-mortem inspection.
+            </li>
+          </ul>
+
+          <h2 id="results">Reading results</h2>
+          <p>
+            Check <code>success()</code> first. On success, inspect <code>diff()</code> and{" "}
+            <code>durationMs()</code>. On failure, <code>error()</code> carries a human-readable
+            message; the diff reflects what was processed.
+          </p>
+          <CodeSnippet
+            filename="ResultHandling.java"
+            code={`MutoApi.reloadAsync().thenAccept(result -> {
+    if (result.success()) {
+        LOG.info("reload ok in {}ms", result.durationMs());
+    } else {
+        LOG.warn("reload failed, still on previous set: {}", result.error());
     }
+});`}
+          />
+        </>
+      );
+
+    default:
+      return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* App shell                                                           */
+/* ------------------------------------------------------------------ */
+
+export default function App() {
+  const [current, setCurrent] = useState("overview");
+  const [query, setQuery] = useState("");
+  const [activeSection, setActiveSection] = useState(null);
+  const scrollRef = useRef(null);
+
+  const article = articles[current];
+
+  const flat = useMemo(
+    () =>
+      nav.flatMap((group) =>
+        group.items.map((item) => ({ ...item, group: group.title }))
+      ),
+    []
+  );
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return null;
+    return flat.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.short.toLowerCase().includes(q) ||
+        item.group.toLowerCase().includes(q)
+    );
+  }, [query, flat]);
+
+  const go = (id) => {
+    setCurrent(id);
+    setQuery("");
+    setActiveSection(null);
+    scrollRef.current?.scrollTo({ top: 0 });
   };
 
-  const navCategories = [
-    {
-      title: 'Getting Started',
-      items: [
-        { id: 'overview', label: 'Architecture Overview', icon: BookOpen },
-        { id: 'start-reloading', label: 'Mod Management Guide', icon: RotateCw },
-        { id: 'safe-guard', label: 'Safe Execution Boundary', icon: ShieldCheck }
-      ]
-    },
-    {
-      title: 'Core Concepts',
-      items: [
-        { id: 'mod-tiers', label: 'Mod Classification Tiers', icon: Cpu },
-        { id: 'modmenu-sync', label: 'ModMenu Integration', icon: Terminal },
-        { id: 'config-screen', label: 'Muto Configuration', icon: Sliders }
-      ]
-    },
-    {
-      title: 'Developer Integration',
-      items: [
-        { id: 'fast-refresh', label: 'Fast Refresh (mutoWatch)', icon: Terminal },
-        { id: 'resourcify-guide', label: 'Downloader API Guide', icon: Layers },
-        { id: 'api-reference', label: 'Public MutoApi Reference', icon: Code2 },
-        { id: 'file-locks', label: 'Windows File Locking', icon: Wrench },
-        { id: 'jvm-tuning', label: 'JVM & JetBrains Runtime', icon: Zap }
-      ]
-    },
-    {
-      title: 'Architecture',
-      items: [
-        { id: 'arch-rotation', label: 'ClassLoader Rotation', icon: RotateCw },
-        { id: 'registry-thawing', label: 'Registry Thawing', icon: Lock },
-        { id: 'atomic-rollback', label: 'Atomic Rollback', icon: ShieldCheck }
-      ]
-    }
-  ];
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [current]);
 
-  const currentArticle = articles[selectedId] || articles.overview;
+  const onScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const top = container.scrollTop + 120;
+    let active = null;
+    for (const section of article.sections) {
+      const el = document.getElementById(section.id);
+      if (el && el.offsetTop <= top) active = section.id;
+    }
+    setActiveSection(active);
+  };
 
   return (
     <div className="docs-shell">
-      
-      {/* NAVBAR */}
       <header className="docs-header">
         <div className="docs-header-left">
-          <div className="brand" onClick={() => setSelectedId('overview')}>
-            <img src="/icon.png" alt="Muto" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-            <span className="brand-text">Muto</span>
+          <span className="brand" onClick={() => go("overview")}>
+            <Terminal size={18} color="#f59e0b" />
+            <span className="brand-text">Muto Runtime</span>
             <span className="brand-badge">Beta</span>
-          </div>
+          </span>
         </div>
-
-        {/* OFFICIAL SVG ICONS WITH WEAVETAB BLACK TOOLTIPS */}
         <div className="docs-header-right">
-          
-          {/* GitHub */}
           <a
-            href="https://github.com/fy2ne/muto"
-            target="_blank"
-            rel="noopener noreferrer"
             className="nav-icon-link"
-            aria-label="GitHub"
-          >
-            <GithubIcon size={16} />
-            <span className="nav-tooltip">View Source on GitHub</span>
-          </a>
-
-          {/* Modrinth */}
-          <a
-            href="https://modrinth.com/mod/muto"
+            href={REPO}
             target="_blank"
-            rel="noopener noreferrer"
-            className="nav-icon-link"
-            aria-label="Modrinth"
+            rel="noreferrer"
+            aria-label="Source on GitHub"
           >
-            <ModrinthIcon size={16} />
-            <span className="nav-tooltip">Download on Modrinth</span>
+            <Code2 size={16} />
+            <span className="nav-tooltip">Source</span>
           </a>
-
-          {/* CurseForge */}
-          <a
-            href="https://curseforge.com/minecraft/mc-mods/muto"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-icon-link"
-            aria-label="CurseForge"
-          >
-            <CurseForgeIcon size={16} />
-            <span className="nav-tooltip">Browse on CurseForge</span>
-          </a>
-
-          {/* fy2ne.me website */}
-          <a
-            href="https://fy2ne.me"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-icon-link"
-            aria-label="Personal Website"
-          >
-            <WebsiteIcon size={16} />
-            <span className="nav-tooltip">Visit fy2ne.me</span>
-          </a>
-
         </div>
       </header>
 
-      {/* LEFT SIDEBAR */}
       <aside className="sidebar">
         <div className="sb-scroll">
-          
-          {/* Search Card */}
           <div className="sb-search-card">
             <div className="sb-search-input">
-              <Search size={13} />
+              <Search size={14} />
               <input
-                type="text"
-                placeholder="Search documentation..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search the docs"
+                aria-label="Search the docs"
               />
               {query && (
-                <button className="sb-search-clear" onClick={() => setQuery('')}>
-                  <X size={12} />
+                <button
+                  className="sb-search-clear"
+                  onClick={() => setQuery("")}
+                  aria-label="Clear search"
+                  type="button"
+                >
+                  <X size={13} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Navigation Sections */}
-          <div className="sb-nav">
-            {navCategories.map((cat, cIdx) => (
-              <div key={cIdx} className="sb-section">
-                <div className="sb-section-head">{cat.title}</div>
+          {results ? (
+            <nav className="sb-nav">
+              <div className="sb-section">
+                <div className="sb-section-head">
+                  {results.length} result{results.length === 1 ? "" : "s"}
+                </div>
                 <div className="sb-section-body">
-                  {cat.items
-                    .filter(item => !query || item.label.toLowerCase().includes(query.toLowerCase()))
-                    .map((item) => {
-                      const Icon = item.icon;
-                      const active = selectedId === item.id;
-                      return (
-                        <div
-                          key={item.id}
-                          className={`sb-link ${active ? 'active' : ''}`}
-                          onClick={() => setSelectedId(item.id)}
-                        >
-                          <span className="sb-link-icon">
-                            <Icon size={13} />
-                          </span>
-                          <span className="sb-link-label">{item.label}</span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT + TABLE OF CONTENTS */}
-      <main className="docs-main">
-        
-        {/* CENTER ARTICLE */}
-        <div className="docs-content">
-          
-          {/* Breadcrumb */}
-          <div className="page-breadcrumb">
-            <span>Docs</span>
-            <span className="sep">/</span>
-            <span>{currentArticle.category}</span>
-            <span className="sep">/</span>
-            <span className="current">{currentArticle.title}</span>
-          </div>
-
-          <div className="md">
-            <h1>{currentArticle.title}</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '15.5px', marginTop: '-6px', marginBottom: '28px' }}>
-              {currentArticle.subtitle}
-            </p>
-
-            {/* ModMenu Preview Frame */}
-            {currentArticle.hasMcDemo && <ModMenuPreviewFrame />}
-
-            {/* Sections */}
-            {currentArticle.sections.map((sec, sIdx) => {
-              const secId = `sec-${sIdx}`;
-              return (
-                <div key={sIdx} id={secId} style={{ scrollMarginTop: '64px' }}>
-                  <h2>{sec.heading}</h2>
-
-                  {sec.content && <p>{sec.content}</p>}
-
-                  {sec.alert && (
-                    <div className={`doc-alert doc-alert-${sec.alert.type}`}>
-                      <div className="doc-alert-label">{sec.alert.label}</div>
-                      <div className="doc-alert-body">
-                        <p>{sec.alert.text}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {sec.steps && (
-                    <ol>
-                      {sec.steps.map((step, stIdx) => (
-                        <li key={stIdx}>{step}</li>
-                      ))}
-                    </ol>
-                  )}
-
-                  {sec.snippet && (
-                    <CodeSnippet
-                      filename={sec.snippet.filename}
-                      code={sec.snippet.code}
-                    />
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Related Topics */}
-            {currentArticle.related && (
-              <div style={{ marginTop: '48px', paddingTop: '28px', borderTop: '1px solid var(--border)' }}>
-                <h3 style={{ color: 'var(--text)', fontSize: '13.5px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
-                  Related Topics
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {currentArticle.related.map((rel, rIdx) => (
+                  {results.map((item) => (
                     <div
-                      key={rIdx}
-                      onClick={() => setSelectedId(rel.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'border-color 0.12s ease'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-strong)'}
-                      onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                      key={item.id}
+                      className={`sb-link ${current === item.id ? "active" : ""}`}
+                      onClick={() => go(item.id)}
                     >
-                      <div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--text)' }}>{rel.label}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{rel.desc}</div>
-                      </div>
-                      <ArrowRight size={13} color="var(--accent)" />
+                      <span className="sb-link-icon">
+                        <item.icon size={15} />
+                      </span>
+                      <span className="sb-link-label">{item.title}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
+            </nav>
+          ) : (
+            <nav className="sb-nav">
+              {nav.map((group) => (
+                <div className="sb-section" key={group.title}>
+                  <div className="sb-section-head">{group.title}</div>
+                  <div className="sb-section-body">
+                    {group.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`sb-link ${current === item.id ? "active" : ""}`}
+                        onClick={() => go(item.id)}
+                      >
+                        <span className="sb-link-icon">
+                          <item.icon size={15} />
+                        </span>
+                        <span className="sb-link-label">{item.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          )}
+        </div>
+      </aside>
 
+      <main className="docs-main" ref={scrollRef} onScroll={onScroll}>
+        <div className="docs-content">
+          <div className="page-breadcrumb">
+            <span>Muto Runtime</span>
+            <span className="sep">/</span>
+            <span>{article.category}</span>
+            <span className="sep">/</span>
+            <span className="current">{article.title}</span>
           </div>
 
+          <div className="md">
+            <ArticleContent id={current} />
+          </div>
+
+          {article.related?.length > 0 && (
+            <div className="md" style={{ marginTop: 48 }}>
+              <h2>Continue reading</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {article.related.map((rid) => (
+                  <button
+                    key={rid}
+                    className="codeblock-copy"
+                    onClick={() => go(rid)}
+                    type="button"
+                    style={{ cursor: "pointer" }}
+                  >
+                    {articles[rid].title}
+                    <ArrowRight size={12} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* RIGHT TOC */}
         <aside className="toc">
-          <h4>On this page</h4>
-          <div className="toc-current-page">{currentArticle.title}</div>
+          <div className="toc-current-page">{article.title}</div>
           <div className="toc-sections">
-            {currentArticle.sections?.map((sec, sIdx) => {
-              const secId = `sec-${sIdx}`;
-              return (
-                <a
-                  key={sIdx}
-                  href={`#${secId}`}
-                  className="toc-anchor"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById(secId)?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  {sec.heading}
-                </a>
-              );
-            })}
+            {article.sections.map((section) => (
+              <a
+                key={section.id}
+                className={`toc-anchor ${activeSection === section.id ? "active" : ""}`}
+                onClick={() =>
+                  document
+                    .getElementById(section.id)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                {section.label}
+              </a>
+            ))}
           </div>
         </aside>
-
       </main>
-
     </div>
   );
 }

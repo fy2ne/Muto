@@ -1,25 +1,38 @@
 package me.fy2ne.muto.engine.mixin;
 
 import me.fy2ne.muto.MutoLog;
-import me.fy2ne.muto.engine.agent.MutoAgentBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
 
 import java.io.InputStreamReader;
-import java.lang.instrument.Instrumentation;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+/**
+ * Registers a dynamically added mod's mixin configurations with the global Mixin service.
+ *
+ * <p>Mixin only supports weaving at class-definition time, so a configuration registered here
+ * applies to classes the JVM defines <em>after</em> the reload. Classes that were already defined -
+ * and already processed by Mixin - cannot be re-woven without a JVM restart. Attempting to do so by
+ * feeding their "pre-mixin" bytes back through {@code MixinTransformer.transformClass} corrupts
+ * them with {@code InvalidMixinException: ... @Overwrite is required by the parent configuration},
+ * and the transformer is not reachable via reflection on a modular JVM anyway. This class
+ * therefore never retransforms already-loaded classes.
+ */
 public final class DynamicMixinEngine {
-    private static final MutoClassFileTransformer TRANSFORMER = new MutoClassFileTransformer();
-    private static boolean transformerInstalled = false;
-
     private DynamicMixinEngine() {}
 
-    public static synchronized int injectAndRetransform(Path jarPath) {
+    /**
+     * Registers every mixin configuration declared by {@code jarPath} with the global Mixin
+     * service. Registered configurations take effect for classes loaded after this call.
+     *
+     * @param jarPath the newly added or updated mod jar
+     * @return the number of configurations that were registered
+     */
+    public static synchronized int registerDynamicMixins(Path jarPath) {
         if (jarPath == null) return 0;
 
         List<String> configs = extractConfigs(jarPath);
@@ -27,9 +40,11 @@ public final class DynamicMixinEngine {
             return 0;
         }
 
+        int registered = 0;
         for (String cfg : configs) {
             try {
                 Mixins.addConfiguration(cfg);
+                registered++;
                 MutoLog.info("registered dynamic mixin config: {}", cfg);
             } catch (Throwable t) {
                 MutoLog.warn("error registering mixin config {}: {}", cfg, t.getMessage());
@@ -45,11 +60,13 @@ public final class DynamicMixinEngine {
         }
 
         if (targets.isEmpty()) {
-            MutoLog.info("no loaded target classes discovered for configs in {}", jarPath.getFileName());
-            return 0;
+            MutoLog.info("no mixin targets discovered for configs in {}", jarPath.getFileName());
+        } else {
+            MutoLog.info("{} mixin target(s) registered for {} (applies to classes loaded after this reload)",
+                    targets.size(), jarPath.getFileName());
         }
 
-        return retransformClasses(targets);
+        return registered;
     }
 
     public static List<String> extractConfigs(Path jarPath) {
@@ -109,61 +126,6 @@ public final class DynamicMixinEngine {
             MutoLog.warn("error resolving target classes from mixin configs: {}", t.getMessage());
         }
         return targets;
-    }
-
-    private static int retransformClasses(Set<String> targetNames) {
-        Instrumentation inst = MutoAgentBootstrap.getInstrumentation();
-        if (inst == null) {
-            MutoLog.warn("instrumentation unavailable, cannot trigger bytecode retransformation");
-            return 0;
-        }
-
-        if (!inst.isRetransformClassesSupported()) {
-            MutoLog.warn("jvm does not support retransformClasses");
-            return 0;
-        }
-
-        if (!transformerInstalled) {
-            inst.addTransformer(TRANSFORMER, true);
-            transformerInstalled = true;
-            MutoLog.info("muto classfile transformer installed");
-        }
-
-        TRANSFORMER.addTargets(targetNames);
-
-        Class<?>[] loaded = inst.getAllLoadedClasses();
-        List<Class<?>> matched = new ArrayList<>();
-        for (Class<?> clazz : loaded) {
-            if (targetNames.contains(clazz.getName()) && inst.isModifiableClass(clazz)) {
-                matched.add(clazz);
-            }
-        }
-
-        if (matched.isEmpty()) {
-            MutoLog.info("none of {} mixin target classes are currently loaded", targetNames.size());
-            return 0;
-        }
-
-        try {
-            MutoLog.info("retransforming {} target classes for dynamic mixin injection...", matched.size());
-            inst.retransformClasses(matched.toArray(new Class<?>[0]));
-            MutoLog.info("retransformation complete: {} classes updated in-memory", matched.size());
-            return matched.size();
-        } catch (Throwable err) {
-            MutoLog.warn("batch retransformation failed ({}), attempting per-class isolated retransformation...", err.getMessage());
-            int successCount = 0;
-            for (Class<?> c : matched) {
-                try {
-                    inst.retransformClasses(c);
-                    successCount++;
-                    MutoLog.info("retransformed {} successfully", c.getName());
-                } catch (Throwable singleErr) {
-                    MutoLog.warn("skipping schema-restricted target {}: {}", c.getName(), singleErr.getMessage());
-                }
-            }
-            MutoLog.info("isolated retransformation finished: {}/{} classes updated", successCount, matched.size());
-            return successCount;
-        }
     }
 
     public static Set<String> scanJarMixinTargets(Path jarPath) {

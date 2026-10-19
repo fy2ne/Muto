@@ -1,96 +1,188 @@
-Elastic License 2.0
+Muto Runtime
+Copyright (C) 2026 fy2ne
 
-URL: https://www.elastic.co/licensing/elastic-license
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation, version 3.
 
-## Acceptance
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-By using the software, you agree to all of the terms and conditions below.
+You should have received a copy of the GNU Lesser General Public
+License along with this library. If not, see <https://www.gnu.org/licenses/>.
 
-## Copyright License
+For more information on this, and how to apply and follow the GNU
+LGPL, see <https://www.gnu.org/licenses/lgpl.html>.
 
-The licensor grants you a non-exclusive, royalty-free, worldwide,
-non-sublicensable, non-transferable license to use, copy, distribute, make
-available, and prepare derivative works of the software, in each case subject to
-the limitations and conditions below.
+The full text of the GNU Lesser General Public License version 3,
+which incorporates the terms of version 3 of the GNU General Public
+License, follows.
 
-## Limitations
 
-You may not provide the software to third parties as a hosted or managed
-service, where the service provides users with access to any substantial set of
-the features or functionality of the software.
+                   GNU LESSER GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
 
-You may not move, change, disable, or circumvent the license key functionality
-in the software, and you may not remove or obscure any functionality in the
-software that is protected by the license key.
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
 
-You may not alter, remove, or obscure any licensing, copyright, or other notices
-of the licensor in the software. Any use of the licensor's trademarks is subject
-to applicable law.
 
-## Patents
+  This version of the GNU Lesser General Public License incorporates
+the terms and conditions of version 3 of the GNU General Public
+License, supplemented by the additional permissions listed below.
 
-The licensor grants you a license, under any patent claims the licensor can
-license, or becomes able to license, to make, have made, use, sell, offer for
-sale, import and have imported the software, in each case subject to the
-limitations and conditions in this license. This license does not cover any
-patent claims that you cause to be infringed by modifications or additions to
-the software. If you or your company make any written claim that the software
-infringes or contributes to infringement of any patent, your patent license for
-the software granted under these terms ends immediately. If your company makes
-such a claim, your patent license ends immediately for work on behalf of your
-company.
+  0. Additional Definitions.
 
-## Notices
+  As used herein, "this License" refers to version 3 of the GNU Lesser
+General Public License, and the "GNU GPL" refers to version 3 of the GNU
+General Public License.
 
-You must ensure that anyone who gets a copy of any part of the software from you
-also gets a copy of these terms.
+  "The Library" refers to a covered work governed by this License,
+other than an Application or a Combined Work as defined below.
 
-If you modify the software, you must include in any modified copies of the
-software prominent notices stating that you have modified the software.
+  An "Application" is any work that makes use of an interface provided
+by the Library, but which is not otherwise based on the Library.
+Defining a subclass of a class defined by the Library is deemed a mode
+of using an interface provided by the Library.
 
-## No Other Rights
+  A "Combined Work" is a work produced by combining or linking an
+Application with the Library.  The particular version of the Library
+with which the Combined Work was made is also called the "Linked
+Version".
 
-These terms do not imply any licenses other than those expressly granted in
-these terms.
+  The "Minimal Corresponding Source" for a Combined Work means the
+Corresponding Source for the Combined Work, excluding any source code
+for portions of the Combined Work that, considered in isolation, are
+based on the Application, and not on the Linked Version.
 
-## Termination
+  The "Corresponding Application Code" for a Combined Work means the
+object code and/or source code for the Application, including any data
+and utility programs needed for reproducing the Combined Work from the
+Application, but excluding the System Libraries of the Combined Work.
 
-If you use the software in violation of these terms, such use is not licensed,
-and your licenses will automatically terminate. If the licensor provides you
-with a notice of your violation, and you cease all violation of this license no
-later than 30 days after you receive that notice, your licenses will be
-reinstated retroactively. However, if you violate these terms after such
-reinstatement, any additional violation of these terms will cause your licenses
-to terminate automatically and permanently.
+  1. Exception to Section 3 of the GNU GPL.
 
-## No Liability
+  You may convey a covered work under sections 3 and 4 of this License
+without being bound by section 3 of the GNU GPL.
 
-As far as the law allows, the software comes as is, without any warranty or
-condition, and the licensor will not be liable to you for any damages arising
-out of these terms or the use or nature of the software, under any kind of
-legal claim.
+  2. Conveying Modified Versions.
 
-## Definitions
+  If you modify a copy of the Library, and, in your modifications, a
+facility refers to a function or data to be supplied by an Application
+that uses the facility (other than as an argument passed when the
+facility is invoked), then you may convey a copy of the modified
+version:
 
-The licensor is the entity offering these terms, and the software is the
-software the licensor makes available under these terms, including any portion
-of it.
+   a) under this License, provided that you make a good faith effort to
+   ensure that, in the event an Application does not supply the
+   function or data, the facility still operates, and performs
+   whatever part of its purpose remains meaningful, or
 
-you refers to the individual or entity agreeing to these terms.
+   b) under the GNU GPL, with none of the additional permissions of
+   this License applicable to that copy.
 
-your company is any legal entity, sole proprietorship, or other kind of
-organization that you work for, plus all organizations that have control over,
-are under the control of, or are under common control with that organization.
-control means ownership of substantially all the assets of an entity, or the
-power to direct its management and legal affairs.
+  3. Object Code Incorporating Material from Library Header Files.
 
-your licenses are all the licenses granted to you for the software under
-these terms.
+  The object code form of an Application may incorporate material from
+a header file that is part of the Library.  You may convey such object
+code under terms of your choice, provided that, if the incorporated
+material is not limited to numerical parameters, data structure
+layouts and accessors, or small macros, inline functions and templates
+(ten or fewer lines in length), you do both of the following:
 
-use means anything you do with the software requiring one of your licenses.
+   a) Give prominent notice with each copy of the object code that the
+   Library is used in it and that the Library and its use are
+   covered by this License.
 
-trademark means trademarks, service marks, and similar rights.
+   b) Accompany the object code with a copy of the GNU GPL and this license
+   document.
 
----
+  4. Combined Works.
 
-Copyright (c) 2026 fy2ne
+  You may convey a Combined Work under terms of your choice that,
+taken together, effectively do not restrict modification of the
+portions of the Library contained in the Combined Work and reverse
+engineering for debugging such modifications, if you also do each of
+the following:
+
+   a) Give prominent notice with each copy of the Combined Work that
+   the Library is used in it and that the Library and its use are
+   covered by this License.
+
+   b) Accompany the Combined Work with a copy of the GNU GPL and this license
+   document.
+
+   c) For a Combined Work that displays copyright notices during
+   execution, include the copyright notice for the Library among
+   these notices, as well as a reference directing the user to the
+   copies of the GNU GPL and this license document.
+
+   d) Do one of the following:
+
+       0) Convey the Minimal Corresponding Source under the terms of this
+       License, and the Corresponding Application Code in a form
+       suitable for, and under terms that permit, the user to
+       recombine or relink the Application with a modified version of
+       the Linked Version to produce a modified Combined Work, in the
+       manner specified by section 6 of the GNU GPL for conveying
+       Corresponding Source.
+
+       1) Use a suitable shared library mechanism for linking with the
+       Library.  A suitable mechanism is one that (a) uses at run time
+       a copy of the Library already present on the user's computer
+       system, and (b) will operate properly with a modified version
+       of the Library that is interface-compatible with the Linked
+       Version.
+
+   e) Provide Installation Information, but only if you would otherwise
+   be required to provide such information under section 6 of the
+   GNU GPL, and only to the extent that such information is
+   necessary to install and execute a modified version of the
+   Combined Work produced by recombining or relinking the
+   Application with a modified version of the Linked Version. (If
+   you use option 4d0, the Installation Information must accompany
+   the Minimal Corresponding Source and Corresponding Application
+   Code. If you use option 4d1, you must provide the Installation
+   Information in the manner specified by section 6 of the GNU GPL
+   for conveying Corresponding Source.)
+
+  5. Combined Libraries.
+
+  You may place library facilities that are a work based on the
+Library side by side in a single library together with other library
+facilities that are not Applications and are not covered by this
+License, and convey such a combined library under terms of your
+choice, if you do both of the following:
+
+   a) Accompany the combined library with a copy of the same work based
+   on the Library, uncombined with any other library facilities,
+   conveyed under the terms of this License.
+
+   b) Give prominent notice with the combined library that part of it
+   is a work based on the Library, and explaining where to find the
+   accompanying uncombined form of the same work.
+
+  6. Revised Versions of the GNU Lesser General Public License.
+
+  The Free Software Foundation may publish revised and/or new versions
+of the GNU Lesser General Public License from time to time. Such new
+versions will be similar in spirit to the present version, but may
+differ in detail to address new problems or concerns.
+
+  Each version is given a distinguishing version number. If the
+Library as you received it specifies that a certain numbered version
+of the GNU Lesser General Public License "or any later version"
+applies to it, you have the option of following the terms and
+conditions either of that published version or of any later version
+published by the Free Software Foundation. If the Library as you
+received it does not specify a version number of the GNU Lesser
+General Public License, you may choose any version of the GNU Lesser
+General Public License ever published by the Free Software Foundation.
+
+  If the Library as you received it specifies that a proxy can decide
+whether future versions of the GNU Lesser General Public License shall
+apply, that proxy's public statement of acceptance of any version is
+permanent authorization for you to choose that version for the
+Library.
