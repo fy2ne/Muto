@@ -57,6 +57,7 @@ AGENTS.local.md
 web/node_modules/
 web/dist/
 web/.wrangler/
+.wrangler/
 
 # --------------------------------------
 # Misc
