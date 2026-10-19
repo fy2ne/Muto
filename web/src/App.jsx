@@ -401,7 +401,7 @@ function ArticleContent({ id }) {
           <h1>Dependency &amp; Installation</h1>
           <p>
             Muto Runtime consumes as a normal Fabric mod artifact. Add it as a{" "}
-            <code>modCompileOnly</code> dependency so your code compiles against the API, and make
+            <code>compileOnly</code> dependency so your code compiles against the API, and make
             sure the runtime jar is present in the game's <code>mods</code> folder at run time.
           </p>
 
@@ -417,7 +417,8 @@ function ArticleContent({ id }) {
           <h2 id="adding">Adding the dependency</h2>
           <p>
             The cheapest path is the Modrinth Maven repository, which serves the same jar that is
-            published to the mod listing.
+            published to the mod listing. Loom 1.15 on Minecraft 26.x non-remapping runs with standard
+            Mojang names, so standard Gradle dependency configurations are used.
           </p>
           <CodeSnippet
             filename="build.gradle"
@@ -429,7 +430,7 @@ function ArticleContent({ id }) {
 }
 
 dependencies {
-    modCompileOnly "maven.modrinth:muto:${VERSION}"
+    compileOnly "maven.modrinth:muto:\${project.muto_version}"
 }`}
           />
           <p>
@@ -463,26 +464,29 @@ dependencies {
           <h2 id="guard">Optional-guard pattern</h2>
           <p>
             Because Muto is an optional dependency, declare it as a soft dependency and guard every
-            call behind <code>MutoApi.isAvailable()</code> so your mod keeps working on installs
-            that do not ship the runtime.
+            call behind <code>MutoApi.isAvailable()</code> and <code>MutoApi.isSafeToReload()</code>{" "}
+            so your mod operates cleanly on setups that do not ship the runtime.
           </p>
           <CodeSnippet
             filename="MyMod.java"
             code={`import me.fy2ne.muto.api.MutoApi;
 import net.fabricmc.loader.api.FabricLoader;
 
-if (FabricLoader.getInstance().isModLoaded("muto") && MutoApi.isAvailable()) {
-    MutoApi.reloadAsync().thenAccept(result -> {
-        if (result.success()) {
-            System.out.println("hot-swapped in " + result.durationMs() + "ms");
-        }
-    });
+if (FabricLoader.getInstance().isModLoaded("muto") && MutoApi.isSafeToReload()) {
+    MutoApi.reloadAsync(stage -> System.out.println("[muto] " + stage))
+        .thenAccept(result -> {
+            if (result.success()) {
+                System.out.println("hot-swapped in " + result.durationMs() + "ms");
+            } else {
+                System.err.println("reload failed: " + result.error());
+            }
+        });
 }`}
           />
 
           <DocAlert kind="warning" label="Runtime jar required">
             <p>
-              <code>modCompileOnly</code> gives you the API at compile time only. The{" "}
+              <code>compileOnly</code> gives you the API at compile time only. The{" "}
               <code>muto</code> jar must still be present in <code>mods/</code> at run time or{" "}
               <code>isAvailable()</code> returns <code>false</code> and nothing will happen.
             </p>
@@ -540,18 +544,20 @@ if (plan.hasWork()) {
 
           <h2 id="stages">Pipeline stages</h2>
           <ol>
-            <li>Scan <code>mods</code> and hash each jar.</li>
-            <li>Compute the diff against the recorded snapshot.</li>
-            <li>Inject new and updated jars into Knot's classpath.</li>
-            <li>Register the new jars' dynamic mixin configurations.</li>
-            <li>Tear down removed / updated contexts and prune their registry namespaces.</li>
+            <li>Scan <code>mods/</code> directory and compute SHA-256 hashes.</li>
+            <li>Compute the diff against the recorded baseline snapshot.</li>
+            <li>Execute preflight verification on entrypoint classes.</li>
+            <li>Inject new and updated jars into Knot's classpath (including nested JAR-in-JAR).</li>
+            <li>Register dynamic mixin configurations with Fabric's Mixin service.</li>
+            <li>Tear down removed/updated mod instances and prune registry namespaces.</li>
             <li>Unfreeze built-in registries.</li>
             <li>
-              Re-run <code>ModInitializer</code> / <code>ClientModInitializer</code> for each
-              reloadable mod.
+              Re-run <code>ModInitializer</code> and schedule <code>ClientModInitializer</code> on the
+              render thread.
             </li>
-            <li>Refreeze the registries.</li>
-            <li>Sync key bindings and Fabric Loader mod metadata.</li>
+            <li>Refreeze the registries safely.</li>
+            <li>Synchronize active keymappings and update Fabric Loader mod metadata.</li>
+            <li>Remount resources and reload OpenGL shaders if <code>autoReloadResources</code> is enabled.</li>
           </ol>
 
           <h2 id="progress">Progress callbacks</h2>
@@ -630,29 +636,33 @@ if (plan.hasWork()) {
         <>
           <h1>Mod Classification Tiers</h1>
           <p>
-            Every scanned mod is classified before the diff is executed. The tier decides how much
-            work the pipeline has to do and whether the mod can be swapped at all.
+            Every scanned mod is classified into a canonical <code>ModTier</code> enum before the diff
+            is executed. The tier dictates the pipeline complexity and whether the mod can safely be
+            swapped at runtime.
           </p>
 
-          <h2 id="tier1">Tier 1 - clean client mods</h2>
+          <h2 id="tier1">CLEAN (Level 1) - pure client tweaks</h2>
           <p>
-            HUDs, tweaks and UI-only mods that register nothing into game registries. They are the
-            cheapest to swap: the jar is injected into Knot's classpath and the initializer is
-            re-run.
+            Client-only mods that declare exclusively a <code>client</code> entrypoint without any{" "}
+            <code>main</code> or <code>server</code> hooks, and declare zero mixins. These mods
+            interact with rendering and client logic only and do not pollute registry tables. They
+            re-instantiate cleanly inside Knot.
           </p>
 
-          <h2 id="tier2">Tier 2 - content mods</h2>
+          <h2 id="tier2">STANDARD (Level 2) - content mods</h2>
           <p>
-            Mods that register blocks, items, entities or other registry entries. A swap requires
-            the full registry thaw: unfreeze, prune the old namespace, re-run the initializer, and
-            refreeze.
+            Content mods with blocks, items, entities, or dynamic mixins. Swapping requires the full
+            registry thaw: built-in registries are unfrozen, namespaces pruned, initializers
+            re-invoked, and registries refrozen before keymappings and loader metadata are synchronized.
           </p>
 
-          <h2 id="tier3">Tier 3 - stubborn / core</h2>
+          <h2 id="tier3">STUBBORN (Level 3) - core runtime mods</h2>
           <p>
-            Fabric Loader, Fabric API and <code>muto</code> itself, plus mods with deeply-woven
-            mixins. Their classes are already loaded and mixin-woven, so they cannot be re-woven in
-            place and cannot be reloaded without a full JVM restart.
+            Loader-bound modules locked to the root classloader to prevent native linkage corruption.
+            Defined by <code>CORE_IDS</code> (<code>minecraft</code>, <code>fabricloader</code>,{" "}
+            <code>fabric</code>, <code>java</code>, <code>muto</code>), or any mod id prefixed with{" "}
+            <code>fabric-</code> or <code>quilt</code>. These cannot be reloaded dynamically without
+            a full JVM restart.
           </p>
 
           <h2 id="querying">Querying tiers</h2>
@@ -661,16 +671,12 @@ if (plan.hasWork()) {
           </p>
           <CodeSnippet
             filename="Tiers.java"
-            code={`Set<String> reloadable = MutoApi.getReloadableModIds(); // Tier 1 + Tier 2
-Set<String> stubborn  = MutoApi.getStubbornModIds();   // Tier 3`}
+            code={`Set<String> reloadable = MutoApi.getReloadableModIds(); // CLEAN + STANDARD
+Set<String> stubborn   = MutoApi.getStubbornModIds();   // STUBBORN (core)`}
           />
           <p>
-            The core set is defined by{" "}
-            <code>me.fy2ne.muto.mods.ModStateManager</code>: <code>minecraft</code>,{" "}
-            <code>fabricloader</code>, <code>fabric</code>, <code>fabric-api</code>,{" "}
-            <code>java</code>, <code>muto</code>, <code>fabric-api-base</code>,{" "}
-            <code>fabric-lifecycle-events-v1</code> and <code>fabric-resource-loader-v0</code>.
-            Any id starting with <code>fabric-api</code> is treated as core.
+            Note that <code>ModStateManager.isCore()</code> is a complementary mechanism used by disk
+            management to safeguard system jars against being renamed with <code>.disabled</code> extensions.
           </p>
         </>
       );
@@ -751,7 +757,7 @@ import me.fy2ne.muto.api.MutoApi;
 import me.fy2ne.muto.engine.ReloadPlan;
 import me.fy2ne.muto.engine.ReloadResult;
 
-if (!MutoApi.isAvailable()) return;
+if (!MutoApi.isAvailable() || !MutoApi.isSafeToReload()) return;
 
 ReloadPlan plan = MutoApi.plan();
 if (!plan.hasWork()) {
@@ -1109,27 +1115,22 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, success, durationMs, error) -> {
 
           <h2 id="flags">Flags</h2>
           <p>
-            The runtime currently reads a single flag from this file:
+            The runtime configuration is intentionally lean:
           </p>
           <ul>
             <li>
-              <code>autoReloadResources</code> - re-mount resources as part of a reload
-              (<code>ReloadEngine</code>).
+              <code>autoReloadResources</code> (default: <code>true</code>) — controls whether{" "}
+              <code>ResourceHotMount.remountAndReload()</code> is triggered at the end of a reload
+              transaction. When enabled, newly injected assets, texture packs, and GL shaders are
+              remounted automatically.
             </li>
           </ul>
 
-          <h2 id="notes">Notes</h2>
-          <DocAlert kind="warning" label="Inert keys">
-            <p>
-              <code>MutoConfig</code> still declares nine additional boolean keys ({" "}
-              <code>autoReloadOnDiskChange</code>, <code>showToasts</code>,{" "}
-              <code>playReloadSound</code>, <code>fastShaderReload</code>,{" "}
-              <code>autoReconnect</code>, <code>showTitleScreenButton</code>,{" "}
-              <code>confirmBeforeReload</code>, <code>checkModrinthUpdates</code>,{" "}
-              <code>simulateUpdateAvailable</code>). None of them are read anywhere in the codebase.
-              They are leftovers from an earlier player-facing iteration and can be ignored.
-            </p>
-          </DocAlert>
+          <h2 id="notes">Lifecycle</h2>
+          <p>
+            <code>MutoConfig.get()</code> loads on first call from <code>config/muto.json</code>. If the
+            file does not exist, standard defaults are saved automatically.
+          </p>
         </>
       );
 
