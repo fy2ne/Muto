@@ -60,9 +60,10 @@ function CodeSnippet({ filename, code }) {
 }
 
 function DocAlert({ kind = "note", label, children }) {
+  const display = label || kind.toUpperCase();
   return (
-    <div className={`doc-alert doc-alert-${kind}`}>
-      <div className="doc-alert-label">{label}</div>
+    <div className={`doc-alert alert-${kind}`}>
+      <div className="doc-alert-label">{display}</div>
       <div className="doc-alert-body">{children}</div>
     </div>
   );
@@ -1146,129 +1147,96 @@ MutoEvents.RELOAD_FINISH.register((endMs, diff, ok, ms, err) -> {
 
 
 function getInitialRoute() {
-  if (typeof window === "undefined") return { tab: "runtime", id: "overview" };
+  if (typeof window === "undefined") return { product: "runtime", id: "overview" };
   const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
   const parts = path.split("/");
 
   if (parts[0] === "menu") {
     const artId = parts[1];
-    if (artId && articles[artId]) return { tab: "menu", id: artId };
-    return { tab: "menu", id: "menu-overview" };
+    if (artId && articles[artId] && articles[artId].product === "menu") {
+      return { product: "menu", id: artId };
+    }
+    return { product: "menu", id: "menu-overview" };
   }
 
-  if (parts[0] === "runtime") {
-    const artId = parts[1];
-    if (artId && articles[artId]) return { tab: "runtime", id: artId };
-    return { tab: "runtime", id: "overview" };
+  const artId = parts[0] === "runtime" ? parts[1] : parts[0];
+  if (artId && articles[artId] && articles[artId].product === "runtime") {
+    return { product: "runtime", id: artId };
   }
-
-  if (parts[0] && articles[parts[0]]) {
-    const art = articles[parts[0]];
-    return { tab: art.product, id: parts[0] };
-  }
-
-  return { tab: "runtime", id: "overview" };
+  return { product: "runtime", id: "overview" };
 }
 
-function syncUrl(tab, id) {
+function syncUrl(product, id) {
   if (typeof window === "undefined") return;
-  const isDefault = (tab === "runtime" && id === "overview") || (tab === "menu" && id === "menu-overview");
-  const newPath = isDefault ? `/${tab}` : `/${tab}/${id}`;
+  const isDefault = (product === "runtime" && id === "overview") || (product === "menu" && id === "menu-overview");
+  const newPath = isDefault ? `/${product}` : `/${product}/${id}`;
   if (window.location.pathname !== newPath) {
     window.history.pushState(null, "", newPath);
   }
 }
-
 export default function App() {
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "")) {
-      window.history.replaceState(null, "", "/runtime");
-    }
-  }, []);
   const initial = useMemo(() => getInitialRoute(), []);
+  const [product, setProduct] = useState(initial.product);
   const [cur, setCur] = useState(initial.id);
-  const [activeTab, setActiveTab] = useState(initial.tab);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
   const [activeSec, setActiveSec] = useState(null);
   const scrollRef = useRef(null);
 
-  const page = articles[cur] || articles.overview;
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "")) {
+      window.history.replaceState(null, "", "/runtime");
+    }
+  }, []);
 
-  const currentNav = activeTab === "runtime" ? RUNTIME_NAV : MENU_NAV;
+  const nav = product === "runtime" ? RUNTIME_NAV : MENU_NAV;
+  const currentRepo = product === "runtime" ? RUNTIME_REPO : MENU_REPO;
+  const page = articles[cur] || (product === "runtime" ? articles.overview : articles["menu-overview"]);
 
-  const allItems = useMemo(
-    () => [
-      ...RUNTIME_NAV.flatMap((g) => g.items.map((it) => ({ ...it, group: g.title, product: "runtime" }))),
-      ...MENU_NAV.flatMap((g) => g.items.map((it) => ({ ...it, group: g.title, product: "menu" }))),
-    ],
-    []
+  const currentNavItems = useMemo(
+    () => nav.flatMap((g) => g.items.map((it) => ({ ...it, group: g.title }))),
+    [nav]
   );
 
   const hits = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return null;
-    return allItems.filter(
+    return currentNavItems.filter(
       (it) =>
         it.title.toLowerCase().includes(term) ||
         it.short.toLowerCase().includes(term) ||
         it.group.toLowerCase().includes(term)
     );
-  }, [q, allItems]);
+  }, [q, currentNavItems]);
 
-  const activeNavFlat = useMemo(
-    () => currentNav.flatMap((g) => g.items.map((it) => ({ ...it, group: g.title }))),
-    [currentNav]
-  );
-
-  const idx = activeNavFlat.findIndex((p) => p.id === cur);
-  const prev = idx > 0 ? activeNavFlat[idx - 1] : null;
-  const next = idx < activeNavFlat.length - 1 ? activeNavFlat[idx + 1] : null;
+  const idx = currentNavItems.findIndex((p) => p.id === cur);
+  const prev = idx > 0 ? currentNavItems[idx - 1] : null;
+  const next = idx < currentNavItems.length - 1 ? currentNavItems[idx + 1] : null;
 
   const go = (id) => {
     const target = articles[id];
-    let nextTab = activeTab;
-    if (target) {
-      if (target.product !== activeTab) {
-        setActiveTab(target.product);
-        nextTab = target.product;
-      }
-    }
+    if (!target) return;
     setCur(id);
-    syncUrl(nextTab, id);
+    syncUrl(product, id);
     setQ("");
     setActiveSec(null);
     setMenuOpen(false);
     scrollRef.current?.scrollTo({ top: 0 });
   };
 
-  const switchTab = (tab) => {
-    setActiveTab(tab);
-    const targetId = tab === "runtime" ? "overview" : "menu-overview";
-    setCur(targetId);
-    syncUrl(tab, targetId);
-    setQ("");
-    setActiveSec(null);
-    scrollRef.current?.scrollTo({ top: 0 });
-  };
-
   useEffect(() => {
     const onPop = () => {
       const route = getInitialRoute();
-      setActiveTab(route.tab);
+      setProduct(route.product);
       setCur(route.id);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [cur]);
-
-  
 
   const onScroll = () => {
     const box = scrollRef.current;
@@ -1284,86 +1252,35 @@ export default function App() {
     setActiveSec(found);
   };
 
-  const currentRepo = activeTab === "runtime" ? RUNTIME_REPO : MENU_REPO;
-  const currentBadge = activeTab === "runtime" ? "RUNTIME" : "MENU";
-
   return (
-    <div className={`docs-shell ${activeTab === "menu" ? "theme-menu" : "theme-runtime"}`}>
+    <div className={`docs-shell ${product === "menu" ? "theme-menu" : "theme-runtime"}`}>
+      <button
+        className="mobile-menu-toggle"
+        onClick={() => setMenuOpen((m) => !m)}
+        aria-label="Toggle navigation"
+        type="button"
+      >
+        {menuOpen ? <X size={18} /> : <MenuIcon size={18} />}
+      </button>
 
-      {/* Top Header matching Essential layout */}
-      <header className="docs-header">
-        <div className="docs-header-left">
-          <button
-            className="menu-btn"
-            onClick={() => setMenuOpen((m) => !m)}
-            aria-label="Toggle navigation"
-            type="button"
-          >
-            {menuOpen ? <X size={17} /> : <MenuIcon size={17} />}
-          </button>
-          <div className="brand" onClick={() => switchTab("runtime")}>
-            <span className="brand-diamond">❖</span>
-            <span className="brand-text">MUTO</span>
-          </div>
-          <div className="header-divider" />
-          <nav className="header-nav-links">
-            <button
-              type="button"
-              className={`header-link ${activeTab === "runtime" ? "active" : ""}`}
-              onClick={() => switchTab("runtime")}
-            >
-              Runtime Wiki
-            </button>
-            <button
-              type="button"
-              className={`header-link ${activeTab === "menu" ? "active" : ""}`}
-              onClick={() => switchTab("menu")}
-            >
-              Menu Wiki
-            </button>
-            <a
-              className="header-link"
-              href="https://modrinth.com/mod/muto"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Modrinth
-            </a>
-            <a
-              className="header-link"
-              href={currentRepo}
-              target="_blank"
-              rel="noreferrer"
-            >
-              GitHub
-            </a>
-            <a
-              className="header-link"
-              href={`${currentRepo}/releases`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Releases
-            </a>
-          </nav>
-        </div>
-      </header>
-
-      {/* Left Sidebar */}
+      {/* Column 1: Left Sidebar */}
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
-        <div className="sb-scroll">
-          <div className="sb-product-indicator">
-            <span className="sb-product-title">
-              {activeTab === "runtime" ? "Muto Runtime" : "Muto Menu"}
+        <div className="sb-header">
+          <div className="sb-brand">
+            <span className="brand-diamond">❖</span>
+            <span className="brand-title">
+              {product === "runtime" ? "MUTO RUNTIME" : "MUTO MENU"}
             </span>
-            <span className="sb-product-tag">26.x</span>
           </div>
+          <span className="sb-tag">26.x</span>
+        </div>
 
+        <div className="sb-scroll">
           <nav className="sb-nav">
-            {currentNav.map((g) => (
+            {nav.map((g) => (
               <div className="sb-section" key={g.title}>
                 <div className="sb-section-head">
-                  <ChevronDown size={13} className="sb-chevron" />
+                  <ChevronDown size={12} className="sb-chevron" />
                   <span>{g.title}</span>
                 </div>
                 <div className="sb-section-body">
@@ -1386,13 +1303,11 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Center Content */}
+      {/* Column 2: Center Content */}
       <main className="docs-main" ref={scrollRef} onScroll={onScroll}>
         <div className="docs-content">
           <div className="page-breadcrumb">
-            <span>{activeTab === "runtime" ? "Runtime" : "Menu"}</span>
-            <span className="sep">/</span>
-            <span>{page?.category || "Wiki"}</span>
+            <span>Wiki</span>
             <span className="sep">/</span>
             <span className="current">{page?.title}</span>
           </div>
@@ -1419,86 +1334,93 @@ export default function App() {
           <footer className="page-foot">
             <div className="page-foot-links">
               <a href={`${currentRepo}/tree/26.x`} target="_blank" rel="noreferrer">
-                GitHub Repository
+                GitHub
               </a>
               <span className="sep">·</span>
-              <a href="https://modrinth.com/mod/muto" target="_blank" rel="noreferrer">
+              <a
+                href={product === "runtime" ? "https://modrinth.com/mod/muto" : "https://modrinth.com/mod/muto-menu"}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Modrinth
               </a>
+              <span className="sep">·</span>
+              <a href={`${currentRepo}/releases`} target="_blank" rel="noreferrer">
+                Releases
+              </a>
             </div>
-            <span>Muto {VERSION} · 26.x</span>
+            <span>{product === "runtime" ? "Muto Runtime" : "Muto Menu"} {VERSION} · 26.x</span>
           </footer>
         </div>
+      </main>
 
-        {/* Right Sidebar matching Essential layout */}
-        <aside className="toc">
-          {/* Prominent Search wiki... box */}
-          <div className="toc-search-box">
-            <Search size={14} className="toc-search-icon" />
-            <input
-              type="text"
-              className="toc-search-input"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search wiki..."
-              aria-label="Search wiki"
-            />
-            {q && (
-              <button
-                className="toc-search-clear"
-                onClick={() => setQ("")}
-                aria-label="Clear search"
-                type="button"
-              >
-                <X size={12} />
-              </button>
-            )}
+      {/* Column 3: Right Sidebar with Search & Numbered TOC */}
+      <aside className="toc">
+        <div className="toc-accent-bar" />
+        <div className="toc-search-box">
+          <Search size={14} className="toc-search-icon" />
+          <input
+            type="text"
+            className="toc-search-input"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search wiki..."
+            aria-label="Search wiki"
+          />
+          {q && (
+            <button
+              className="toc-search-clear"
+              onClick={() => setQ("")}
+              aria-label="Clear search"
+              type="button"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {hits ? (
+          <div className="toc-search-results">
+            <div className="toc-results-head">
+              {hits.length} result{hits.length === 1 ? "" : "s"}
+            </div>
+            <div className="toc-results-list">
+              {hits.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  className="toc-result-item"
+                  onClick={() => go(h.id)}
+                >
+                  <span className="toc-result-title">{h.title}</span>
+                  <span className="toc-result-group">{h.group}</span>
+                </button>
+              ))}
+            </div>
           </div>
-
-          {/* Search results popup or in-place */}
-          {hits ? (
-            <div className="toc-search-results">
-              <div className="toc-results-head">
-                {hits.length} result{hits.length === 1 ? "" : "s"}
-              </div>
-              <div className="toc-results-list">
-                {hits.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    className="toc-result-item"
-                    onClick={() => go(h.id)}
+        ) : (
+          <>
+            {page?.sections && page.sections.length > 0 && (
+              <div className="toc-sections-list">
+                {page.sections.map((sec, idx) => (
+                  <a
+                    key={sec.id}
+                    className={`toc-anchor ${activeSec === sec.id ? "active" : ""}`}
+                    onClick={() =>
+                      document
+                        .getElementById(sec.id)
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }
                   >
-                    <span className="toc-result-title">{h.title}</span>
-                    <span className="toc-result-group">{h.group} ({h.product})</span>
-                  </button>
+                    <span className="toc-num">{idx + 1}.</span>
+                    <span className="toc-label">{sec.label}</span>
+                  </a>
                 ))}
               </div>
-            </div>
-          ) : (
-            <>
-              {page?.sections && page.sections.length > 0 && (
-                <div className="toc-sections-list">
-                  {page.sections.map((sec, idx) => (
-                    <a
-                      key={sec.id}
-                      className={`toc-anchor ${activeSec === sec.id ? "active" : ""}`}
-                      onClick={() =>
-                        document
-                          .getElementById(sec.id)
-                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }
-                    >
-                      <span className="toc-num">{idx + 1}.</span>
-                      <span className="toc-label">{sec.label}</span>
-                    </a>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </aside>
-      </main>
+            )}
+          </>
+        )}
+      </aside>
     </div>
   );
 }
