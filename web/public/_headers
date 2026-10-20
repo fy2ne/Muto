@@ -1,0 +1,4 @@
+/*
+  Access-Control-Allow-Origin: *
+  X-Robots-Tag: all, index, follow
+  Cache-Control: public, max-age=0, must-revalidate
