@@ -81,137 +81,6 @@ function Math({ tex, block = false }) {
   );
 }
 
-async function sendFeedbackPayload(msg, email, page) {
-  const cleanEmail = email.trim();
-  const payload = { message: msg.trim(), email: cleanEmail, page };
-
-  try {
-    const res = await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const ct = res.headers.get("content-type") || "";
-    if (res.ok && ct.includes("application/json")) return true;
-  } catch {
-    // local fallback
-  }
-
-  const fromAddr = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
-    ? cleanEmail.toLowerCase()
-    : "anon@muto.fy2ne.me";
-  const subject = `[Muto Docs] Feedback (${page})${cleanEmail ? ` from ${cleanEmail}` : ""}`;
-  const text = `Page: ${page}\nReply-To: ${cleanEmail || "not provided"}\n\n${msg.trim()}`;
-
-  const fallback = await fetch("https://emails.fy2ne.me/api/inbound", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: "hello@fy2ne.me",
-      from: fromAddr,
-      subject,
-      text,
-    }),
-  });
-
-  if (!fallback.ok) throw new Error("send failed");
-  return true;
-}
-
-function FeedbackBox({ page, onClose, compact = false }) {
-  const [msg, setMsg] = useState("");
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState("idle");
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (!compact) inputRef.current?.focus();
-  }, [compact]);
-
-  const submit = async (e) => {
-    e?.preventDefault();
-    if (msg.trim().length < 2 || state === "sending") return;
-    setState("sending");
-    try {
-      await sendFeedbackPayload(msg, email, page);
-      setState("sent");
-      setMsg("");
-      setTimeout(() => {
-        setState("idle");
-        onClose?.();
-      }, 1600);
-    } catch {
-      setState("err");
-    }
-  };
-
-  const onKey = (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      submit(e);
-    } else if (e.key === "Escape" && onClose) {
-      onClose();
-    }
-  };
-
-  if (state === "sent") {
-    return (
-      <div className={`fb-box ${compact ? "fb-box-inline" : "fb-box-pop"}`}>
-        <div className="fb-sent">
-          <Check size={14} color="#1877F2" />
-          <span>Sent to hello@fy2ne.me</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <form className={`fb-box ${compact ? "fb-box-inline" : "fb-box-pop"}`} onSubmit={submit}>
-      <div className="fb-head">
-        <span className="fb-title">Quick feedback</span>
-        <a className="fb-mailto" href="mailto:hello@fy2ne.me">hello@fy2ne.me</a>
-      </div>
-      <textarea
-        ref={inputRef}
-        className="fb-textarea"
-        rows={3}
-        value={msg}
-        onChange={(e) => {
-          setMsg(e.target.value);
-          if (state === "err") setState("idle");
-        }}
-        onKeyDown={onKey}
-        placeholder="Bug report, missing doc detail, or suggestion..."
-        maxLength={4000}
-        required
-      />
-      <div className="fb-foot">
-        <input
-          type="email"
-          className="fb-email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={onKey}
-          placeholder="your@email.com (optional)"
-          maxLength={160}
-        />
-        <button
-          type="submit"
-          className="fb-send"
-          disabled={msg.trim().length < 2 || state === "sending"}
-        >
-          <Send size={11} />
-          <span>{state === "sending" ? "Sending..." : "Send"}</span>
-        </button>
-      </div>
-      {state === "err" && (
-        <div className="fb-err">
-          Could not send. Email <a href="mailto:hello@fy2ne.me">hello@fy2ne.me</a> directly.
-        </div>
-      )}
-    </form>
-  );
-}
-
 const RUNTIME_NAV = [
   {
     title: "Getting Started",
@@ -1311,16 +1180,18 @@ function syncUrl(tab, id) {
 }
 
 export default function App() {
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "")) {
+      window.history.replaceState(null, "", "/runtime");
+    }
+  }, []);
   const initial = useMemo(() => getInitialRoute(), []);
   const [cur, setCur] = useState(initial.id);
   const [activeTab, setActiveTab] = useState(initial.tab);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
   const [activeSec, setActiveSec] = useState(null);
-  const [fbOpen, setFbOpen] = useState(false);
-  const [footFb, setFootFb] = useState(false);
   const scrollRef = useRef(null);
-  const fbWrapRef = useRef(null);
 
   const page = articles[cur] || articles.overview;
 
@@ -1397,16 +1268,7 @@ export default function App() {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [cur]);
 
-  useEffect(() => {
-    if (!fbOpen) return;
-    const onDocClick = (e) => {
-      if (fbWrapRef.current && !fbWrapRef.current.contains(e.target)) {
-        setFbOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [fbOpen]);
+  
 
   const onScroll = () => {
     const box = scrollRef.current;
@@ -1426,7 +1288,8 @@ export default function App() {
   const currentBadge = activeTab === "runtime" ? "RUNTIME" : "MENU";
 
   return (
-    <div className="docs-shell">
+    <div className={`docs-shell ${activeTab === "menu" ? "theme-menu" : "theme-runtime"}`}>
+
       {/* Top Header matching Essential layout */}
       <header className="docs-header">
         <div className="docs-header-left">
@@ -1439,79 +1302,50 @@ export default function App() {
             {menuOpen ? <X size={17} /> : <MenuIcon size={17} />}
           </button>
           <div className="brand" onClick={() => switchTab("runtime")}>
-            <span className="brand-diamond">◆</span>
+            <span className="brand-diamond">❖</span>
             <span className="brand-text">MUTO</span>
-            <span className={`brand-badge ${activeTab === "runtime" ? "gold" : "blue"}`}>
-              {currentBadge}
-            </span>
           </div>
-        </div>
-
-        <nav className="header-nav-center">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "runtime" ? "active" : ""}`}
-            onClick={() => switchTab("runtime")}
-          >
-            Runtime Wiki
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "menu" ? "active" : ""}`}
-            onClick={() => switchTab("menu")}
-          >
-            Menu Wiki
-          </button>
-          <a
-            className="tab-btn"
-            href="https://modrinth.com/mod/muto"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Modrinth
-          </a>
-          <a
-            className="tab-btn"
-            href={`${currentRepo}/releases`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Releases
-          </a>
-        </nav>
-
-        <div className="docs-header-right">
-          <div className="fb-anchor" ref={fbWrapRef}>
+          <div className="header-divider" />
+          <nav className="header-nav-links">
             <button
               type="button"
-              className={`fb-trigger-btn ${fbOpen ? "active" : ""}`}
-              onClick={() => setFbOpen((v) => !v)}
+              className={`header-link ${activeTab === "runtime" ? "active" : ""}`}
+              onClick={() => switchTab("runtime")}
             >
-              <MessageSquare size={13} />
-              <span>Feedback</span>
+              Runtime Wiki
             </button>
-            {fbOpen && <FeedbackBox page={cur} onClose={() => setFbOpen(false)} />}
-          </div>
-
-          <a
-            className="nav-icon-link"
-            href={currentRepo}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="GitHub Repository"
-          >
-            <Code2 size={16} />
-          </a>
-
-          <a
-            className="btn-download"
-            href={`${currentRepo}/releases`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Download size={13} />
-            <span>DOWNLOAD</span>
-          </a>
+            <button
+              type="button"
+              className={`header-link ${activeTab === "menu" ? "active" : ""}`}
+              onClick={() => switchTab("menu")}
+            >
+              Menu Wiki
+            </button>
+            <a
+              className="header-link"
+              href="https://modrinth.com/mod/muto"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Modrinth
+            </a>
+            <a
+              className="header-link"
+              href={currentRepo}
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+            </a>
+            <a
+              className="header-link"
+              href={`${currentRepo}/releases`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Releases
+            </a>
+          </nav>
         </div>
       </header>
 
@@ -1567,51 +1401,20 @@ export default function App() {
             <ArticleContent id={cur} />
           </div>
 
-          {/* Related Pages Section matching screenshot 4 */}
-          {page?.related && page.related.length > 0 && (
-            <div className="related-pages-box">
-              <div className="related-pages-title">Related Pages</div>
-              <div className="related-pages-grid">
-                {page.related.map((relId) => {
-                  const rel = articles[relId];
-                  if (!rel) return null;
-                  return (
-                    <button
-                      key={relId}
-                      type="button"
-                      className="related-page-chip"
-                      onClick={() => go(relId)}
-                    >
-                      <span className="chip-icon">❖</span>
-                      <span className="chip-title">{rel.title}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Previous / Next Pager */}
-          <nav className="pager" aria-label="Page navigation">
+          <nav className="doc-pager" aria-label="Topic navigation">
             {prev ? (
-              <button className="pager-card prev" onClick={() => go(prev.id)} type="button">
-                <span className="pager-dir"><ArrowLeft size={12} /> Previous</span>
-                <span className="pager-title">{prev.title}</span>
+              <button className="doc-pager-link prev" onClick={() => go(prev.id)} type="button">
+                <ArrowLeft size={13} />
+                <span>{prev.title}</span>
               </button>
             ) : <span />}
             {next ? (
-              <button className="pager-card next" onClick={() => go(next.id)} type="button">
-                <span className="pager-dir">Next <ArrowRight size={12} /></span>
-                <span className="pager-title">{next.title}</span>
+              <button className="doc-pager-link next" onClick={() => go(next.id)} type="button">
+                <span>{next.title}</span>
+                <ArrowRight size={13} />
               </button>
             ) : <span />}
           </nav>
-
-          {footFb && (
-            <div className="fb-foot-wrap">
-              <FeedbackBox page={cur} compact onClose={() => setFootFb(false)} />
-            </div>
-          )}
 
           <footer className="page-foot">
             <div className="page-foot-links">
@@ -1619,15 +1422,9 @@ export default function App() {
                 GitHub Repository
               </a>
               <span className="sep">·</span>
-              <button
-                type="button"
-                className="page-foot-btn"
-                onClick={() => setFootFb((v) => !v)}
-              >
-                {footFb ? "Close feedback" : "Send feedback"}
-              </button>
-              <span className="sep">·</span>
-              <a href="mailto:hello@fy2ne.me">hello@fy2ne.me</a>
+              <a href="https://modrinth.com/mod/muto" target="_blank" rel="noreferrer">
+                Modrinth
+              </a>
             </div>
             <span>Muto {VERSION} · 26.x</span>
           </footer>
