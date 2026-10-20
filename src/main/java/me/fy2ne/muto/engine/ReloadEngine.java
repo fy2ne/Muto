@@ -1,5 +1,8 @@
 package me.fy2ne.muto.engine;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import me.fy2ne.muto.MutoLog;
 import me.fy2ne.muto.api.ModDiff;
 import me.fy2ne.muto.api.MutoEvents;
@@ -11,19 +14,33 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.Closeable;
+import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public final class ReloadEngine {
     public static final ReloadEngine INSTANCE = new ReloadEngine();
 
+    private static final int MAX_HISTORY = 50;
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Type HISTORY_LIST_TYPE = new TypeToken<ArrayList<ReloadHistoryEntry>>() {}.getType();
+
     private final AtomicBoolean reloading = new AtomicBoolean(false);
     private volatile ModSnapshot currentSnapshot = ModSnapshot.empty();
+    private volatile boolean autoReloadResources = true;
     private final Map<String, List<Object>> instancesByMod = new LinkedHashMap<>();
+
+    private static final List<ReloadHistoryEntry> HISTORY = new CopyOnWriteArrayList<>();
+    private static boolean historyLoaded = false;
 
     private ReloadEngine() {}
 
@@ -31,11 +48,20 @@ public final class ReloadEngine {
         return reloading.get();
     }
 
+    public boolean isAutoReloadResources() {
+        return autoReloadResources;
+    }
+
+    public void setAutoReloadResources(boolean enabled) {
+        this.autoReloadResources = enabled;
+    }
+
     public ModSnapshot currentSnapshot() {
         return currentSnapshot;
     }
 
     public void recordInitialSnapshot(Path modsDir) {
+        ensureHistoryLoaded();
         List<ScannedMod> scanned = ModScanner.scan(modsDir);
         currentSnapshot = new ModSnapshot(scanned);
         MutoLog.info("baseline snapshot: {} mods ({} reloadable, {} stubborn)",
@@ -65,10 +91,53 @@ public final class ReloadEngine {
         return CompletableFuture.supplyAsync(() -> execute(plan(modsDir), stageNotifier));
     }
 
-    private static final List<ReloadHistoryEntry> HISTORY = new java.util.concurrent.CopyOnWriteArrayList<>();
-
     public List<ReloadHistoryEntry> history() {
+        ensureHistoryLoaded();
         return Collections.unmodifiableList(HISTORY);
+    }
+
+    private static synchronized void ensureHistoryLoaded() {
+        if (historyLoaded) return;
+        historyLoaded = true;
+        try {
+            Path file = resolveHistoryPath();
+            if (file != null && Files.exists(file)) {
+                try (Reader reader = Files.newBufferedReader(file)) {
+                    List<ReloadHistoryEntry> saved = GSON.fromJson(reader, HISTORY_LIST_TYPE);
+                    if (saved != null) {
+                        HISTORY.addAll(saved);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private static synchronized void appendHistory(ReloadHistoryEntry entry) {
+        ensureHistoryLoaded();
+        HISTORY.add(entry);
+        while (HISTORY.size() > MAX_HISTORY) {
+            HISTORY.removeFirst();
+        }
+        try {
+            Path file = resolveHistoryPath();
+            if (file == null) return;
+            if (file.getParent() != null) Files.createDirectories(file.getParent());
+            Path tmp = file.resolveSibling("history.json.tmp");
+            try (Writer writer = Files.newBufferedWriter(tmp)) {
+                GSON.toJson(new ArrayList<>(HISTORY), HISTORY_LIST_TYPE, writer);
+            }
+            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+        } catch (Throwable ignored) {}
+    }
+
+    private static Path resolveHistoryPath() {
+        try {
+            FabricLoader fl = FabricLoader.getInstance();
+            if (fl != null && fl.getConfigDir() != null) {
+                return fl.getConfigDir().resolve("muto").resolve("history.json");
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     public synchronized ReloadResult execute(ReloadPlan plan, Consumer<String> stageNotifier) {
@@ -91,7 +160,7 @@ public final class ReloadEngine {
                 MutoLog.info("no mod changes detected, reload is a no-op ({}ms)", noopMs);
                 MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
                         System.currentTimeMillis(), diff, true, noopMs, null);
-                HISTORY.add(new ReloadHistoryEntry(startMs, noopMs, diff, true, stepLogs));
+                appendHistory(new ReloadHistoryEntry(startMs, noopMs, diff, true, stepLogs));
                 return ReloadResult.ok(diff, noopMs);
             }
 
@@ -114,18 +183,26 @@ public final class ReloadEngine {
                 }
             }
 
-            if (!diff.updated().isEmpty() || !diff.removed().isEmpty()) {
-                MutoLog.info("{} updated / {} removed mod(s) queued for runtime reload",
-                        diff.updated().size(), diff.removed().size());
-            }
-
             ClassLoader knotCl = KnotInjector.getKnotClassLoader();
             ClassLoader prevCl = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(knotCl);
 
+            Set<String> affectedNamespaces = new LinkedHashSet<>();
+            affectedNamespaces.addAll(diff.added());
+            affectedNamespaces.addAll(diff.removed());
+            affectedNamespaces.addAll(diff.updated());
+
+            Map<String, List<Object>> backupInstances = new LinkedHashMap<>();
+            for (String ns : affectedNamespaces) {
+                List<Object> existing = instancesByMod.get(ns);
+                if (existing != null) {
+                    backupInstances.put(ns, new ArrayList<>(existing));
+                }
+            }
+            var registryBackup = RegistryFreezer.snapshotNamespaces(affectedNamespaces);
+
             try {
                 List<Path> allInjectedPaths = new ArrayList<>();
-                // Stage 1: Knot runtime classpath injection
                 if (!initializable.isEmpty()) {
                     notify(stageNotifier, stepLogs, "Injecting mod jars into KnotClassLoader...");
                     for (ScannedMod m : initializable) {
@@ -135,7 +212,10 @@ public final class ReloadEngine {
                     }
                 }
 
-                // Stage 2: Dynamic Mixin configuration registration
+                for (ScannedMod mod : initializable) {
+                    preflightCheck(knotCl, mod);
+                }
+
                 if (!allInjectedPaths.isEmpty()) {
                     notify(stageNotifier, stepLogs, "Registering dynamic mixin configurations...");
                     for (Path p : allInjectedPaths) {
@@ -146,7 +226,6 @@ public final class ReloadEngine {
                     }
                 }
 
-                // Stage 3: Tear down removed and updated mod contexts
                 if (!diff.removed().isEmpty()) {
                     notify(stageNotifier, stepLogs, "Tearing down removed mod contexts...");
                     for (String rem : diff.removed()) {
@@ -161,11 +240,6 @@ public final class ReloadEngine {
                     notify(stageNotifier, stepLogs, String.format("Refreshed mod context: %s", upd));
                 }
 
-                // Stage 4: Unfreeze registries & instantiate entrypoints inside Knot
-                for (ScannedMod mod : initializable) {
-                    preflightCheck(knotCl, mod);
-                }
-
                 notify(stageNotifier, stepLogs, "Unfreezing registries & invoking entrypoints in Knot...");
                 RegistryFreezer.unfreezeAll();
 
@@ -174,18 +248,15 @@ public final class ReloadEngine {
                     initializeMod(mod);
                 }
 
-                // Stage 5: Refreeze registries
                 notify(stageNotifier, stepLogs, "Finalizing engine state & freezing registries...");
                 RegistryFreezer.freezeAll();
 
-                // Synchronize newly registered keymappings into Minecraft Options
                 syncKeyMappings();
 
-                // Stage 6: Sync loader metadata
                 notify(stageNotifier, stepLogs, "Synchronizing Fabric Loader mod metadata...");
                 syncFabricLoader(plan.targetSnapshot(), diff);
 
-                if (me.fy2ne.muto.config.MutoConfig.get().autoReloadResources && (!initializable.isEmpty() || !diff.removed().isEmpty())) {
+                if (autoReloadResources && (!initializable.isEmpty() || !diff.removed().isEmpty())) {
                     notify(stageNotifier, stepLogs, "Mounting resources & reloading OpenGL shaders...");
                     try {
                         ResourceHotMount.remountAndReload().get(15, java.util.concurrent.TimeUnit.SECONDS);
@@ -209,15 +280,21 @@ public final class ReloadEngine {
                         null
                 );
 
-                HISTORY.add(new ReloadHistoryEntry(startMs, durationMs, diff, true, stepLogs));
+                appendHistory(new ReloadHistoryEntry(startMs, durationMs, diff, true, stepLogs));
                 return ReloadResult.ok(diff, durationMs);
 
             } catch (Throwable err) {
                 long durationMs = System.currentTimeMillis() - startMs;
-                String failMsg = "Reload failed: " + err.getMessage();
+                String failMsg = "Reload failed (rolled back): " + err.getMessage();
                 notify(stageNotifier, stepLogs, failMsg);
-                MutoLog.error("reload failed, rolling back: {}", err.getMessage(), err);
+                MutoLog.error("reload failed, executing transaction rollback: {}", err.getMessage(), err);
 
+                // roll back newly created instances and restore prior state
+                for (ScannedMod m : initializable) {
+                    teardownMod(m.id());
+                }
+                instancesByMod.putAll(backupInstances);
+                RegistryFreezer.restoreSnapshot(affectedNamespaces, registryBackup);
                 RegistryFreezer.freezeAll();
 
                 MutoEvents.RELOAD_FINISH.invoker().onReloadFinish(
@@ -228,7 +305,7 @@ public final class ReloadEngine {
                         err
                 );
 
-                HISTORY.add(new ReloadHistoryEntry(startMs, durationMs, diff, false, stepLogs));
+                appendHistory(new ReloadHistoryEntry(startMs, durationMs, diff, false, stepLogs));
                 return ReloadResult.fail(diff, durationMs, err.getMessage());
             } finally {
                 Thread.currentThread().setContextClassLoader(prevCl);
@@ -254,14 +331,10 @@ public final class ReloadEngine {
                 closeQuietly(inst);
             }
         }
-        // Do not purge PayloadTypeRegistry codecs: lingering server mixins from disabled mods
-        // may still emit packets; keeping codecs registered prevents fatal ClassCastException / ClosedChannelException
         teardownNetworking(modId);
     }
 
     private void teardownNetworking(String modId) {
-        // Codecs in PayloadTypeRegistry are retained intentionally for protocol safety.
-        // Receiver listeners in GlobalReceiverRegistry are made idempotent by GlobalReceiverRegistryMixin.
     }
 
     private void closeQuietly(Object inst) {
@@ -276,13 +349,12 @@ public final class ReloadEngine {
         }
     }
 
-    private void initializeMod(ScannedMod mod) {
+    private void initializeMod(ScannedMod mod) throws Exception {
         List<Object> created = new ArrayList<>();
         ClassLoader knotCl = Thread.currentThread().getContextClassLoader();
 
-        // Main entrypoints
-        for (String clsName : mod.getClassesFor("main")) {
-            try {
+        try {
+            for (String clsName : mod.getClassesFor("main")) {
                 Class<?> cls = Class.forName(clsName, true, knotCl);
                 Object obj = cls.getDeclaredConstructor().newInstance();
                 created.add(obj);
@@ -291,20 +363,18 @@ public final class ReloadEngine {
                     init.onInitialize();
                     MutoLog.info("initialized main in knot: {}", clsName);
                 }
-            } catch (Throwable ex) {
-                MutoLog.error("failed initializing main entrypoint {}: {}", clsName, ex.getMessage(), ex);
             }
-        }
 
-        // Client entrypoints
-        for (String clsName : mod.getClassesFor("client")) {
-            try {
+            for (String clsName : mod.getClassesFor("client")) {
                 Class<?> cls = Class.forName(clsName, true, knotCl);
                 Object obj = cls.getDeclaredConstructor().newInstance();
                 created.add(obj);
 
                 if (obj instanceof ClientModInitializer clientInit) {
-                    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                    net.minecraft.client.Minecraft mc = null;
+                    try {
+                        mc = net.minecraft.client.Minecraft.getInstance();
+                    } catch (Throwable ignored) {}
                     if (mc != null && !mc.isSameThread()) {
                         mc.submit(clientInit::onInitializeClient).get();
                     } else {
@@ -312,9 +382,14 @@ public final class ReloadEngine {
                     }
                     MutoLog.info("initialized client in knot: {}", clsName);
                 }
-            } catch (Throwable ex) {
-                MutoLog.error("failed initializing client entrypoint {}: {}", clsName, ex.getMessage(), ex);
             }
+        } catch (Throwable ex) {
+            for (Object inst : created) {
+                closeQuietly(inst);
+            }
+            MutoLog.error("entrypoint failure in {}: {}", mod.id(), ex.getMessage(), ex);
+            if (ex instanceof Exception e) throw e;
+            throw new RuntimeException(ex);
         }
 
         if (!created.isEmpty()) {

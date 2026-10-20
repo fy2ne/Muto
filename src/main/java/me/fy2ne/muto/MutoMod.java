@@ -1,6 +1,7 @@
 package me.fy2ne.muto;
 
 import me.fy2ne.muto.engine.ReloadEngine;
+import me.fy2ne.muto.mods.DisabledModsRegistry;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -18,6 +19,7 @@ public final class MutoMod implements ClientModInitializer {
         detectRuntimeCapabilities();
         try {
             Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+            DisabledModsRegistry.reconcileFileRenames(modsDir);
             ReloadEngine.INSTANCE.recordInitialSnapshot(modsDir);
         } catch (Throwable t) {
             MutoLog.warn("baseline snapshot deferred: {}", t.getMessage());

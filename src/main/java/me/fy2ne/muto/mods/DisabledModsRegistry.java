@@ -11,6 +11,7 @@ import java.io.Writer;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ public final class DisabledModsRegistry {
     private static final Type SET_TYPE = new TypeToken<HashSet<String>>() {}.getType();
     private static final Set<String> DISABLED_IDS = new HashSet<>();
     private static Path configPath;
+    private static Path journalPath;
     private static boolean initialized = false;
 
     private DisabledModsRegistry() {}
@@ -31,6 +33,13 @@ public final class DisabledModsRegistry {
                 Files.createDirectories(dir);
             }
             configPath = dir.resolve("disabled_mods.json");
+            journalPath = dir.resolve("disabled_mods.json.tmp");
+
+            // recover interrupted atomic write if process died mid-flush
+            if (!Files.exists(configPath) && Files.exists(journalPath)) {
+                Files.move(journalPath, configPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
             if (Files.exists(configPath)) {
                 try (Reader reader = Files.newBufferedReader(configPath)) {
                     Set<String> loaded = GSON.fromJson(reader, SET_TYPE);
@@ -69,9 +78,12 @@ public final class DisabledModsRegistry {
     }
 
     private static synchronized void save() {
-        if (configPath == null) return;
-        try (Writer writer = Files.newBufferedWriter(configPath)) {
-            GSON.toJson(DISABLED_IDS, SET_TYPE, writer);
+        if (configPath == null || journalPath == null) return;
+        try {
+            try (Writer writer = Files.newBufferedWriter(journalPath)) {
+                GSON.toJson(DISABLED_IDS, SET_TYPE, writer);
+            }
+            Files.move(journalPath, configPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (Throwable t) {
             MutoLog.error("failed saving disabled mods registry: {}", t.getMessage());
         }
@@ -80,6 +92,7 @@ public final class DisabledModsRegistry {
     public static synchronized void reconcileFileRenames(Path modsDir) {
         ensureInit();
         if (modsDir == null || !Files.isDirectory(modsDir)) return;
+        boolean registryUpdated = false;
         try (var stream = Files.newDirectoryStream(modsDir)) {
             for (Path path : stream) {
                 if (!Files.isRegularFile(path)) continue;
@@ -88,24 +101,44 @@ public final class DisabledModsRegistry {
                 if (fn.endsWith(".jar")) {
                     String id = readModId(path);
                     if (id != null && DISABLED_IDS.contains(id)) {
+                        Path target = path.resolveSibling(fn + ".disabled");
+                        if (Files.exists(target)) {
+                            // crash left both .jar and .jar.disabled; keep the newer one as .disabled
+                            try {
+                                Files.deleteIfExists(path);
+                                MutoLog.info("cleaned duplicate jar after crash: {}", fn);
+                            } catch (Throwable ignored) {}
+                            continue;
+                        }
                         try {
-                            Path target = path.resolveSibling(fn + ".disabled");
-                            Files.move(path, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            Files.move(path, target, StandardCopyOption.REPLACE_EXISTING);
                             MutoLog.info("reconciled disable rename: {} -> {}", fn, target.getFileName());
                         } catch (Throwable t) {
                             MutoLog.warn("file {} locked on disk, rename deferred: {}", fn, t.getMessage());
                         }
                     }
-                } else if (fn.endsWith(".jar.disabled")) {
+                } else if (fn.endsWith(".jar.disabled") || fn.endsWith(".deactivation")) {
                     String id = readModId(path);
-                    if (id != null && !DISABLED_IDS.contains(id)) {
+                    if (id == null) continue;
+                    String suffix = fn.endsWith(".jar.disabled") ? ".disabled" : ".deactivation";
+                    String baseJarName = fn.substring(0, fn.length() - suffix.length());
+                    if (!baseJarName.endsWith(".jar")) baseJarName += ".jar";
+
+                    if (!DISABLED_IDS.contains(id)) {
+                        Path target = path.resolveSibling(baseJarName);
+                        if (Files.exists(target)) {
+                            try {
+                                Files.deleteIfExists(path);
+                            } catch (Throwable ignored) {}
+                            continue;
+                        }
                         try {
-                            String targetName = fn.substring(0, fn.length() - ".disabled".length());
-                            Path target = path.resolveSibling(targetName);
-                            Files.move(path, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            Files.move(path, target, StandardCopyOption.REPLACE_EXISTING);
                             MutoLog.info("reconciled enable rename: {} -> {}", fn, target.getFileName());
                         } catch (Throwable t) {
-                            MutoLog.warn("file {} locked on disk, rename deferred: {}", fn, t.getMessage());
+                            // if user manually renamed a file to .disabled outside the game, sync registry
+                            DISABLED_IDS.add(id);
+                            registryUpdated = true;
                         }
                     }
                 }
@@ -113,6 +146,7 @@ public final class DisabledModsRegistry {
         } catch (Throwable t) {
             MutoLog.warn("failed reconciling disabled file renames: {}", t.getMessage());
         }
+        if (registryUpdated) save();
     }
 
     private static String readModId(Path path) {

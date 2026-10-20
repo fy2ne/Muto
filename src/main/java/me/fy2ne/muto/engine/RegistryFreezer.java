@@ -47,6 +47,15 @@ public final class RegistryFreezer {
         }
     }
 
+    public record EntryBackup(
+            Identifier id,
+            ResourceKey<?> key,
+            Object holder,
+            Object value,
+            Object regInfo,
+            Integer rawId
+    ) {}
+
     public static boolean setFrozen(MappedRegistry<?> reg, boolean state) {
         if (reg instanceof MappedRegistryAccessor accessor) {
             accessor.muto$setFrozen(state);
@@ -100,6 +109,125 @@ public final class RegistryFreezer {
             MutoLog.error("freeze pass failed: {}", t.getMessage());
         }
         return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<MappedRegistry<?>, List<EntryBackup>> snapshotNamespaces(Collection<String> namespaces) {
+        Map<MappedRegistry<?>, List<EntryBackup>> snap = new IdentityHashMap<>();
+        if (namespaces == null || namespaces.isEmpty() || byLocationField == null || byKeyField == null) {
+            return snap;
+        }
+
+        Set<String> lowerNs = new HashSet<>();
+        for (String ns : namespaces) {
+            if (ns != null) lowerNs.add(ns.toLowerCase(Locale.ROOT));
+        }
+
+        try {
+            for (Registry<?> reg : BuiltInRegistries.REGISTRY) {
+                if (!(reg instanceof MappedRegistry<?> mapped)) continue;
+
+                Map<Identifier, Object> locMap = (Map<Identifier, Object>) byLocationField.get(mapped);
+                Map<ResourceKey<?>, Object> keyMap = (Map<ResourceKey<?>, Object>) byKeyField.get(mapped);
+                Map<Object, Object> valMap = byValueField != null ? (Map<Object, Object>) byValueField.get(mapped) : null;
+                Map<ResourceKey<?>, Object> infoMap = registrationInfosField != null ? (Map<ResourceKey<?>, Object>) registrationInfosField.get(mapped) : null;
+                Map<Object, Integer> toIdMap = toIdField != null ? (Map<Object, Integer>) toIdField.get(mapped) : null;
+
+                if (locMap == null || keyMap == null) continue;
+
+                List<EntryBackup> entries = new ArrayList<>();
+                for (var e : locMap.entrySet()) {
+                    Identifier id = e.getKey();
+                    if (!lowerNs.contains(id.getNamespace().toLowerCase(Locale.ROOT))) continue;
+
+                    Object holder = e.getValue();
+                    ResourceKey<?> matchedKey = null;
+                    for (ResourceKey<?> rk : keyMap.keySet()) {
+                        if (rk.identifier().equals(id)) {
+                            matchedKey = rk;
+                            break;
+                        }
+                    }
+
+                    Object value = null;
+                    if (valMap != null) {
+                        for (var ve : valMap.entrySet()) {
+                            if (Objects.equals(ve.getValue(), holder)) {
+                                value = ve.getKey();
+                                break;
+                            }
+                        }
+                    }
+                    if (value == null && holder instanceof net.minecraft.core.Holder.Reference<?> ref) {
+                        try { value = ref.value(); } catch (Throwable ignored) {}
+                    }
+
+                    Object info = (matchedKey != null && infoMap != null) ? infoMap.get(matchedKey) : null;
+                    Integer rawId = (value != null && toIdMap != null) ? toIdMap.get(value) : null;
+
+                    entries.add(new EntryBackup(id, matchedKey, holder, value, info, rawId));
+                }
+
+                if (!entries.isEmpty()) {
+                    snap.put(mapped, entries);
+                }
+            }
+        } catch (LinkageError ignored) {
+        } catch (Throwable t) {
+            MutoLog.warn("registry snapshot warning: {}", t.getMessage());
+        }
+        return snap;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void restoreSnapshot(Collection<String> namespaces, Map<MappedRegistry<?>, List<EntryBackup>> snap) {
+        if (namespaces != null) {
+            for (String ns : namespaces) {
+                pruneNamespace(ns);
+            }
+        }
+        if (snap == null || snap.isEmpty() || byLocationField == null || byKeyField == null) return;
+
+        int restored = 0;
+        try {
+            for (var regEntry : snap.entrySet()) {
+                MappedRegistry<?> mapped = regEntry.getKey();
+                Map<Identifier, Object> locMap = (Map<Identifier, Object>) byLocationField.get(mapped);
+                Map<ResourceKey<?>, Object> keyMap = (Map<ResourceKey<?>, Object>) byKeyField.get(mapped);
+                Map<Object, Object> valMap = byValueField != null ? (Map<Object, Object>) byValueField.get(mapped) : null;
+                Map<ResourceKey<?>, Object> infoMap = registrationInfosField != null ? (Map<ResourceKey<?>, Object>) registrationInfosField.get(mapped) : null;
+                List<Object> byIdList = byIdField != null ? (List<Object>) byIdField.get(mapped) : null;
+                Map<Object, Integer> toIdMap = toIdField != null ? (Map<Object, Integer>) toIdField.get(mapped) : null;
+
+                for (EntryBackup b : regEntry.getValue()) {
+                    if (locMap != null && b.holder() != null) {
+                        locMap.put(b.id(), b.holder());
+                    }
+                    if (keyMap != null && b.key() != null && b.holder() != null) {
+                        keyMap.put(b.key(), b.holder());
+                    }
+                    if (valMap != null && b.value() != null && b.holder() != null) {
+                        valMap.put(b.value(), b.holder());
+                    }
+                    if (infoMap != null && b.key() != null && b.regInfo() != null) {
+                        infoMap.put(b.key(), b.regInfo());
+                    }
+                    if (b.rawId() != null && b.value() != null && toIdMap != null && byIdList != null) {
+                        while (byIdList.size() <= b.rawId()) {
+                            byIdList.add(null);
+                        }
+                        byIdList.set(b.rawId(), b.holder());
+                        toIdMap.put(b.value(), b.rawId());
+                    }
+                    restored++;
+                }
+            }
+            if (restored > 0) {
+                MutoLog.info("tx rollback restored {} registry entries", restored);
+            }
+        } catch (Throwable t) {
+            MutoLog.error("tx rollback restore error: {}", t.getMessage());
+        }
     }
 
     @SuppressWarnings("unchecked")

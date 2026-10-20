@@ -3,6 +3,8 @@ package me.fy2ne.muto.mods;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.fy2ne.muto.MutoLog;
+import me.fy2ne.muto.automation.ModsFolderWatcher;
+import me.fy2ne.muto.engine.ModDependencyAnalyzer;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.InputStream;
@@ -123,6 +125,43 @@ public final class ModStateManager {
         return new HashSet<>(stagedEnables);
     }
 
+    public synchronized List<DiskMod> getDependents(String targetModId, List<DiskMod> diskMods) {
+        if (targetModId == null || diskMods == null) return Collections.emptyList();
+        List<DiskMod> broken = new ArrayList<>();
+        for (DiskMod m : diskMods) {
+            if (m.id().equals(targetModId)) continue;
+            if (!getStagedState(m.id())) continue;
+            if (m.depends().containsKey(targetModId)) {
+                broken.add(m);
+            }
+        }
+        return broken;
+    }
+
+    public synchronized List<String> getMissingDependencies(DiskMod mod, List<DiskMod> diskMods) {
+        if (mod == null || mod.depends().isEmpty()) return Collections.emptyList();
+        Set<String> enabled = new HashSet<>( List.of("minecraft", "fabricloader", "fabric", "fabric-api", "java", "muto") );
+        if (diskMods != null) {
+            for (DiskMod m : diskMods) {
+                if (getStagedState(m.id()) || m.id().equals(mod.id())) {
+                    enabled.add(m.id());
+                }
+            }
+        }
+        try (JarFile jf = new JarFile(mod.filePath().toFile())) {
+            enabled.addAll(ModDependencyAnalyzer.scanInternalJijIds(jf));
+        } catch (Throwable ignored) {}
+
+        List<String> missing = new ArrayList<>();
+        for (String dep : mod.depends().keySet()) {
+            if (dep.startsWith("fabric-api") || dep.startsWith("fabric-")) continue;
+            if (!enabled.contains(dep)) {
+                missing.add(dep);
+            }
+        }
+        return missing;
+    }
+
     public List<DiskMod> scanDiskMods() {
         Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
         if (!Files.isDirectory(modsDir)) {
@@ -174,11 +213,18 @@ public final class ModStateManager {
                 String name = root.has("name") ? root.get("name").getAsString() : id;
                 String version = root.has("version") ? root.get("version").getAsString() : "?";
 
+                Map<String, String> depends = new LinkedHashMap<>();
+                if (root.has("depends") && root.get("depends").isJsonObject()) {
+                    for (var e : root.getAsJsonObject("depends").entrySet()) {
+                        depends.put(e.getKey(), e.getValue().isJsonPrimitive() ? e.getValue().getAsString() : "*");
+                    }
+                }
+
                 boolean active = activeLoaderIds.contains(id);
                 boolean core = isCore(id);
 
                 boolean isGloballyDisabled = disabled || DisabledModsRegistry.isDisabled(id);
-                return new DiskMod(id, name, version, path, isGloballyDisabled, active, core);
+                return new DiskMod(id, name, version, path, isGloballyDisabled, active, core, Collections.unmodifiableMap(depends));
             }
         } catch (Exception ignored) {
             return null;
@@ -186,6 +232,7 @@ public final class ModStateManager {
     }
 
     public synchronized List<String> applyFileRenames() {
+        ModsFolderWatcher.suppressForMs(2500);
         List<String> logMessages = new ArrayList<>();
         List<DiskMod> all = scanDiskMods();
         Map<String, DiskMod> byId = new HashMap<>();
