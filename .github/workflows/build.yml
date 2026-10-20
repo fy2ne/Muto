@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, '*.x']
   pull_request:
-    branches: [main]
+    branches: [main, '*.x']
 
 jobs:
   build:
@@ -40,3 +40,5 @@ jobs:
         with:
           name: test-reports
           path: build/reports/tests/
+
+
