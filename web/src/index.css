@@ -34,12 +34,6 @@ html, body, #root {
 body {
   margin: 0;
   background-color: #000000;
-  background-image: 
-    radial-gradient(circle, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
-    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 80px 80px;
-  background-position: -0.5px -0.5px, 0 0, 0 0;
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -77,7 +71,13 @@ button {
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--toc-w);
   height: 100vh;
-  background: #000000;
+  background-color: #000000;
+  background-image: 
+    radial-gradient(circle, var(--grid-dot, rgba(255, 255, 255, 0.2)) 1.3px, transparent 1.3px),
+    linear-gradient(to right, var(--grid-line, rgba(255, 255, 255, 0.035)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line, rgba(255, 255, 255, 0.035)) 1px, transparent 1px);
+  background-size: 80px 80px;
+  background-position: -0.5px -0.5px, 0 0, 0 0;
   overflow: hidden;
 }
 
@@ -158,7 +158,15 @@ button {
 .sb-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.sb-brand-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .brand-diamond {
@@ -609,7 +617,7 @@ button {
 }
 
 .toc-accent-bar {
-  height: 3px;
+  height: 6px;
   background: var(--accent);
   margin: 0 -20px 24px;
 }
@@ -762,50 +770,64 @@ button {
   min-width: 0;
 }
 
-/* === Theme Variants (Zero Yellow in Menu Wiki) === */
+/* === Theme Variants (Yellow Golden for Runtime, Blue #134cff for Menu) === */
 .docs-shell.theme-runtime {
   --accent: #f59e0b;
+  --accent-light: #fbbf24;
+  --grid-line: rgba(245, 158, 11, 0.05);
+  --grid-dot: rgba(245, 158, 11, 0.45);
+  --border: rgba(245, 158, 11, 0.12);
+  --border-strong: rgba(245, 158, 11, 0.22);
+}
+
+.docs-shell.theme-runtime .sb-brand-logo {
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.2));
 }
 
 .docs-shell.theme-menu {
-  --accent: #38bdf8;
+  --accent: #134cff;
+  --accent-light: #4475ff;
+  --grid-line: rgba(19, 76, 255, 0.065);
+  --grid-dot: rgba(19, 76, 255, 0.55);
+  --border: rgba(19, 76, 255, 0.14);
+  --border-strong: rgba(19, 76, 255, 0.28);
 }
 
-.docs-shell.theme-menu .brand-diamond {
-  color: #38bdf8;
+.docs-shell.theme-menu .sb-brand-logo {
+  filter: drop-shadow(0 0 6px rgba(19, 76, 255, 0.25));
 }
 
 .docs-shell.theme-menu .sb-link.active {
-  color: #38bdf8;
+  color: #4475ff;
 }
 
 .docs-shell.theme-menu .sb-link.active .sb-link-icon {
-  color: #38bdf8;
+  color: #134cff;
 }
 
 .docs-shell.theme-menu .toc-anchor.active {
-  color: #38bdf8;
+  color: #4475ff;
 }
 
 .docs-shell.theme-menu .toc-anchor.active .toc-num {
-  color: #38bdf8;
+  color: #134cff;
 }
 
 .docs-shell.theme-menu .toc-accent-bar {
-  background: #38bdf8;
+  background: #134cff;
 }
 
 .docs-shell.theme-menu .toc-search-box:focus-within {
-  border-color: #38bdf8;
+  border-color: #134cff;
 }
 
 .docs-shell.theme-menu .md a {
-  color: #38bdf8;
-  border-bottom-color: rgba(56, 189, 248, 0.25);
+  color: #4475ff;
+  border-bottom-color: rgba(19, 76, 255, 0.35);
 }
 
 .docs-shell.theme-menu .md a:hover {
-  border-bottom-color: #38bdf8;
+  border-bottom-color: #4475ff;
 }
 
 .docs-shell.theme-menu .doc-alert,
@@ -813,10 +835,11 @@ button {
 .docs-shell.theme-menu .alert-tip,
 .docs-shell.theme-menu .alert-important,
 .docs-shell.theme-menu .alert-warning {
-  --alert-color: #38bdf8;
-  border-left-color: #38bdf8;
+  --alert-color: #134cff;
+  border-left-color: #134cff;
+  background: rgba(19, 76, 255, 0.05);
 }
 
 .docs-shell.theme-menu .doc-alert-label {
-  color: #38bdf8;
+  color: #4475ff;
 }

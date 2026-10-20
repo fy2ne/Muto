@@ -474,8 +474,7 @@ function ArticleContent({ id }) {
             <li>Artifact: <code>muto</code></li>
             <li>Package root: <code>me.fy2ne.muto</code></li>
             <li>Fabric mod id: <code>muto</code></li>
-            <li>Current release: <code>{VERSION}</code></li>
-          </ul>
+                      </ul>
 
           <h2 id="adding">Gradle setup</h2>
           <p>Pull the artifact from local Maven or GitHub Packages / Modrinth Maven:</p>
@@ -1267,12 +1266,15 @@ export default function App() {
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
         <div className="sb-header">
           <div className="sb-brand">
-            <span className="brand-diamond">❖</span>
+            <img
+              src={product === "runtime" ? "/logo-runtime.png" : "/logo-menu.png"}
+              alt={product === "runtime" ? "Muto Runtime" : "Muto Menu"}
+              className="sb-brand-logo"
+            />
             <span className="brand-title">
               {product === "runtime" ? "MUTO RUNTIME" : "MUTO MENU"}
             </span>
           </div>
-          <span className="sb-tag">26.x</span>
         </div>
 
         <div className="sb-scroll">
@@ -1349,7 +1351,7 @@ export default function App() {
                 Releases
               </a>
             </div>
-            <span>{product === "runtime" ? "Muto Runtime" : "Muto Menu"} {VERSION} · 26.x</span>
+            <span>{product === "runtime" ? "Muto Runtime" : "Muto Menu"}</span>
           </footer>
         </div>
       </main>
