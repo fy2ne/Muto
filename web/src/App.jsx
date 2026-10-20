@@ -1335,20 +1335,24 @@ export default function App() {
 
           <footer className="page-foot">
             <div className="page-foot-links">
-              <a href={`${currentRepo}/tree/26.x`} target="_blank" rel="noreferrer">
+              <a href={currentRepo} target="_blank" rel="noreferrer">
                 GitHub
               </a>
               <span className="sep">·</span>
               <a
-                href={product === "runtime" ? "https://modrinth.com/mod/muto" : "https://modrinth.com/mod/muto-menu"}
+                href={product === "runtime" ? "https://modrinth.com/mod/muto" : "https://modrinth.com/mod/mutomenu"}
                 target="_blank"
                 rel="noreferrer"
               >
                 Modrinth
               </a>
               <span className="sep">·</span>
-              <a href={`${currentRepo}/releases`} target="_blank" rel="noreferrer">
-                Releases
+              <a
+                href={product === "runtime" ? "https://www.curseforge.com/minecraft/mc-mods/muto" : "https://www.curseforge.com/minecraft/mc-mods/mutomenu"}
+                target="_blank"
+                rel="noreferrer"
+              >
+                CurseForge
               </a>
             </div>
             <span>{product === "runtime" ? "Muto Runtime" : "Muto Menu"}</span>

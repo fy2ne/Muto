@@ -73,11 +73,20 @@ button {
   height: 100vh;
   background-color: #000000;
   background-image: 
-    radial-gradient(circle, var(--grid-dot, rgba(255, 255, 255, 0.2)) 1.3px, transparent 1.3px),
-    linear-gradient(to right, var(--grid-line, rgba(255, 255, 255, 0.035)) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line, rgba(255, 255, 255, 0.035)) 1px, transparent 1px);
-  background-size: 80px 80px;
-  background-position: -0.5px -0.5px, 0 0, 0 0;
+    radial-gradient(1px 1px at 37px 42px, var(--star-bright) 100%, transparent 100%),
+    radial-gradient(1px 1px at 142px 218px, var(--star-dim) 100%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 284px 93px, var(--star-bright) 100%, transparent 100%),
+    radial-gradient(1px 1px at 398px 341px, var(--star-dim) 100%, transparent 100%),
+    radial-gradient(1px 1px at 512px 112px, var(--star-bright) 100%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 623px 274px, var(--star-dim) 100%, transparent 100%),
+    radial-gradient(1px 1px at 745px 58px, var(--star-bright) 100%, transparent 100%),
+    radial-gradient(1px 1px at 861px 389px, var(--star-dim) 100%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 98px 462px, var(--star-dim) 100%, transparent 100%),
+    radial-gradient(1px 1px at 219px 531px, var(--star-bright) 100%, transparent 100%),
+    radial-gradient(1px 1px at 456px 487px, var(--star-bright) 100%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 687px 512px, var(--star-dim) 100%, transparent 100%),
+    radial-gradient(1px 1px at 812px 224px, var(--star-bright) 100%, transparent 100%);
+  background-size: 890px 580px;
   overflow: hidden;
 }
 
@@ -774,10 +783,10 @@ button {
 .docs-shell.theme-runtime {
   --accent: #f59e0b;
   --accent-light: #fbbf24;
-  --grid-line: rgba(245, 158, 11, 0.05);
-  --grid-dot: rgba(245, 158, 11, 0.45);
-  --border: rgba(245, 158, 11, 0.12);
-  --border-strong: rgba(245, 158, 11, 0.22);
+  --star-bright: rgba(245, 158, 11, 0.45);
+  --star-dim: rgba(251, 191, 36, 0.22);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
 }
 
 .docs-shell.theme-runtime .sb-brand-logo {
@@ -787,8 +796,8 @@ button {
 .docs-shell.theme-menu {
   --accent: #134cff;
   --accent-light: #4475ff;
-  --grid-line: rgba(19, 76, 255, 0.065);
-  --grid-dot: rgba(19, 76, 255, 0.55);
+  --star-bright: rgba(19, 76, 255, 0.65);
+  --star-dim: rgba(68, 117, 255, 0.3);
   --border: rgba(19, 76, 255, 0.14);
   --border-strong: rgba(19, 76, 255, 0.28);
 }

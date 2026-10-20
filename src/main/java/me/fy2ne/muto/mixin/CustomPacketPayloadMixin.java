@@ -2,10 +2,11 @@ package me.fy2ne.muto.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -15,7 +16,7 @@ public abstract class CustomPacketPayloadMixin {
     private int muto$packetStartIndex = -1;
 
     @Inject(method = "writeCap", at = @At("HEAD"))
-    private void muto$markPacketStart(Object buf, Object type, Object payload, CallbackInfo ci) {
+    private void muto$markPacketStart(FriendlyByteBuf buf, CustomPacketPayload.Type<?> type, CustomPacketPayload payload, CallbackInfo ci) {
         if (buf instanceof io.netty.buffer.ByteBuf bb) {
             muto$packetStartIndex = bb.writerIndex();
         }
