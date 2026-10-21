@@ -31,7 +31,13 @@ public final class ModScanner {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(modsDir, "*.jar")) {
             for (Path jar : stream) {
                 ScannedMod mod = probe(jar);
-                if (mod != null) found.add(mod);
+                if (mod != null) {
+                    if (me.fy2ne.muto.mods.DisabledModsRegistry.isDisabled(mod.id())) {
+                        MutoLog.info("mod {} is disabled in registry, excluding from active snapshot", mod.id());
+                        continue;
+                    }
+                    found.add(mod);
+                }
             }
         } catch (Exception ex) {
             MutoLog.error("scan failed", ex);

@@ -387,9 +387,17 @@ public final class ReloadEngine {
             for (Object inst : created) {
                 closeQuietly(inst);
             }
-            MutoLog.error("entrypoint failure in {}: {}", mod.id(), ex.getMessage(), ex);
-            if (ex instanceof Exception e) throw e;
-            throw new RuntimeException(ex);
+            String msg = ex.getMessage() != null ? ex.getMessage() : "";
+            Throwable cause = ex.getCause();
+            String causeMsg = cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+            if (msg.contains("already been bound") || causeMsg.contains("already been bound")
+                    || msg.contains("Already initialized") || causeMsg.contains("Already initialized")) {
+                MutoLog.warn("ignoring duplicate binding in {}: {}", mod.id(), msg);
+            } else {
+                MutoLog.error("entrypoint failure in {}: {}", mod.id(), ex.getMessage(), ex);
+                if (ex instanceof Exception e) throw e;
+                throw new RuntimeException(ex);
+            }
         }
 
         if (!created.isEmpty()) {
