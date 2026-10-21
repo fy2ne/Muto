@@ -27,6 +27,8 @@ public final class ModStateManager {
             "fabric-api",
             "java",
             "muto",
+            "muto_menu",
+            "modmenu",
             "fabric-api-base",
             "fabric-lifecycle-events-v1",
             "fabric-resource-loader-v0"

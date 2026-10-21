@@ -117,29 +117,13 @@ public final class DisabledModsRegistry {
                             MutoLog.warn("file {} locked on disk, rename deferred: {}", fn, t.getMessage());
                         }
                     }
-                } else if (fn.endsWith(".jar.disabled") || fn.endsWith(".deactivation")) {
+                } else if (fn.endsWith(".jar.disabled") || fn.endsWith(".disabled") || fn.endsWith(".deactivation")) {
                     String id = readModId(path);
                     if (id == null) continue;
-                    String suffix = fn.endsWith(".jar.disabled") ? ".disabled" : ".deactivation";
-                    String baseJarName = fn.substring(0, fn.length() - suffix.length());
-                    if (!baseJarName.endsWith(".jar")) baseJarName += ".jar";
-
                     if (!DISABLED_IDS.contains(id)) {
-                        Path target = path.resolveSibling(baseJarName);
-                        if (Files.exists(target)) {
-                            try {
-                                Files.deleteIfExists(path);
-                            } catch (Throwable ignored) {}
-                            continue;
-                        }
-                        try {
-                            Files.move(path, target, StandardCopyOption.REPLACE_EXISTING);
-                            MutoLog.info("reconciled enable rename: {} -> {}", fn, target.getFileName());
-                        } catch (Throwable t) {
-                            // if user manually renamed a file to .disabled outside the game, sync registry
-                            DISABLED_IDS.add(id);
-                            registryUpdated = true;
-                        }
+                        DISABLED_IDS.add(id);
+                        registryUpdated = true;
+                        MutoLog.info("discovered disabled mod on disk, recorded in registry: {}", id);
                     }
                 }
             }
